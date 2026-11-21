@@ -3,22 +3,31 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Bookmark,
+  Check,
+  ClipboardPaste,
+  Columns2,
   Flame,
   FolderPlus,
   Heart,
   LayoutGrid,
+  Link2,
+  Loader2,
   Moon,
   Plus,
   Search,
   Settings2,
   SlidersHorizontal,
+  Square,
   Sun,
   TrendingUp,
+  Upload,
   X,
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus } from "@/lib/types";
 import { SEED_ADS, SEED_BOARDS, SEED_BRANDS } from "@/lib/seed-data";
-import { getActiveDays } from "@/lib/url-parser";
+import { getActiveDays, parseAdLink } from "@/lib/url-parser";
+import { Badge } from "@/components/reui/badge";
+import { Frame, FramePanel } from "@/components/reui/frame";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
 import { ImportModal } from "./ImportModal";
@@ -29,10 +38,10 @@ type ActiveView = "swipe" | "brands" | "favorites" | "boards" | "connectors";
 type SortOption = "newest" | "longest" | "reach";
 
 const STORAGE_KEYS = {
-  ads: "advault_ads_v1",
-  brands: "advault_brands_v1",
-  boards: "advault_boards_v1",
-  theme: "advault_theme_v1",
+  ads: "advault_ads_v2",
+  brands: "advault_brands_v2",
+  boards: "advault_boards_v2",
+  theme: "advault_theme_v2",
 };
 
 interface AdVaultAppProps {
@@ -50,6 +59,12 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [mobileCols, setMobileCols] = useState<1 | 2>(1);
+
+  // Quick-paste Foreplay bar state
+  const [quickLink, setQuickLink] = useState("");
+  const [quickImporting, setQuickImporting] = useState(false);
+  const [quickToast, setQuickToast] = useState<string | null>(null);
 
   // Search & filters
   const [search, setSearch] = useState("");
@@ -65,14 +80,19 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const [newBoardOpen, setNewBoardOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
 
-  // Hydrate from localStorage + register PWA Service Worker + handle Share Target
+  const applyThemeClass = (next: "dark" | "light") => {
+    document.documentElement.setAttribute("data-theme", next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+  };
+
+  // Hydrate from localStorage + live /api/status + PWA Service Worker + Share Target
   useEffect(() => {
-    // Register Service Worker for PWA installability
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
 
     let cancelled = false;
+
     fetch("/api/status", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -93,7 +113,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         if (savedBoards) setBoards(JSON.parse(savedBoards));
         if (savedTheme === "light" || savedTheme === "dark") {
           setTheme(savedTheme);
-          document.documentElement.setAttribute("data-theme", savedTheme);
+          applyThemeClass(savedTheme);
         }
       } catch {
         // fallback to seed data
@@ -120,7 +140,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     };
   }, []);
 
-  // Persist changes locally
   useEffect(() => {
     if (!hydrated) return;
     try {
@@ -128,14 +147,14 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       localStorage.setItem(STORAGE_KEYS.brands, JSON.stringify(brands));
       localStorage.setItem(STORAGE_KEYS.boards, JSON.stringify(boards));
     } catch {
-      // ignore storage quota errors
+      // ignore quota errors
     }
   }, [ads, brands, boards, hydrated]);
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
-    document.documentElement.setAttribute("data-theme", next);
+    applyThemeClass(next);
     try {
       localStorage.setItem(STORAGE_KEYS.theme, next);
     } catch {
@@ -143,7 +162,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     }
   };
 
-  // Ad mutations
   const handleToggleFavorite = (adId: string) => {
     setAds((prev) =>
       prev.map((a) => (a.id === adId ? { ...a, is_favorite: !a.is_favorite } : a))
@@ -175,7 +193,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
 
   const handleImportedAds = (newAds: Ad[]) => {
     setAds((prev) => [...newAds, ...prev]);
-    // Ensure any newly imported brand appears in Brand Tracker
     setBrands((prev) => {
       const existingIds = new Set(prev.map((b) => b.id));
       const added: Brand[] = [];
@@ -207,6 +224,43 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     setSelectedBrandId(null);
   };
 
+  // Inline quick-paste import (Foreplay 1-click flow)
+  const parsedQuickLink = useMemo(() => parseAdLink(quickLink), [quickLink]);
+
+  const handleQuickImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!parsedQuickLink.isValid) return;
+    setQuickImporting(true);
+    try {
+      const res = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: parsedQuickLink.rawUrl,
+          board_ids: selectedBoardId ? [selectedBoardId] : [],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok && data.ads?.length) {
+        handleImportedAds(data.ads);
+        setQuickLink("");
+        setQuickToast("Annonce gemt i dit bibliotek!");
+        setTimeout(() => setQuickToast(null), 2600);
+      }
+    } finally {
+      setQuickImporting(false);
+    }
+  };
+
+  const handleQuickClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text?.trim()) setQuickLink(text.trim());
+    } catch {
+      setImportOpen(true);
+    }
+  };
+
   const handleCreateBoard = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBoardName.trim()) return;
@@ -214,7 +268,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     const board: Board = {
       id: `board-${Date.now()}`,
       name: newBoardName.trim(),
-      description: "Eget board",
+      description: "Eget kurateret board",
       accent_color: palette[boards.length % palette.length],
       created_at: new Date().toISOString(),
     };
@@ -233,7 +287,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     );
   };
 
-  // Filtered & sorted ads
   const visibleAds = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = ads.filter((ad) => {
@@ -311,7 +364,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       className="flex min-h-dvh w-full"
       style={{ backgroundColor: "var(--bg-canvas)", color: "var(--text-primary)" }}
     >
-      {/* DESKTOP SIDEBAR */}
+      {/* DESKTOP SIDEBAR (ReUI / Foreplay Studio Shell) */}
       <aside
         className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r px-3.5 py-4 lg:flex"
         style={{
@@ -319,8 +372,8 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           borderColor: "var(--border-subtle)",
         }}
       >
-        {/* Brand Logo */}
-        <div className="mb-5 flex items-center justify-between px-1.5">
+        {/* Brand Header */}
+        <div className="mb-4 flex items-center justify-between px-1.5">
           <button
             type="button"
             onClick={() => {
@@ -334,16 +387,29 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             <img
               src="/icons/icon-192.png"
               alt="AdVault"
-              className="h-8 w-8 rounded-xl shadow-sm"
+              className="h-8 w-8 rounded-xl ring-1 ring-white/10"
             />
             <div>
               <p className="font-display text-sm font-bold leading-none tracking-tight">
                 AdVault
               </p>
-              <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Swipe & Brand Tracker
+              <p className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                Foreplay · TrendTrack
               </p>
             </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Skift tema"
+            className="rounded-lg border p-1.5 transition-colors hover:bg-muted"
+            style={{
+              borderColor: "var(--border-subtle)",
+              color: "var(--text-secondary)",
+            }}
+          >
+            {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
           </button>
         </div>
 
@@ -355,18 +421,18 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             setSharedUrl("");
             setImportOpen(true);
           }}
-          className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold shadow-sm transition-opacity hover:opacity-90"
           style={{
             backgroundColor: "var(--btn-primary-bg)",
             color: "var(--btn-primary-fg)",
           }}
         >
           <Plus className="h-4 w-4" />
-          Gem ny ad
+          Importér / Upload Ad
         </button>
 
         {/* Primary Nav */}
-        <nav className="space-y-1">
+        <nav className="space-y-0.5">
           {[
             {
               id: "swipe" as const,
@@ -448,7 +514,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         <div className="mt-6 flex-1 overflow-y-auto">
           <div className="mb-2 flex items-center justify-between px-3">
             <span
-              className="text-[11px] font-semibold uppercase tracking-wider"
+              className="text-[10px] font-semibold uppercase tracking-wider"
               style={{ color: "var(--text-muted)" }}
             >
               Boards
@@ -457,7 +523,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               type="button"
               onClick={() => setNewBoardOpen((v) => !v)}
               aria-label="Opret nyt board"
-              className="rounded-md p-1 transition-colors hover:bg-white/5"
+              className="rounded-md p-1 transition-colors hover:bg-muted"
               style={{ color: "var(--text-muted)" }}
             >
               <FolderPlus className="h-3.5 w-3.5" />
@@ -531,52 +597,62 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           </div>
         </div>
 
-        {/* Sidebar Footer: Mode + Theme Toggle */}
-        <div
-          className="mt-4 flex items-center justify-between border-t pt-3"
-          style={{ borderColor: "var(--border-subtle)" }}
+        {/* Live Connector Status Strip */}
+        <button
+          type="button"
+          onClick={() => setView("connectors")}
+          className="mt-4 flex flex-col gap-1.5 rounded-xl border p-2.5 text-left transition-colors hover:bg-muted/60"
+          style={{
+            backgroundColor: "var(--bg-elevated)",
+            borderColor: "var(--border-subtle)",
+          }}
         >
-          <button
-            type="button"
-            onClick={() => setView("connectors")}
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium"
-            style={{ color: "var(--text-muted)" }}
-          >
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{
-                backgroundColor:
-                  connectorStatus.mode === "live"
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold">Systemstatus</span>
+            <Badge
+              size="xs"
+              radius="full"
+              variant={connectorStatus.instabox ? "success-light" : "warning-light"}
+            >
+              {connectorStatus.instabox ? "InstaBox Klar" : "Demo"}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2 text-[10px]" style={{ color: "var(--text-muted)" }}>
+            <span className="inline-flex items-center gap-1">
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{
+                  backgroundColor: connectorStatus.supabase
                     ? "var(--accent-live)"
                     : "var(--accent-winner)",
-              }}
-            />
-            {connectorStatus.mode === "live" ? "Supabase Live" : "Lokal Mode"}
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label="Skift tema"
-            className="rounded-lg border p-1.5 transition-colors hover:bg-white/5"
-            style={{
-              borderColor: "var(--border-subtle)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-          </button>
-        </div>
+                }}
+              />
+              {connectorStatus.supabase ? "Supabase" : "Lokal DB"}
+            </span>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1">
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{
+                  backgroundColor: connectorStatus.instabox
+                    ? "var(--accent-live)"
+                    : "#6B7280",
+                }}
+              />
+              InstaBox
+            </span>
+          </div>
+        </button>
       </aside>
 
       {/* MAIN AREA */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* MOBILE TOP BAR */}
         <header
-          className="pt-safe sticky top-0 z-30 flex items-center justify-between border-b px-4 py-3 backdrop-blur-xl lg:hidden"
+          className="pt-safe sticky top-0 z-30 flex items-center justify-between border-b px-4 py-2.5 backdrop-blur-xl lg:hidden"
           style={{
             backgroundColor:
-              theme === "dark" ? "rgba(10, 11, 13, 0.85)" : "rgba(245, 244, 240, 0.88)",
+              theme === "dark" ? "rgba(9, 10, 12, 0.86)" : "rgba(245, 244, 240, 0.9)",
             borderColor: "var(--border-subtle)",
           }}
         >
@@ -588,7 +664,25 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {(view === "swipe" || view === "favorites") && (
+              <button
+                type="button"
+                onClick={() => setMobileCols((c) => (c === 1 ? 2 : 1))}
+                aria-label="Skift mobil kolonne-visning"
+                className="rounded-xl border p-2"
+                style={{
+                  borderColor: "var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {mobileCols === 1 ? (
+                  <Columns2 className="h-4 w-4" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={toggleTheme}
@@ -605,7 +699,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         </header>
 
         {/* MAIN CONTENT CONTAINER */}
-        <main className="mx-auto w-full max-w-7xl flex-1 px-3.5 py-5 pb-28 sm:px-6 lg:px-8 lg:py-7 lg:pb-10">
+        <main className="mx-auto w-full max-w-[1440px] flex-1 px-3.5 py-5 pb-28 sm:px-6 lg:px-8 lg:py-6 lg:pb-12">
           {view === "brands" && (
             <BrandTrackerView
               brands={brands}
@@ -615,6 +709,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 setSelectedBoardId(null);
                 setView("swipe");
               }}
+              onOpenAd={(ad) => setActiveAdId(ad.id)}
               onAddBrand={(brand) => setBrands((prev) => [brand, ...prev])}
               onSyncBrand={handleSyncBrand}
             />
@@ -674,48 +769,68 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 </form>
               )}
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {boards.map((board) => {
                   const boardAds = ads.filter((a) => a.board_ids.includes(board.id));
                   return (
-                    <button
-                      key={board.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedBoardId(board.id);
-                        setSelectedBrandId(null);
-                        setView("swipe");
-                      }}
-                      className="flex flex-col justify-between gap-3 rounded-2xl border p-4 text-left transition-colors hover:border-white/20"
-                      style={{
-                        backgroundColor: "var(--bg-surface)",
-                        borderColor: "var(--border-subtle)",
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: board.accent_color }}
-                        />
-                        <span
-                          className="font-mono-num text-xs"
-                          style={{ color: "var(--text-muted)" }}
+                    <Frame key={board.id} spacing="sm">
+                      <FramePanel className="p-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBoardId(board.id);
+                            setSelectedBrandId(null);
+                            setView("swipe");
+                          }}
+                          className="flex w-full flex-col gap-3 p-4 text-left"
                         >
-                          {boardAds.length} ads
-                        </span>
-                      </div>
-                      <div>
-                        <h2 className="font-display text-sm font-semibold">
-                          {board.name}
-                        </h2>
-                        <p
-                          className="mt-1 line-clamp-2 text-xs"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          {board.description}
-                        </p>
-                      </div>
-                    </button>
+                          {/* 3-thumb visual collage */}
+                          <div className="grid h-28 grid-cols-3 gap-1.5 overflow-hidden rounded-xl">
+                            {[0, 1, 2].map((i) => {
+                              const thumbAd = boardAds[i];
+                              return thumbAd ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  key={thumbAd.id}
+                                  src={thumbAd.thumbnail_url || thumbAd.media_url}
+                                  alt={thumbAd.headline}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  key={i}
+                                  className="h-full w-full"
+                                  style={{ backgroundColor: "var(--bg-elevated)" }}
+                                />
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full"
+                                  style={{ backgroundColor: board.accent_color }}
+                                />
+                                <h2 className="font-display text-sm font-semibold">
+                                  {board.name}
+                                </h2>
+                              </div>
+                              <p
+                                className="mt-1 line-clamp-2 text-xs"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {board.description}
+                              </p>
+                            </div>
+                            <Badge size="sm" variant="secondary" className="font-mono-num">
+                              {boardAds.length}
+                            </Badge>
+                          </div>
+                        </button>
+                      </FramePanel>
+                    </Frame>
                   );
                 })}
               </div>
@@ -724,8 +839,8 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
 
           {(view === "swipe" || view === "favorites") && (
             <div className="space-y-5">
-              {/* Top Heading & Active Context */}
-              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+              {/* Top Title + Foreplay Quick-Paste Bar */}
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
                 <div>
                   <div className="flex items-center gap-2.5">
                     {activeBoard && (
@@ -737,22 +852,16 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                     <h1 className="font-display text-2xl font-bold tracking-tight">
                       {pageTitle}
                     </h1>
-                    <span
-                      className="font-mono-num rounded-lg px-2 py-0.5 text-xs font-medium"
-                      style={{
-                        backgroundColor: "var(--bg-elevated)",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      {visibleAds.length}
-                    </span>
+                    <Badge size="lg" variant="secondary" className="font-mono-num">
+                      {visibleAds.length} ads
+                    </Badge>
                   </div>
                   <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
                     {activeBoard
                       ? activeBoard.description
                       : activeBrand
-                        ? `Alle gemte annoncer fra ${activeBrand.name} (${activeBrand.handle})`
-                        : "Søg på tværs af hooks, video-transskriptioner, annoncetekster og vinder-signaler."}
+                        ? `Gemte annoncer fra ${activeBrand.name} (${activeBrand.handle})`
+                        : "Gem Instagram Reels & Meta Ad Library links permanent — søg på tværs af hooks, scripts og EU-reach."}
                   </p>
                 </div>
 
@@ -763,7 +872,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                       setSelectedBoardId(null);
                       setSelectedBrandId(null);
                     }}
-                    className="inline-flex items-center gap-1.5 self-start rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/5"
+                    className="inline-flex items-center gap-1.5 self-start rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
                     style={{
                       borderColor: "var(--border-strong)",
                       color: "var(--text-secondary)",
@@ -775,8 +884,110 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 )}
               </div>
 
-              {/* Search + Filter Bar */}
-              <div className="space-y-3">
+              {/* FOREPLAY INSTANT LINK-DROP BAR (ReUI Concentric Frame) */}
+              <Frame spacing="xs">
+                <FramePanel className="!p-1.5">
+                  <form
+                    onSubmit={handleQuickImport}
+                    className="flex flex-wrap items-center gap-2 sm:flex-nowrap"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5">
+                      <Link2
+                        className="h-4 w-4 shrink-0"
+                        style={{ color: "var(--text-muted)" }}
+                      />
+                      <input
+                        id="quick-import-input"
+                        type="url"
+                        value={quickLink}
+                        onChange={(e) => setQuickLink(e.target.value)}
+                        placeholder="Indsæt Instagram- eller Meta Ad Library-link her..."
+                        className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
+                      />
+                      {quickLink.trim() && parsedQuickLink.isValid && (
+                        <Badge
+                          size="sm"
+                          radius="full"
+                          variant={
+                            parsedQuickLink.sourceType === "meta_ad_library"
+                              ? "info-light"
+                              : parsedQuickLink.sourceType === "instagram"
+                                ? "destructive-light"
+                                : "secondary"
+                          }
+                          className="hidden shrink-0 sm:inline-flex"
+                        >
+                          {parsedQuickLink.sourceType === "meta_ad_library"
+                            ? "Meta Ad Library"
+                            : parsedQuickLink.sourceType === "instagram"
+                              ? "Instagram"
+                              : "Link"}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex w-full items-center justify-end gap-1.5 sm:w-auto">
+                      {!quickLink.trim() && (
+                        <button
+                          type="button"
+                          onClick={handleQuickClipboard}
+                          className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors hover:bg-muted"
+                          style={{
+                            borderColor: "var(--border-subtle)",
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          <ClipboardPaste className="h-3.5 w-3.5" />
+                          <span>Indsæt</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSharedUrl(quickLink);
+                          setImportOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors hover:bg-muted"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Bulk / Fil</span>
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={!parsedQuickLink.isValid || quickImporting}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-opacity disabled:opacity-40"
+                        style={{
+                          backgroundColor: "var(--btn-primary-bg)",
+                          color: "var(--btn-primary-fg)",
+                        }}
+                      >
+                        {quickImporting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        Gem Ad
+                      </button>
+                    </div>
+                  </form>
+                </FramePanel>
+              </Frame>
+
+              {quickToast && (
+                <div className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium" style={{ backgroundColor: "var(--accent-live-soft)", borderColor: "rgba(16, 185, 129, 0.28)", color: "var(--accent-live)" }}>
+                  <Check className="h-3.5 w-3.5" />
+                  {quickToast}
+                </div>
+              )}
+
+              {/* Search + Filter Strip */}
+              <div className="space-y-2.5">
                 <div className="flex flex-col gap-2.5 sm:flex-row">
                   <div className="relative flex-1">
                     <Search
@@ -788,8 +999,8 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                       type="search"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Søg i hooks, transskription, brand, copy eller tags..."
-                      className="w-full rounded-xl border py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus:border-white/25"
+                      placeholder="Søg i hooks, video-transskription, brand, copy eller tags..."
+                      className="w-full rounded-xl border py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus:border-foreground/25"
                       style={{
                         backgroundColor: "var(--bg-surface)",
                         borderColor: "var(--border-subtle)",
@@ -797,35 +1008,32 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                     />
                   </div>
 
-                  {/* Sort selector */}
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="flex items-center gap-2 rounded-xl border px-3 py-2"
-                      style={{
-                        backgroundColor: "var(--bg-surface)",
-                        borderColor: "var(--border-subtle)",
-                      }}
+                  <div
+                    className="flex items-center gap-2 rounded-xl border px-3 py-2"
+                    style={{
+                      backgroundColor: "var(--bg-surface)",
+                      borderColor: "var(--border-subtle)",
+                    }}
+                  >
+                    <SlidersHorizontal
+                      className="h-3.5 w-3.5 shrink-0"
+                      style={{ color: "var(--text-muted)" }}
+                    />
+                    <select
+                      aria-label="Sortér annoncer"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="bg-transparent text-xs font-medium outline-none"
+                      style={{ color: "var(--text-primary)" }}
                     >
-                      <SlidersHorizontal
-                        className="h-3.5 w-3.5 shrink-0"
-                        style={{ color: "var(--text-muted)" }}
-                      />
-                      <select
-                        aria-label="Sortér annoncer"
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as SortOption)}
-                        className="bg-transparent text-xs font-medium outline-none"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        <option value="newest">Nyeste først</option>
-                        <option value="longest">Længst aktiv (Vindere)</option>
-                        <option value="reach">Højeste EU Reach</option>
-                      </select>
-                    </div>
+                      <option value="newest">Nyeste først</option>
+                      <option value="longest">Længst aktiv (Vindere)</option>
+                      <option value="reach">Højeste EU Reach</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Horizontal Scrollable Filter Pills (Mobile Friendly) */}
+                {/* Filter Pills */}
                 <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-0.5">
                   {[
                     { id: "all", label: "Alle kilder" },
@@ -914,39 +1122,45 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 </div>
               </div>
 
-              {/* Creative Grid */}
+              {/* TRUE FOREPLAY CSS MASONRY GALLERY */}
               {visibleAds.length === 0 ? (
-                <div
-                  className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-16 text-center"
-                  style={{ borderColor: "var(--border-strong)" }}
-                >
-                  <p className="font-display text-sm font-semibold">
-                    Ingen annoncer matcher dine filtre
-                  </p>
-                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-                    Prøv at nulstille søgningen, eller indsæt et nyt Instagram/Meta link.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setSourceFilter("all");
-                      setMediaFilter("all");
-                      setWinnersOnly(false);
-                    }}
-                    className="mt-4 rounded-xl border px-4 py-2 text-xs font-semibold"
-                    style={{ borderColor: "var(--border-strong)" }}
-                  >
-                    Nulstil filtre
-                  </button>
-                </div>
+                <Frame>
+                  <FramePanel className="flex flex-col items-center justify-center py-16 text-center">
+                    <p className="font-display text-sm font-semibold">
+                      Ingen annoncer matcher dine filtre
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                      Prøv at nulstille søgningen, eller indsæt et nyt Instagram/Meta link ovenfor.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch("");
+                        setSourceFilter("all");
+                        setMediaFilter("all");
+                        setWinnersOnly(false);
+                      }}
+                      className="mt-4 rounded-xl border px-4 py-2 text-xs font-semibold"
+                      style={{ borderColor: "var(--border-strong)" }}
+                    >
+                      Nulstil filtre
+                    </button>
+                  </FramePanel>
+                </Frame>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+                <div
+                  className={
+                    mobileCols === 2
+                      ? "columns-2 gap-3 sm:columns-2 sm:gap-4 lg:columns-3 xl:columns-4"
+                      : "columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4"
+                  }
+                >
                   {visibleAds.map((ad) => (
                     <AdCard
                       key={ad.id}
                       ad={ad}
                       boards={boards}
+                      compact={mobileCols === 2}
                       onOpen={(item) => setActiveAdId(item.id)}
                       onToggleFavorite={handleToggleFavorite}
                       onToggleBoard={handleToggleBoard}
@@ -964,7 +1178,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur-xl lg:hidden"
           style={{
             backgroundColor:
-              theme === "dark" ? "rgba(17, 19, 23, 0.92)" : "rgba(255, 255, 255, 0.94)",
+              theme === "dark" ? "rgba(18, 20, 25, 0.94)" : "rgba(255, 255, 255, 0.95)",
             borderColor: "var(--border-subtle)",
           }}
         >
@@ -1000,7 +1214,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               Brands
             </button>
 
-            {/* Center Quick Import Button */}
             <div className="flex justify-center">
               <button
                 id="mobile-new-ad-btn"

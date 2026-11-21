@@ -61,7 +61,7 @@ export default function RootLayout({
       lang="da"
       data-theme="dark"
       suppressHydrationWarning
-      className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable} h-full`}
+      className={`dark ${inter.variable} ${jakarta.variable} ${jetbrains.variable} h-full`}
     >
       <body className="min-h-full antialiased selection:bg-emerald-500/25">
         {children}
