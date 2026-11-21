@@ -25,6 +25,7 @@ import { CollectionsView } from "./CollectionsView";
 import { ShopsTableView } from "./ShopsTableView";
 import { ShopAnalyticsView } from "./ShopAnalyticsView";
 import { ShopifyBagIcon } from "./BrandIcons";
+import { GlassTabBar, GlassTabBarItem } from "@/components/ui/glass-tab-bar";
 
 type ActiveView = "shops" | "explore" | "folders";
 type ExploreSubView = "ads" | "hooks" | "lp";
@@ -1084,41 +1085,45 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       </div>
 
       {/* =====================================================================
-          NATIVE iOS FROSTED BOTTOM TAB BAR — SHOPS, EXPLORE, FOLDERS
+          FLOATING iOS 26 LIQUID GLASS TAB BAR — SHOPS, EXPLORE, FOLDERS
          ===================================================================== */}
-      <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-[#E6E9F0]/90 bg-white/92 px-3 pt-1.5 shadow-[0_-6px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl lg:hidden">
-        {[
-          { id: "shops" as ActiveView, label: "Shops", icon: Store },
-          { id: "explore" as ActiveView, label: "Explore", icon: Compass },
-          { id: "folders" as ActiveView, label: "Folders", icon: FolderKanban },
-        ].map((item) => {
-          const Icon = item.icon;
-          const active = view === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                setView(item.id);
-                setSelectedShopId(null);
-                if (item.id !== "folders") setSelectedFolderId(null);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold transition-all"
-              style={{ color: active ? "#0027eb" : "#64748B" }}
-            >
-              <span
-                className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
-                  active ? "bg-[#EEF2FF]" : "bg-transparent"
-                }`}
-              >
-                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.3 : 1.9} />
-              </span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pt-4 lg:hidden"
+        style={{
+          paddingBottom: "max(0.85rem, env(safe-area-inset-bottom))",
+          background:
+            "linear-gradient(180deg, rgba(247,248,251,0) 0%, rgba(247,248,251,0.34) 68%, rgba(247,248,251,0.62) 100%)",
+        }}
+      >
+        <GlassTabBar
+          aria-label="Hovednavigation"
+          value={view}
+          onValueChange={(next) => {
+            const target = next as ActiveView;
+            setView(target);
+            setSelectedShopId(null);
+            if (target !== "folders") setSelectedFolderId(null);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className="pointer-events-auto"
+        >
+          <GlassTabBarItem
+            value="shops"
+            icon={<Store strokeWidth={view === "shops" ? 2.25 : 1.85} />}
+            label="Shops"
+          />
+          <GlassTabBarItem
+            value="explore"
+            icon={<Compass strokeWidth={view === "explore" ? 2.25 : 1.85} />}
+            label="Explore"
+          />
+          <GlassTabBarItem
+            value="folders"
+            icon={<FolderKanban strokeWidth={view === "folders" ? 2.25 : 1.85} />}
+            label="Folders"
+          />
+        </GlassTabBar>
+      </div>
 
       {/* AD DETAIL SHEET */}
       <AdDetailSheet
