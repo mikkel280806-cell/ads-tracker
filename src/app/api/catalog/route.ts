@@ -155,6 +155,43 @@ export async function GET() {
       ads = [...updatedAds, ...ads.filter((a) => !upsertIds.has(a.brand_id))];
     }
 
+    // Incrementally sync upgraded pixels & shopify_apps into existing Supabase rows (preserves ads & folders)
+    const afterFullById = new Map(brands.map((b) => [b.id, b]));
+    const sameList = (a?: string[], b?: string[]) => {
+      const aa = a || [];
+      const bb = b || [];
+      return aa.length === bb.length && aa.every((v, i) => v === bb[i]);
+    };
+    const techRefreshBrands: Brand[] = [];
+    for (const sb of SEED_BRANDS) {
+      const cur = afterFullById.get(sb.id);
+      if (!cur) continue;
+      const seedPx = sb.pixels || [];
+      const seedApps = sb.shopify_apps || [];
+      const curPx = cur.pixels || [];
+      const curApps = cur.shopify_apps || [];
+      const needsTechSync =
+        (seedPx.length > 0 && !sameList(curPx, seedPx)) ||
+        (seedApps.length > 0 && !sameList(curApps, seedApps)) ||
+        (sb.is_shopify && !cur.is_shopify);
+      if (needsTechSync) {
+        techRefreshBrands.push({
+          ...cur,
+          pixels: seedPx.length > 0 ? seedPx : curPx,
+          shopify_apps: seedApps.length > 0 ? seedApps : curApps,
+          is_shopify: sb.is_shopify || cur.is_shopify,
+        });
+      }
+    }
+
+    if (techRefreshBrands.length > 0) {
+      await supabase
+        .from("adtrack_brands")
+        .upsert(techRefreshBrands.map(toBrandRow), { onConflict: "id" });
+      const refreshedById = new Map(techRefreshBrands.map((b) => [b.id, b]));
+      brands = brands.map((b) => refreshedById.get(b.id) || b);
+    }
+
     if (folders.length === 0 && SEED_BOARDS.length > 0) {
       await supabase
         .from("adtrack_folders")

@@ -337,16 +337,21 @@
       "ig_followers": 1309,
       "fb_likes": 1037,
       "pixels": [
+        "Microsoft Clarity",
+        "Google Analytics",
+        "Google Ads",
         "Meta Pixel",
-        "Google Tag Manager",
-        "Microsoft Clarity"
+        "Google Tag Manager"
       ],
       "shopify_apps": [
         "Klaviyo",
-        "Triple Whale",
         "Judge.me",
+        "Triple Whale",
+        "Loox",
         "Trustpilot",
-        "Klarna",
+        "Richpanel",
+        "Anyday",
+        "GemPages",
         "Cookiebot"
       ],
       "last_synced_at": "2026-11-21T21:40:28.255Z"
@@ -844,13 +849,19 @@
       ],
       "fb_likes": 6730,
       "pixels": [
+        "AppLovin Axon",
+        "Microsoft Clarity",
+        "TikTok Pixel",
+        "Google Analytics",
         "Google Ads",
-        "Microsoft Clarity"
+        "Meta Pixel"
       ],
       "shopify_apps": [
-        "Klaviyo",
         "Triple Whale",
+        "Klaviyo",
+        "ParcelPanel",
         "Judge.me",
+        "Instant",
         "AfterSell",
         "Shop Pay"
       ],
@@ -1204,13 +1215,19 @@
       ],
       "fb_likes": 1080,
       "pixels": [
-        "Google Ads"
+        "Google Analytics",
+        "Google Ads",
+        "TikTok Pixel",
+        "Meta Pixel"
       ],
       "shopify_apps": [
+        "Recoup",
         "Klaviyo",
+        "Triple Whale",
         "Judge.me",
+        "Shop Pay",
         "GemPages",
-        "Shop Pay"
+        "e-mærket"
       ],
       "last_synced_at": "2026-11-21T21:25:34.691Z"
     },
@@ -1721,19 +1738,30 @@
       ],
       "fb_likes": 10766,
       "pixels": [
-        "Google Tag Manager",
+        "Snap Pixel",
         "Google Ads",
-        "TikTok Pixel"
+        "Pinterest Ads",
+        "Google Tag Manager",
+        "TikTok Pixel",
+        "Adtraction",
+        "Partner-Ads"
       ],
       "shopify_apps": [
-        "Klaviyo",
-        "Triple Whale",
-        "Trustpilot",
         "Elevar",
-        "Global-e",
+        "Klaviyo",
+        "Shoplift",
+        "Triple Whale",
+        "Foxify",
+        "Trustpilot",
+        "Conversion Bear",
+        "OptiMonk",
+        "Shop Pay",
         "GemPages",
         "Pandectes",
-        "Shop Pay"
+        "e-mærket",
+        "Sprii",
+        "Globo Options",
+        "Sprout"
       ],
       "last_synced_at": "2026-11-21T21:25:15.886Z",
       "ig_followers": 13639
@@ -2213,6 +2241,7 @@
       ],
       "fb_likes": 14338,
       "pixels": [
+        "Google Analytics",
         "Google Tag Manager",
         "Microsoft Clarity"
       ],
@@ -2220,6 +2249,7 @@
         "Klaviyo",
         "Judge.me",
         "Gorgias",
+        "Intelligems",
         "Loop Returns",
         "Shop Pay"
       ],
@@ -2732,16 +2762,20 @@
       ],
       "fb_likes": 3300,
       "pixels": [
+        "Twitter Ads",
+        "AppLovin Axon",
+        "Meta Pixel",
+        "Snap Pixel",
+        "Pinterest Ads",
         "Google Ads",
         "Microsoft Clarity"
       ],
       "shopify_apps": [
+        "Judge.me",
         "Klaviyo",
         "Triple Whale",
-        "Judge.me",
-        "Elevar",
-        "GemPages",
-        "Shop Pay"
+        "Shop Pay",
+        "GemPages"
       ],
       "last_synced_at": "2026-11-21T21:24:59.739Z"
     },
@@ -3444,15 +3478,22 @@
       ],
       "fb_likes": 62723,
       "pixels": [
+        "Snap Pixel",
+        "AppLovin Axon",
+        "Vibe CTV",
         "Meta Pixel",
+        "Google Analytics",
         "Google Ads",
         "Microsoft Advertising"
       ],
       "shopify_apps": [
+        "mParticle",
+        "Instant",
         "Klaviyo",
         "Triple Whale",
-        "Loox",
         "Northbeam",
+        "Loox",
+        "Alia",
         "Shop Pay"
       ],
       "last_synced_at": "2026-11-21T21:24:24.919Z"
@@ -4376,15 +4417,20 @@
       ],
       "fb_likes": 3288737,
       "pixels": [
-        "Meta Pixel",
+        "TikTok Pixel",
         "Google Analytics",
-        "Google Tag Manager"
+        "Meta Pixel",
+        "Google Tag Manager",
+        "Google Ads"
       ],
       "shopify_apps": [
         "Klaviyo",
+        "Elevar",
+        "Northbeam",
         "Yotpo",
         "Gorgias",
-        "Elevar"
+        "Visually",
+        "Alia"
       ],
       "last_synced_at": "2026-11-21T21:24:10.129Z"
     },
@@ -5055,7 +5101,8 @@
       ],
       "fb_likes": 1792624,
       "pixels": [
-        "Google Ads"
+        "Google Ads",
+        "Meta Pixel"
       ],
       "shopify_apps": [
         "Klaviyo",
@@ -5347,23 +5394,37 @@
       ],
       "fb_likes": 62221,
       "pixels": [
+        "Vibe CTV",
+        "Pinterest Ads",
+        "AppLovin Axon",
+        "TikTok Pixel",
+        "Outbrain",
+        "Microsoft Clarity",
+        "Google Analytics",
+        "Meta Pixel",
         "Google Tag Manager",
         "Google Ads",
-        "TikTok Pixel",
         "Snap Pixel",
-        "Microsoft Advertising",
-        "Microsoft Clarity"
+        "Microsoft Advertising"
       ],
       "shopify_apps": [
+        "Recoup",
+        "mParticle",
+        "Blotout EdgeTag",
+        "Elevar",
+        "ParcelPanel",
         "Klaviyo",
         "Triple Whale",
         "AfterSell",
         "Zipify",
+        "Intelligems",
+        "OptiMonk",
+        "Alia",
         "Attentive",
         "Omnisend",
-        "Elevar",
+        "Shop Pay",
         "GemPages",
-        "Shop Pay"
+        "Archive"
       ],
       "last_synced_at": "2026-11-21T21:23:52.914Z"
     },
@@ -5873,14 +5934,14 @@
       ],
       "fb_likes": 73989,
       "pixels": [
+        "Meta Pixel",
         "Google Tag Manager",
         "Google Ads"
       ],
       "shopify_apps": [
         "Klaviyo",
         "Yotpo",
-        "Trustpilot",
-        "Zendesk"
+        "Trustpilot"
       ],
       "last_synced_at": "2026-11-21T19:08:34.977Z"
     },
@@ -6398,16 +6459,20 @@
       ],
       "fb_likes": 9637,
       "pixels": [
-        "Google Tag Manager"
+        "Pinterest Ads",
+        "Google Analytics",
+        "TikTok Pixel",
+        "Google Tag Manager",
+        "Google Ads"
       ],
       "shopify_apps": [
         "Klaviyo",
         "Judge.me",
+        "Global-e",
+        "Elevar",
         "Trustpilot",
         "Zendesk",
         "Rebuy",
-        "Elevar",
-        "Global-e",
         "Shop Pay"
       ],
       "last_synced_at": "2026-11-21T19:08:45.466Z"
@@ -6932,6 +6997,10 @@
       ],
       "fb_likes": 24113,
       "pixels": [
+        "Pinterest Ads",
+        "Google Analytics",
+        "Meta Pixel",
+        "Snap Pixel",
         "Google Tag Manager"
       ],
       "shopify_apps": [
@@ -7462,9 +7531,15 @@
       ],
       "fb_likes": 7928,
       "pixels": [
-        "Meta Pixel",
+        "Microsoft Clarity",
+        "Google Analytics",
         "Google Ads",
-        "Microsoft Clarity"
+        "TikTok Pixel",
+        "Meta Pixel",
+        "Pinterest Ads",
+        "Snap Pixel",
+        "Adtraction",
+        "Partner-Ads"
       ],
       "shopify_apps": [
         "Klaviyo",
@@ -7970,12 +8045,16 @@
         }
       ],
       "fb_likes": 154424,
-      "pixels": [],
+      "pixels": [
+        "Meta Pixel"
+      ],
       "shopify_apps": [
         "Stamped",
         "Zendesk",
         "Rebuy",
-        "Sleeknote"
+        "Convert",
+        "Sleeknote",
+        "CookieScript"
       ],
       "last_synced_at": "2026-11-21T19:09:13.655Z"
     },
@@ -8478,13 +8557,18 @@
       ],
       "fb_likes": 22459,
       "pixels": [
+        "Google Analytics",
+        "Google Ads",
+        "TikTok Pixel",
         "Meta Pixel",
-        "Google Tag Manager",
-        "Google Ads"
+        "Pinterest Ads",
+        "Snap Pixel",
+        "Google Tag Manager"
       ],
       "shopify_apps": [
         "Klaviyo",
         "Rebuy",
+        "Visually",
         "Clerk.io"
       ],
       "last_synced_at": "2026-11-21T19:09:20.721Z"
@@ -9008,16 +9092,16 @@
       ],
       "fb_likes": 12065,
       "pixels": [
+        "Microsoft Clarity",
         "Google Analytics",
-        "Google Tag Manager",
         "Google Ads",
-        "Microsoft Clarity"
+        "Meta Pixel",
+        "Google Tag Manager"
       ],
       "shopify_apps": [
         "Klaviyo",
         "Judge.me",
-        "Gorgias",
-        "Pandectes"
+        "Gorgias"
       ],
       "last_synced_at": "2026-11-21T19:09:28.040Z"
     },
@@ -9532,13 +9616,16 @@
       ],
       "fb_likes": 67037,
       "pixels": [
+        "Microsoft Clarity",
         "Meta Pixel",
-        "Microsoft Clarity"
+        "Google Analytics",
+        "Adtraction"
       ],
       "shopify_apps": [
+        "Global-e",
         "Klaviyo",
         "Triple Whale",
-        "Global-e"
+        "Junip"
       ],
       "last_synced_at": "2026-11-21T19:09:36.616Z"
     },
@@ -10061,18 +10148,27 @@
       ],
       "fb_likes": 163713,
       "pixels": [
+        "Snap Pixel",
         "Meta Pixel",
-        "Google Ads",
-        "Microsoft Clarity"
+        "Outbrain",
+        "AppLovin Axon",
+        "Microsoft Clarity",
+        "Google Analytics",
+        "Google Ads"
       ],
       "shopify_apps": [
+        "ABConvert",
+        "ParcelPanel",
         "Klaviyo",
-        "Triple Whale",
         "Judge.me",
+        "Triple Whale",
         "Trustpilot",
         "Zipify",
+        "Alia",
         "Loop Returns",
-        "GemPages"
+        "GemPages",
+        "Archive",
+        "GoCertify"
       ],
       "last_synced_at": "2026-11-21T19:09:42.739Z"
     },
@@ -10599,19 +10695,27 @@
       ],
       "fb_likes": 271200,
       "pixels": [
+        "AppLovin Axon",
+        "Pinterest Ads",
+        "TikTok Pixel",
+        "Microsoft Clarity",
+        "Google Analytics",
+        "Google Ads",
         "Meta Pixel",
-        "Google Tag Manager",
-        "Google Ads"
+        "Google Tag Manager"
       ],
       "shopify_apps": [
+        "mParticle",
         "Klaviyo",
         "Triple Whale",
+        "Blotout EdgeTag",
+        "Global-e",
         "Judge.me",
         "Okendo",
+        "Intelligems",
         "Attentive",
         "Postscript",
         "Omnisend",
-        "Global-e",
         "Shop Pay"
       ],
       "last_synced_at": "2026-11-21T19:09:50.238Z"
@@ -11128,17 +11232,25 @@
       ],
       "fb_likes": 510973,
       "pixels": [
+        "AppLovin Axon",
+        "Twitter Ads",
+        "TikTok Pixel",
+        "Pinterest Ads",
         "Meta Pixel",
         "Google Tag Manager",
-        "Microsoft Clarity"
+        "Microsoft Clarity",
+        "Google Ads"
       ],
       "shopify_apps": [
         "Klaviyo",
-        "Judge.me",
-        "Postscript",
         "Elevar",
-        "OneTrust",
-        "Shop Pay"
+        "Judge.me",
+        "Junip",
+        "Convert",
+        "Alia",
+        "Postscript",
+        "Shop Pay",
+        "OneTrust"
       ],
       "last_synced_at": "2026-11-21T19:09:56.064Z"
     },
@@ -11623,22 +11735,30 @@
       ],
       "fb_likes": 648863,
       "pixels": [
+        "Google Analytics",
+        "AppLovin Axon",
+        "Vibe CTV",
+        "Pinterest Ads",
         "Meta Pixel",
         "Google Tag Manager",
         "Microsoft Advertising",
         "Microsoft Clarity"
       ],
       "shopify_apps": [
+        "Recoup",
         "Klaviyo",
         "Triple Whale",
+        "Blotout EdgeTag",
+        "Northbeam",
+        "Elevar",
+        "Converge",
         "Judge.me",
         "Okendo",
         "Recharge",
+        "Shoplift",
         "Attentive",
         "Postscript",
         "Omnisend",
-        "Elevar",
-        "Global-e",
         "Shop Pay"
       ],
       "last_synced_at": "2026-11-21T19:10:03.972Z"
@@ -12128,15 +12248,24 @@
       ],
       "fb_likes": 183747,
       "pixels": [
-        "Google Ads"
+        "TikTok Pixel",
+        "Google Analytics",
+        "Google Ads",
+        "Pinterest Ads"
       ],
       "shopify_apps": [
         "Klaviyo",
+        "Triple Whale",
+        "Blotout EdgeTag",
+        "Global-e",
+        "Northbeam",
+        "Junip",
+        "Richpanel",
         "AfterSell",
+        "Intelligems",
+        "Alia",
         "Attentive",
         "Omnisend",
-        "Northbeam",
-        "Global-e",
         "Shop Pay"
       ],
       "last_synced_at": "2026-11-21T19:10:11.179Z"
@@ -12649,7 +12778,10 @@
       "pixels": [
         "Meta Pixel"
       ],
-      "shopify_apps": [],
+      "shopify_apps": [
+        "Loop Returns",
+        "OneTrust"
+      ],
       "last_synced_at": "2026-11-21T19:10:17.109Z"
     },
     {
@@ -13133,18 +13265,25 @@
       ],
       "pixels": [
         "Google Analytics",
-        "Google Tag Manager",
         "Google Ads",
+        "Twitter Ads",
+        "TikTok Pixel",
+        "AppLovin Axon",
+        "Snap Pixel",
+        "Meta Pixel",
+        "Google Tag Manager",
         "Hotjar"
       ],
       "shopify_apps": [
+        "Shoplift",
         "Klaviyo",
         "Triple Whale",
+        "Northbeam",
         "Trustpilot",
         "Skio",
         "Gorgias",
-        "Northbeam",
-        "Global-e"
+        "Alia",
+        "Archive"
       ],
       "last_synced_at": "2026-11-21T19:10:33.875Z",
       "meta_page_id": "345914995276546",
@@ -13648,13 +13787,22 @@
       ],
       "fb_likes": 121711,
       "pixels": [
+        "TikTok Pixel",
+        "Pinterest Ads",
+        "Meta Pixel",
+        "Snap Pixel",
         "Google Tag Manager"
       ],
       "shopify_apps": [
-        "Klaviyo",
         "Yotpo",
+        "Klaviyo",
+        "Duel",
+        "Converge",
         "Trustpilot",
-        "Pandectes"
+        "Siena AI",
+        "Visually",
+        "Pandectes",
+        "Black Crow AI"
       ],
       "last_synced_at": "2026-11-21T19:10:40.299Z"
     },
@@ -14130,21 +14278,26 @@
       ],
       "fb_likes": 364392,
       "pixels": [
-        "Meta Pixel",
-        "Google Analytics",
+        "AdRoll",
+        "Microsoft Clarity",
         "Google Tag Manager",
-        "Google Ads",
-        "TikTok Pixel",
-        "Snap Pixel"
+        "Microsoft Advertising",
+        "Meta Pixel",
+        "Google Ads"
       ],
       "shopify_apps": [
+        "Searchspring",
+        "Okendo",
         "Klaviyo",
-        "Yotpo",
+        "Elevar",
+        "Judge.me",
         "Gorgias",
-        "Klarna",
-        "Shop Pay",
+        "Visually",
+        "OptiMonk",
         "ShipInsure",
-        "Okendo"
+        "Shop Pay",
+        "Pandectes",
+        "Black Crow AI"
       ],
       "last_synced_at": "2026-11-21T19:15:59.614Z"
     }

@@ -29,6 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/types";
+import { getTechMeta } from "@/lib/tech-catalog";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import {
@@ -1203,23 +1204,36 @@ export function ShopAnalyticsView({
                 </button>
               </div>
 
-              <div className="grid flex-1 grid-cols-2 content-start gap-2.5">
+              <div className="grid max-h-[340px] flex-1 grid-cols-1 content-start gap-2 overflow-y-auto pr-0.5 sm:grid-cols-2">
                 {(techTab === "pixels" ? pixels : shopifyApps).length === 0 ? (
-                  <div className="col-span-2 flex h-36 items-center justify-center rounded-xl border border-dashed border-[#DCE1EC] text-xs text-[#94A3B8]">
+                  <div className="col-span-full flex h-36 items-center justify-center rounded-xl border border-dashed border-[#DCE1EC] text-xs text-[#94A3B8]">
                     Ingen {techTab === "pixels" ? "pixels" : "Shopify apps"} detekteret i HTML
                   </div>
                 ) : (
-                  (techTab === "pixels" ? pixels : shopifyApps).map((tool) => (
-                    <div
-                      key={tool}
-                      className="flex items-center gap-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-3 py-2.5 transition-colors hover:border-[#CFD7E8] hover:bg-white"
-                    >
-                      <TechBrandIcon name={tool} className="h-5 w-5 shrink-0" />
-                      <span className="truncate text-[12.5px] font-medium text-[#0F172A]">
-                        {tool}
-                      </span>
-                    </div>
-                  ))
+                  (techTab === "pixels" ? pixels : shopifyApps).map((tool) => {
+                    const meta = getTechMeta(tool);
+                    return (
+                      <div
+                        key={tool}
+                        title={meta?.domain ? `${tool} (${meta.domain})` : tool}
+                        className="flex items-center gap-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-2.5 py-2 transition-colors hover:border-[#CFD7E8] hover:bg-white"
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#EAEFF6] bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+                          <TechBrandIcon name={tool} className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[12.5px] font-semibold leading-tight text-[#0F172A]">
+                            {tool}
+                          </p>
+                          {meta?.category && (
+                            <p className="mt-0.5 truncate text-[10.5px] text-[#64748B]">
+                              {meta.category}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

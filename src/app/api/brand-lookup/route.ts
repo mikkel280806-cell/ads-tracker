@@ -8,6 +8,7 @@ import {
   buildAdsTimeline,
   buildTrafficProfile,
   decodeEntities,
+  detectElevarDestinations,
   detectMarketFromStore,
   detectPixels,
   detectShopifyApps,
@@ -192,8 +193,8 @@ export async function POST(request: NextRequest) {
     const detectedCurrency =
       currencyMatch?.[1] || (bareDomain.endsWith(".dk") ? "DKK" : "USD");
 
-    const pixels = html ? detectPixels(html) : [];
-    const shopifyApps = html ? detectShopifyApps(html) : [];
+    const basePixels = html ? detectPixels(html) : [];
+    const baseShopifyApps = html ? detectShopifyApps(html) : [];
     const marketInfo = detectMarketFromStore({
       domain: bareDomain,
       html,
@@ -213,39 +214,50 @@ export async function POST(request: NextRequest) {
       bareDomain
     )}&sz=128`;
 
-    // 1. Scrape Shopify products + Tranco rank + optional SimilarWeb in parallel (0 ScrapeCreators credits)
-    const [productsResult, trancoRank, similarWebTraffic] = await Promise.all([
-      isShopify
-        ? scrapeShopifyProducts(origin, detectedCurrency)
-        : Promise.resolve({
-            count: 0,
-            topProducts: [],
-            latestProducts: [],
-            foundedDate: undefined,
-            categories: [],
-          }),
-      fetchTrancoRank(bareDomain),
-      (async () => {
-        if (!process.env.SIMILARWEB_API_KEY && !process.env.RAPIDAPI_KEY) {
-          return null;
-        }
-        try {
-          const res = await fetchWithTimeout(
-            `${request.nextUrl.origin}/api/traffic?domain=${encodeURIComponent(
-              bareDomain
-            )}`,
-            6000
-          );
-          if (res && res.ok) {
-            const d = await res.json();
-            if (d.ok) return d;
+    // 1. Scrape Shopify products + Elevar server-side destinations + Tranco rank + optional SimilarWeb in parallel (0 ScrapeCreators credits)
+    const [productsResult, elevarResult, trancoRank, similarWebTraffic] =
+      await Promise.all([
+        isShopify
+          ? scrapeShopifyProducts(origin, detectedCurrency)
+          : Promise.resolve({
+              count: 0,
+              topProducts: [],
+              latestProducts: [],
+              foundedDate: undefined,
+              categories: [],
+            }),
+        html
+          ? detectElevarDestinations(html)
+          : Promise.resolve({ pixels: [], apps: [] }),
+        fetchTrancoRank(bareDomain),
+        (async () => {
+          if (!process.env.SIMILARWEB_API_KEY && !process.env.RAPIDAPI_KEY) {
+            return null;
           }
-        } catch {
-          // ignore
-        }
-        return null;
-      })(),
-    ]);
+          try {
+            const res = await fetchWithTimeout(
+              `${request.nextUrl.origin}/api/traffic?domain=${encodeURIComponent(
+                bareDomain
+              )}`,
+              6000
+            );
+            if (res && res.ok) {
+              const d = await res.json();
+              if (d.ok) return d;
+            }
+          } catch {
+            // ignore
+          }
+          return null;
+        })(),
+      ]);
+
+    const pixels = Array.from(
+      new Set([...basePixels, ...elevarResult.pixels])
+    );
+    const shopifyApps = Array.from(
+      new Set([...baseShopifyApps, ...elevarResult.apps])
+    );
 
     const productImagesByHandle: Record<string, string> = {};
     for (const p of [

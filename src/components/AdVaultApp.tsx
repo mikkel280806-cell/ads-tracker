@@ -31,9 +31,9 @@ type ExploreSubView = "ads" | "hooks" | "lp";
 type SortOption = "top" | "longest" | "duplicated" | "newest";
 
 const STORAGE_KEYS = {
-  ads: "adtrack_ads_v6",
-  brands: "adtrack_brands_v6",
-  boards: "adtrack_boards_v6",
+  ads: "adtrack_ads_v7",
+  brands: "adtrack_brands_v7",
+  boards: "adtrack_boards_v7",
 };
 
 interface AdVaultAppProps {
@@ -91,9 +91,12 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       if (cancelled) return;
       try {
         const savedAds = localStorage.getItem(STORAGE_KEYS.ads);
-        const savedBrands = localStorage.getItem(STORAGE_KEYS.brands);
+        const savedBrands =
+          localStorage.getItem(STORAGE_KEYS.brands) ||
+          localStorage.getItem("adtrack_brands_v6");
         const savedBoards =
           localStorage.getItem(STORAGE_KEYS.boards) ||
+          localStorage.getItem("adtrack_boards_v6") ||
           localStorage.getItem("adtrack_boards_v5");
 
         if (savedBrands) {
@@ -104,10 +107,20 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               .filter((b) => b.id !== "brand-mycomfort-dk")
               .map((b) => {
                 const sb = seedById.get(b.id);
-                if (sb && sb.meta_page_id && sb.meta_page_id !== b.meta_page_id) {
+                if (!sb) return b;
+                if (sb.meta_page_id && sb.meta_page_id !== b.meta_page_id) {
                   return { ...sb, folder_ids: b.folder_ids || [] };
                 }
-                return b;
+                return {
+                  ...b,
+                  pixels:
+                    (sb.pixels?.length || 0) > 0 ? sb.pixels : b.pixels || [],
+                  shopify_apps:
+                    (sb.shopify_apps?.length || 0) > 0
+                      ? sb.shopify_apps
+                      : b.shopify_apps || [],
+                  is_shopify: sb.is_shopify || b.is_shopify,
+                };
               });
             const existingIds = new Set(refreshed.map((b) => b.id));
             const newSeedBrands = SEED_BRANDS.filter((b) => !existingIds.has(b.id));

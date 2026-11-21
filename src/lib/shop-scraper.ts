@@ -61,97 +61,327 @@ export async function fetchWithTimeout(
   }
 }
 
+interface ShopifyWebPixelEntry {
+  id?: string;
+  type?: string;
+  apiClientId?: string | number;
+  configuration?: string;
+}
+
+export function extractShopifyWebPixels(html: string): ShopifyWebPixelEntry[] {
+  const idx = html.indexOf("webPixelsConfigList:");
+  if (idx < 0) return [];
+  const arrStart = html.indexOf("[", idx);
+  if (arrStart < 0) return [];
+
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = arrStart; i < html.length; i++) {
+    const ch = html[i];
+    if (esc) {
+      esc = false;
+      continue;
+    }
+    if (ch === "\\") {
+      esc = true;
+      continue;
+    }
+    if (ch === '"') {
+      inStr = !inStr;
+      continue;
+    }
+    if (inStr) continue;
+    if (ch === "[") depth++;
+    else if (ch === "]") {
+      depth--;
+      if (depth === 0) {
+        try {
+          const parsed = JSON.parse(html.slice(arrStart, i + 1));
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+    }
+  }
+  return [];
+}
+
+function extractAsyncLoadUrls(html: string): string[] {
+  const m = html.match(/var\s+urls\s*=\s*\[([\s\S]*?)\];/i);
+  if (!m?.[1]) return [];
+  return (m[1].match(/"([^"]+)"/g) || []).map((s) =>
+    s.slice(1, -1).replace(/\\\//g, "/")
+  );
+}
+
 export function detectPixels(html: string): string[] {
+  const found = new Set<string>();
   const lower = html.toLowerCase();
+
+  // 1. Parse Shopify 2026 Web Pixels Manager JSON (where Meta, Google, TikTok, Snap, Pinterest, AppLovin, Clarity live)
+  const webPixels = extractShopifyWebPixels(html);
+  for (const wp of webPixels) {
+    const cid = String(wp.apiClientId || "");
+    const cfg = wp.configuration || "";
+    const cfgLower = cfg.toLowerCase();
+
+    if (cid === "2329312" || cfgLower.includes("facebook_pixel")) {
+      found.add("Meta Pixel");
+    }
+    if (cid === "1780363" || cfgLower.includes("google_tag_ids")) {
+      if (/\b(?:g|gt)-[a-z0-9]+/i.test(cfg)) found.add("Google Analytics");
+      if (/\baw-\d+/i.test(cfg)) found.add("Google Ads");
+      if (!found.has("Google Analytics") && !found.has("Google Ads")) {
+        found.add("Google Analytics");
+      }
+    }
+    if (cid === "4383523") found.add("TikTok Pixel");
+    if (cid === "2556259") found.add("Snap Pixel");
+    if (cid === "2775569" || cid === "3009811") found.add("Pinterest Ads");
+    if (cid === "256560922625" || cfgLower.includes("axon pixel")) {
+      found.add("AppLovin Axon");
+    }
+    if (cid === "240074326017") found.add("Microsoft Clarity");
+    if (cid === "6455335" || /"tw-[a-z0-9]+-[a-z0-9]+"/i.test(cfg)) {
+      found.add("Twitter Ads");
+    }
+    if (cid === "285353803777" || cfgLower.includes("marketerids")) {
+      found.add("Outbrain");
+    }
+    if (cid === "132266098689" || cfgLower.includes("vibepixelid")) {
+      found.add("Vibe CTV");
+    }
+    if (cid === "1005866" || cfgLower.includes("advertisableeid")) {
+      found.add("AdRoll");
+    }
+  }
+
+  // 2. Check Trekkie S2S Facebook CAPI
+  if (/"facebookCapiEnabled"\s*:\s*true/i.test(html)) {
+    found.add("Meta Pixel");
+  }
+
+  // 3. Full HTML + asyncLoad URL signatures
+  const fullText = `${lower}\n${extractAsyncLoadUrls(html).join("\n").toLowerCase()}`;
   const checks: [string, RegExp][] = [
     [
       "Meta Pixel",
-      /fbevents\.js|fbq\(|facebook-domain-verification|connect\.facebook\.net\/.*fbevents/i,
+      /fbevents\.js|fbq\(|facebook-domain-verification|connect\.facebook\.net\/.*fbevents|facebook_pixel/i,
     ],
     [
       "Google Analytics",
-      /google-analytics\.com|gtag\(['"]config['"],\s*['"]g-|gtag\/js\?id=g-|analytics\.js/i,
+      /google-analytics\.com|gtag\(['"]config['"],\s*['"]g-|gtag\/js\?id=g-|analytics\.js|['"]g-[a-z0-9]{8,}['"]/i,
     ],
     ["Google Tag Manager", /googletagmanager\.com\/gtm\.js|gtm-[a-z0-9]{5,}/i],
     [
       "Google Ads",
-      /googleadservices\.com|gtag\/js\?id=aw-|['"]aw-\d+|doubleclick\.net/i,
+      /googleadservices\.com|gtag\/js\?id=aw-|['"]aw-\d{7,}|doubleclick\.net/i,
     ],
     ["TikTok Pixel", /analytics\.tiktok\.com|ttq\.|tiktok-pixel/i],
     ["Pinterest Ads", /pintrk\(|s\.pinimg\.com\/ct|ct\.pinterest\.com/i],
     ["Snap Pixel", /snaptr\(|sc-static\.net\/scevent/i],
     ["Twitter Ads", /static\.ads-twitter\.com|twq\(/i],
     ["Microsoft Advertising", /bat\.bing\.com|uetq/i],
+    ["Microsoft Clarity", /clarity\.ms\/tag|www\.clarity\.ms/i],
+    ["AppLovin Axon", /applovin\.com|axon\.ai|axon pixel/i],
     ["Taboola", /cdn\.taboola\.com|_tfa\.push/i],
+    ["Outbrain", /amplify\.outbrain\.com|obtp\.js/i],
     ["Reddit Pixel", /redditstatic\.com\/ads|rdt\(/i],
     ["LinkedIn Insight", /snap\.licdn\.com|_linkedin_partner_id/i],
-    ["Microsoft Clarity", /clarity\.ms\/tag/i],
     ["Hotjar", /static\.hotjar\.com/i],
+    ["Vibe CTV", /vibe\.co|vibepixelid/i],
+    ["AdRoll", /s\.adroll\.com|adroll_adv_id/i],
+    ["Adtraction", /adtraction\.com|static\.adtrcdn\.io/i],
+    ["Partner-Ads", /partner-ads\.com|partnertrackshopify\.dk/i],
   ];
 
-  const found: string[] = [];
   for (const [name, regex] of checks) {
-    if (regex.test(lower)) found.push(name);
+    if (regex.test(fullText)) found.add(name);
   }
-  return found;
+  return Array.from(found);
+}
+
+/**
+ * Layer 5: Server-side Elevar destination inspector.
+ * High-scale Shopify Plus stores route Meta, GA4, Google Ads, TikTok, Snap & Pinterest
+ * server-side via Elevar (apiClientId 2509311), hiding those pixels from raw HTML.
+ * Reading the store's public Elevar config reveals all active destinations.
+ */
+export async function detectElevarDestinations(html: string): Promise<{
+  pixels: string[];
+  apps: string[];
+}> {
+  const pixels = new Set<string>();
+  const apps = new Set<string>();
+
+  let configUrl: string | null = null;
+  for (const wp of extractShopifyWebPixels(html)) {
+    const cid = String(wp.apiClientId || "");
+    const cfg = wp.configuration || "";
+    if (cid === "2509311" || cfg.includes("getelevar.com")) {
+      const m = cfg.match(/https:\/\/shopify-gtm-suite\.getelevar\.com\/configs\/[a-z0-9_-]+\/config\.js/i);
+      if (m?.[0]) {
+        configUrl = m[0];
+        break;
+      }
+    }
+  }
+  if (!configUrl) {
+    const m = html.match(/https:\/\/shopify-gtm-suite\.getelevar\.com\/configs\/[a-z0-9_-]+\/config\.js/i);
+    if (m?.[0]) configUrl = m[0];
+  }
+  if (!configUrl) return { pixels: [], apps: [] };
+
+  try {
+    const res = await fetchWithTimeout(configUrl, 4500);
+    if (!res || !res.ok) return { pixels: [], apps: [] };
+    const text = await res.text();
+    const jsonStr = text.replace(/^export\s+default\s+/i, "").replace(/;\s*$/, "").trim();
+    const parsed = JSON.parse(jsonStr) as {
+      market_groups?: Array<{ gtm_container?: string }>;
+      destinations?: Record<string, unknown[]>;
+    };
+
+    if (
+      Array.isArray(parsed.market_groups) &&
+      parsed.market_groups.some((mg) => typeof mg?.gtm_container === "string" && mg.gtm_container.startsWith("GTM-"))
+    ) {
+      pixels.add("Google Tag Manager");
+    }
+
+    const dest = parsed.destinations || {};
+    const has = (k: string) => Array.isArray(dest[k]) && dest[k].length > 0;
+
+    if (has("facebook") || has("meta")) pixels.add("Meta Pixel");
+    if (has("ga4") || has("google_analytics")) pixels.add("Google Analytics");
+    if (has("google_ads")) pixels.add("Google Ads");
+    if (has("tiktok")) pixels.add("TikTok Pixel");
+    if (has("snapchat") || has("snap")) pixels.add("Snap Pixel");
+    if (has("pinterest")) pixels.add("Pinterest Ads");
+    if (has("bing") || has("microsoft_ads")) pixels.add("Microsoft Advertising");
+    if (has("reddit")) pixels.add("Reddit Pixel");
+    if (has("applovin")) pixels.add("AppLovin Axon");
+    if (has("taboola")) pixels.add("Taboola");
+    if (has("outbrain")) pixels.add("Outbrain");
+    if (has("klaviyo")) apps.add("Klaviyo");
+  } catch {
+    // ignore malformed or unreachable Elevar config
+  }
+
+  return { pixels: Array.from(pixels), apps: Array.from(apps) };
 }
 
 export function detectShopifyApps(html: string): string[] {
+  const found = new Set<string>();
   const lower = html.toLowerCase();
+
+  // 1. Parse Shopify 2026 Web Pixels Manager JSON for installed Shopify Apps
+  const webPixels = extractShopifyWebPixels(html);
+  for (const wp of webPixels) {
+    const cid = String(wp.apiClientId || "");
+    const cfgLower = (wp.configuration || "").toLowerCase();
+
+    if (cid === "123074") found.add("Klaviyo");
+    if (cid === "2753413") found.add("Triple Whale");
+    if (cid === "2509311" || cfgLower.includes("getelevar.com")) found.add("Elevar");
+    if (cid === "3188721" || cfgLower.includes("northbeamid")) found.add("Northbeam");
+    if (cid === "683015" || cfgLower.includes("judge.me")) found.add("Judge.me");
+    if (cid === "70132" || cfgLower.includes("yotpostoreid")) found.add("Yotpo");
+    if (cid === "262852313089") found.add("Okendo");
+    if (cid === "12202") found.add("Searchspring");
+    if (cid === "7521861633" || cfgLower.includes("shoplift.ai")) found.add("Shoplift");
+    if (cid === "5806573" || cfgLower.includes("global-e.com")) found.add("Global-e");
+    if (cid === "2681387" || cfgLower.includes("parcelwill.com")) found.add("ParcelPanel");
+    if (cid === "45694124033") found.add("Instant");
+    if (cid === "12239405057" || cfgLower.includes("foxify")) found.add("Foxify");
+    if (cid === "6861761") found.add("Blotout EdgeTag");
+    if (cid === "2310802" || cfgLower.includes("duelapiurl")) found.add("Duel");
+    if (cid === "5517037" || cfgLower.includes("mparticlekey")) found.add("mParticle");
+    if (cid === "375884054529" || cfgLower.includes("recoup-production")) found.add("Recoup");
+    if (cfgLower.includes('"abconvert"')) found.add("ABConvert");
+  }
+
+  // 2. Full HTML + asyncLoad URL signatures (70+ verified Shopify Apps)
+  const fullText = `${lower}\n${extractAsyncLoadUrls(html).join("\n").toLowerCase()}`;
   const checks: [string, RegExp][] = [
-    ["Klaviyo", /klaviyo|a\.klaviyo\.com/i],
-    ["Triple Whale", /triplewhale|triple-whale|api\.triplewhale/i],
+    ["Klaviyo", /klaviyo\.com|a\.klaviyo\.com|static\.klaviyo\.com/i],
+    ["Triple Whale", /triplewhale|triple-whale|whale\.camera/i],
+    ["Elevar", /getelevar\.com/i],
+    ["Northbeam", /northbeam\.io|j\.northbeam/i],
+    ["Converge", /runconverge\.com/i],
     ["Judge.me", /judge\.me|judgeme/i],
-    ["Yotpo", /yotpo\.com|staticw2\.yotpo/i],
+    ["Yotpo", /yotpo\.com|staticw2\.yotpo|cdn-loyalty\.yotpo/i],
     ["Loox", /loox\.io/i],
     ["Okendo", /okendo\.io|cdn-static\.okendo/i],
     ["Stamped", /stamped\.io/i],
     ["Reviews.io", /reviews\.io|widget\.reviews\.co\.uk/i],
-    ["Trustpilot", /trustpilot\.com|widget\.trustpilot/i],
+    ["Trustpilot", /trustpilot\.com|widget\.trustpilot|ecommplugins-scripts\.trustpilot/i],
+    ["Junip", /juniphq\.com/i],
+    ["Lipscore", /lipscore\.com/i],
     ["Recharge", /rechargepayments|rechargeapps|static\.rechargecdn/i],
     ["Skio", /skio\.com|cdn\.skio/i],
     ["Gorgias", /gorgias\.chat|config\.gorgias/i],
-    ["Zendesk", /zdassets\.com|zendesk/i],
+    ["Richpanel", /richpanel\.com/i],
+    ["Zendesk", /zdassets\.com|zendesk\.com/i],
     ["Intercom", /widget\.intercom\.io/i],
     ["Crisp", /client\.crisp\.chat/i],
+    ["Siena AI", /siena\.cx/i],
+    ["Dixa", /dixa\.io|dixa\.com/i],
     ["Rebuy", /rebuyengine\.com/i],
     ["AfterSell", /aftersell/i],
     ["Zipify", /zipify/i],
-    ["ShipInsure", /shipinsure/i],
-    ["Route", /route\.com|cdn\.routeapp/i],
+    ["Conversion Bear", /conversionbear\.com/i],
+    ["Shoplift", /shoplift\.ai/i],
+    ["Intelligems", /intelligems\.io/i],
+    ["Convert", /convertexperiments\.com/i],
+    ["Visually", /visually-io\.com|assets\.visually\.io/i],
+    ["ABConvert", /abconvert/i],
+    ["OptiMonk", /optimonk\.com/i],
+    ["Sleeknote", /sleeknote\.com/i],
+    ["Privy", /widget\.privy\.com/i],
+    ["Alia", /alia-prod\.com|alialearn/i],
     ["Attentive", /attn\.tv|attentivemobile/i],
     ["Postscript", /sdk\.postscript\.io/i],
     ["Omnisend", /omnisend|omnisnippet1/i],
-    ["Privy", /widget\.privy\.com/i],
     ["Smile.io", /js\.smile\.io|sweettooth/i],
     ["LoyaltyLion", /sdk\.loyaltylion\.net/i],
-    ["Elevar", /getelevar\.com|elevar/i],
-    ["Northbeam", /northbeam\.io|j\.northbeam/i],
-    ["AfterShip", /aftership/i],
+    ["AfterShip", /aftership\.com/i],
+    ["ParcelPanel", /parcelpanel|parcelwill\.com/i],
     ["Loop Returns", /loopreturns/i],
+    ["Route", /route\.com|cdn\.routeapp/i],
+    ["ShipInsure", /shipinsure/i],
     ["Klarna", /klarna\.com|klarnaservices|x\.klarnacdn/i],
-    ["Global-e", /global-e\.com|globale/i],
+    ["Anyday", /anyday\.io/i],
+    ["Global-e", /global-e\.com/i],
+    ["Shop Pay", /shop-pay|shopify-payment-button|pay\.shopify\.com|shop\.app\/pay/i],
     ["PageFly", /pagefly/i],
-    ["GemPages", /gempages/i],
-    ["Shogun", /getshogun/i],
+    ["GemPages", /gempages|gemcommerce\.com/i],
+    ["Foxify", /foxify/i],
+    ["Instant", /cdn\.instant\.so/i],
+    ["Shogun", /getshogun\.com/i],
     ["Nosto", /connect\.nosto\.com/i],
     ["Klevu", /js\.klevu\.com/i],
-    ["Cookiebot", /consent\.cookiebot\.com/i],
-    ["OneTrust", /cdn\.cookielaw\.org|onetrust/i],
-    ["Pandectes", /pandectes/i],
-    ["Shop Pay", /shop-pay|shopify-payment-button|pay\.shopify\.com/i],
-    ["Lipscore", /lipscore\.com/i],
-    ["Sleeknote", /sleeknote/i],
     ["Clerk.io", /clerk\.io|cdn\.clerk\.io/i],
     ["Hello Retail", /helloretail\.com/i],
-    ["Dixa", /dixa\.io/i],
+    ["Cookiebot", /consent\.cookiebot\.com/i],
+    ["OneTrust", /cdn\.cookielaw\.org|onetrust/i],
+    ["Pandectes", /pandectes\.io/i],
+    ["CookieScript", /cookie-script\.com/i],
+    ["e-mærket", /emaerket\.dk/i],
+    ["Sprii", /sprii\.io/i],
+    ["Black Crow AI", /blackcrow\.ai/i],
+    ["Globo Options", /option\.globo\.io/i],
+    ["Archive", /archive-digger\.com/i],
+    ["GoCertify", /gocertify\.me/i],
+    ["Sprout", /sprout-app\.thegoodapi\.com/i],
   ];
 
-  const found: string[] = [];
   for (const [name, regex] of checks) {
-    if (regex.test(lower)) found.push(name);
+    if (regex.test(fullText)) found.add(name);
   }
-  return found;
+  return Array.from(found);
 }
 
 export function extractHookAndCategory(primaryText?: string): {
