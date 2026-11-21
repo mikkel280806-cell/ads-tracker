@@ -1,5 +1,7 @@
 export type SourceType = "meta_ad_library" | "instagram" | "manual";
 export type MediaType = "video" | "image" | "carousel";
+export type DisplayFormat = "VIDEO" | "IMAGE" | "DCO" | "CAROUSEL" | "OTHER";
+export type MarketCode = "DK" | "US" | "EU" | "GLOBAL";
 export type AdStatus = "processing" | "pending_ai" | "ready" | "failed";
 
 export interface ScriptBreakdown {
@@ -20,12 +22,24 @@ export interface TrafficPoint {
   visits: number;
 }
 
+export interface AdsTimelinePoint {
+  label: string;
+  count: number;
+  dateIso: string;
+}
+
 export interface ProductPreview {
+  id?: string;
   title: string;
+  handle?: string;
   price?: string;
+  compare_at_price?: string;
   currency?: string;
   image_url?: string;
   url?: string;
+  created_at?: string;
+  product_type?: string;
+  vendor?: string;
 }
 
 export interface Brand {
@@ -38,30 +52,45 @@ export interface Brand {
   storefront_image_url?: string;
   description?: string;
   website_url: string;
+  myshopify_domain?: string;
   instagram_url?: string;
   facebook_url?: string;
+  tiktok_url?: string;
+  youtube_url?: string;
   meta_page_id?: string;
   meta_ad_library_url?: string;
   category: string;
+  sub_categories?: string[];
+  market: MarketCode;
+  language?: string;
   is_shopify: boolean;
   shopify_theme?: string;
   founded_date?: string;
   origin_country?: string;
+  country_code?: string;
   currency?: string;
   products_count?: number;
   top_products?: ProductPreview[];
+  latest_products?: ProductPreview[];
   is_tracked: boolean;
+  folder_ids?: string[];
   active_ads_count?: number;
   estimated_monthly_reach?: number;
   monthly_visits?: number;
+  traffic_source?: "similarweb" | "tranco_estimate";
+  tranco_rank?: number;
   traffic_growth_pct?: number;
   traffic_history?: TrafficPoint[];
+  ads_timeline?: AdsTimelinePoint[];
   ads_history?: number[];
   visitor_countries?: CountryShare[];
+  targeted_countries?: CountryShare[];
   trustpilot_score?: number;
   trustpilot_reviews?: number;
   ig_followers?: number;
+  fb_likes?: number;
   pixels?: string[];
+  shopify_apps?: string[];
   last_synced_at: string;
 }
 
@@ -82,18 +111,25 @@ export interface Ad {
   brand_avatar_color: string;
   brand_logo_url?: string;
   brand_live_ads?: number;
+  market: MarketCode;
   source_type: SourceType;
   source_url: string;
   external_ad_id?: string;
   media_type: MediaType;
+  display_format?: DisplayFormat;
   media_url: string;
   thumbnail_url: string;
+  fallback_image_url?: string;
   aspect_ratio: "3:4" | "1:1" | "9:16";
   duration_seconds?: number;
   primary_text: string;
+  extracted_hook?: string;
+  hook_category?: string;
   headline: string;
+  link_description?: string;
   cta_text: string;
   landing_page_url: string;
+  landing_page_path?: string;
   is_active: boolean;
   started_running_at: string;
   eu_reach?: number;

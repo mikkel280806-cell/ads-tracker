@@ -1,4 +1,9 @@
-import type { Ad, MediaType } from "./types";
+import type { Ad, DisplayFormat, MarketCode, MediaType } from "./types";
+import {
+  cleanLandingUrl,
+  extractHookAndCategory,
+  normalizeLandingPath,
+} from "./shop-scraper";
 
 const SC_BASE = "https://api.scrapecreators.com";
 
@@ -17,13 +22,28 @@ export interface MetaCompanyMatch {
   page_alias?: string;
 }
 
-export async function searchCompanyMetaPage(query: string): Promise<MetaCompanyMatch | null> {
+export interface CompanyAdsResponse {
+  totalActiveAds?: number;
+  pageId?: string;
+  pageName?: string;
+  pageLikes?: number;
+  pageProfilePicture?: string;
+  pageProfileUri?: string;
+  pageCategory?: string;
+  ads: Ad[];
+}
+
+export async function searchCompanyMetaPage(
+  query: string
+): Promise<MetaCompanyMatch | null> {
   const apiKey = getApiKey();
   if (!apiKey || !query.trim()) return null;
 
   try {
     const res = await fetch(
-      `${SC_BASE}/v1/facebook/adLibrary/search/companies?query=${encodeURIComponent(query.trim())}`,
+      `${SC_BASE}/v1/facebook/adLibrary/search/companies?query=${encodeURIComponent(
+        query.trim()
+      )}`,
       {
         headers: { "x-api-key": apiKey },
         cache: "no-store",
@@ -36,15 +56,36 @@ export async function searchCompanyMetaPage(query: string): Promise<MetaCompanyM
       : [];
     if (list.length === 0) return null;
 
-    // Prefer non-deleted page with highest IG followers or FB likes
-    const active = list.filter((item) => !(item as { page_is_deleted?: boolean }).page_is_deleted);
+    const active = list.filter(
+      (item) => !(item as { page_is_deleted?: boolean }).page_is_deleted
+    );
     const pool = active.length > 0 ? active : list;
-    pool.sort((a, b) => (b.ig_followers || b.likes || 0) - (a.ig_followers || a.likes || 0));
+    pool.sort(
+      (a, b) =>
+        (b.ig_followers || b.likes || 0) - (a.ig_followers || a.likes || 0)
+    );
     return pool[0] || null;
   } catch (err) {
     console.error("ScrapeCreators searchCompanyMetaPage failed:", err);
     return null;
   }
+}
+
+function mapDisplayFormat(
+  rawFormat: unknown,
+  mediaType: MediaType,
+  cardsCount: number
+): DisplayFormat {
+  const upper = typeof rawFormat === "string" ? rawFormat.toUpperCase() : "";
+  if (upper === "DCO" || upper === "DPA") return "DCO";
+  if (upper === "VIDEO") return "VIDEO";
+  if (upper === "IMAGE") return "IMAGE";
+  if (upper === "CAROUSEL" || upper === "MULTI_IMAGES" || cardsCount > 1)
+    return "CAROUSEL";
+  if (mediaType === "video") return "VIDEO";
+  if (mediaType === "carousel") return "CAROUSEL";
+  if (mediaType === "image") return "IMAGE";
+  return "OTHER";
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -58,14 +99,22 @@ export function mapScrapeCreatorsAd(
     color: string;
     logoUrl?: string;
     liveAdsCount?: number;
+    market?: MarketCode;
+    productImagesByHandle?: Record<string, string>;
+    defaultFallbackImage?: string;
   }
 ): Ad {
   const snap = raw?.snapshot || {};
-  const firstCard = Array.isArray(snap.cards) && snap.cards.length > 0 ? snap.cards[0] : null;
+  const cards = Array.isArray(snap.cards) ? snap.cards : [];
+  const firstCard = cards.length > 0 ? cards[0] : null;
   const firstVideo =
-    Array.isArray(snap.videos) && snap.videos.length > 0 ? snap.videos[0] : null;
+    Array.isArray(snap.videos) && snap.videos.length > 0
+      ? snap.videos[0]
+      : null;
   const firstImage =
-    Array.isArray(snap.images) && snap.images.length > 0 ? snap.images[0] : null;
+    Array.isArray(snap.images) && snap.images.length > 0
+      ? snap.images[0]
+      : null;
 
   const videoUrl: string =
     firstVideo?.video_hd_url ||
@@ -85,11 +134,19 @@ export function mapScrapeCreatorsAd(
 
   const mediaType: MediaType = videoUrl
     ? "video"
-    : Array.isArray(snap.cards) && snap.cards.length > 1
+    : cards.length > 1
       ? "carousel"
       : "image";
 
-  const archiveId = String(raw?.ad_archive_id || raw?.id || crypto.randomUUID());
+  const displayFormat = mapDisplayFormat(
+    snap.display_format,
+    mediaType,
+    cards.length
+  );
+
+  const archiveId = String(
+    raw?.ad_archive_id || raw?.id || crypto.randomUUID()
+  );
   const pageName = snap.page_name || raw?.page_name || fallbackBrand.name;
   const startUnix = raw?.start_date;
   const startedAt =
@@ -106,28 +163,56 @@ export function mapScrapeCreatorsAd(
 
   const activeDays = Math.max(
     1,
-    Math.floor((Date.now() - new Date(startedAt).getTime()) / (1000 * 60 * 60 * 24))
+    Math.floor(
+      (Date.now() - new Date(startedAt).getTime()) / (1000 * 60 * 60 * 24)
+    )
   );
 
-  // TrendTrack-style CPM estimate ONLY when real EU reach is reported
   const estimatedSpend = euReach ? Math.round((euReach / 1000) * 9) : undefined;
-  const dailySpend = estimatedSpend ? Math.max(1, Math.round(estimatedSpend / activeDays)) : undefined;
+  const dailySpend = estimatedSpend
+    ? Math.max(1, Math.round(estimatedSpend / activeDays))
+    : undefined;
 
-  const primaryText =
+  const rawBody: string =
     snap?.body?.text ||
     firstCard?.body ||
     snap?.body?.markup?.__html?.replace(/<[^>]+>/g, " ").trim() ||
     "";
+  const primaryText = rawBody.replace(/\{\{product\.[^}]+\}\}/gi, "").trim();
 
-  const headline =
+  const rawHeadline: string =
     snap?.title ||
     firstCard?.title ||
     snap?.link_description ||
     firstCard?.link_description ||
     pageName;
+  const headline =
+    rawHeadline.replace(/\{\{product\.[^}]+\}\}/gi, "").trim() || pageName;
+
+  const linkDescription: string | undefined =
+    (snap?.link_description || firstCard?.link_description || "")
+      .replace(/\{\{product\.[^}]+\}\}/gi, "")
+      .trim() || undefined;
 
   const ctaText = snap?.cta_text || firstCard?.cta_text || "Shop now";
-  const landingUrl = snap?.link_url || firstCard?.link_url || "";
+  const rawLandingUrl = snap?.link_url || firstCard?.link_url || "";
+  const landingUrl = cleanLandingUrl(rawLandingUrl);
+  const landingPath = normalizeLandingPath(landingUrl);
+
+  // Match permanent Shopify product image as resilient fallback
+  let matchedFallback = fallbackBrand.defaultFallbackImage;
+  const handleMatch = landingPath.match(/\/products\/([^/?#]+)/i);
+  if (handleMatch?.[1] && fallbackBrand.productImagesByHandle) {
+    const slug = handleMatch[1].toLowerCase();
+    if (fallbackBrand.productImagesByHandle[slug]) {
+      matchedFallback = fallbackBrand.productImagesByHandle[slug];
+    }
+  }
+
+  const { hook, category: hookCategory } = extractHookAndCategory(
+    primaryText || headline
+  );
+
   const platformsRaw: string[] = Array.isArray(raw?.publisher_platform)
     ? raw.publisher_platform
     : ["Facebook", "Instagram"];
@@ -149,17 +234,24 @@ export function mapScrapeCreatorsAd(
     brand_avatar_color: fallbackBrand.color,
     brand_logo_url: snap.page_profile_picture_url || fallbackBrand.logoUrl,
     brand_live_ads: fallbackBrand.liveAdsCount,
+    market: fallbackBrand.market || "US",
     source_type: "meta_ad_library",
     source_url: `https://www.facebook.com/ads/library/?id=${archiveId}`,
     external_ad_id: archiveId,
     media_type: mediaType,
-    media_url: videoUrl || imageUrl,
-    thumbnail_url: imageUrl || videoUrl,
+    display_format: displayFormat,
+    media_url: videoUrl || imageUrl || matchedFallback || "",
+    thumbnail_url: imageUrl || matchedFallback || videoUrl || "",
+    fallback_image_url: matchedFallback,
     aspect_ratio: mediaType === "video" ? "3:4" : "1:1",
     primary_text: primaryText,
+    extracted_hook: hook,
+    hook_category: hookCategory,
     headline,
+    link_description: linkDescription,
     cta_text: ctaText,
     landing_page_url: landingUrl,
+    landing_page_path: landingPath,
     is_active: raw?.is_active ?? true,
     started_running_at: startedAt,
     eu_reach: euReach,
@@ -168,8 +260,21 @@ export function mapScrapeCreatorsAd(
     duplicated_count: duplicatedCount,
     platforms,
     status: "ready",
-    ai_format: mediaType === "video" ? "Meta Video" : mediaType === "carousel" ? "Carousel" : "Static",
-    tags: ["meta-ad-library", ...(duplicatedCount && duplicatedCount >= 3 ? ["skaleret"] : [])],
+    ai_hook_verbal: hook || undefined,
+    ai_angle: hookCategory,
+    ai_format:
+      displayFormat === "DCO"
+        ? "DCO / Dynamic"
+        : mediaType === "video"
+          ? "Meta Video"
+          : mediaType === "carousel"
+            ? "Carousel"
+            : "Static",
+    tags: [
+      "meta-ad-library",
+      ...(duplicatedCount && duplicatedCount >= 3 ? ["scaled"] : []),
+      ...(hookCategory ? [hookCategory.toLowerCase().replace(/\s+&\s+/g, "-")] : []),
+    ],
     board_ids: [],
     user_notes: "",
     is_favorite: false,
@@ -179,23 +284,37 @@ export function mapScrapeCreatorsAd(
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export async function fetchCompanyActiveAds(
-  pageId: string,
-  brandId: string,
-  fallbackBrand: {
-    name: string;
-    handle: string;
-    initials: string;
-    color: string;
-    logoUrl?: string;
-  },
-  limit = 16
-): Promise<{ totalActiveAds?: number; ads: Ad[] }> {
+  opts: {
+    pageId?: string;
+    companyName?: string;
+    brandId: string;
+    fallbackBrand: {
+      name: string;
+      handle: string;
+      initials: string;
+      color: string;
+      logoUrl?: string;
+      market?: MarketCode;
+      productImagesByHandle?: Record<string, string>;
+      defaultFallbackImage?: string;
+    };
+    limit?: number;
+  }
+): Promise<CompanyAdsResponse> {
   const apiKey = getApiKey();
-  if (!apiKey || !pageId) return { ads: [] };
+  if (!apiKey) return { ads: [] };
+
+  const queryParam = opts.pageId
+    ? `pageId=${encodeURIComponent(opts.pageId)}`
+    : opts.companyName
+      ? `companyName=${encodeURIComponent(opts.companyName)}`
+      : null;
+
+  if (!queryParam) return { ads: [] };
 
   try {
     const res = await fetch(
-      `${SC_BASE}/v1/facebook/adLibrary/company/ads?pageId=${encodeURIComponent(pageId)}&status=ACTIVE&trim=true`,
+      `${SC_BASE}/v1/facebook/adLibrary/company/ads?${queryParam}&status=ACTIVE&trim=true`,
       {
         headers: { "x-api-key": apiKey },
         cache: "no-store",
@@ -209,14 +328,32 @@ export async function fetchCompanyActiveAds(
         ? data.searchResultsCount
         : rawResults.length || undefined;
 
+    const first = rawResults[0];
+    const snap = first?.snapshot || {};
+    const limit = opts.limit ?? 24;
+
     const ads = rawResults.slice(0, limit).map((item: unknown) =>
-      mapScrapeCreatorsAd(item, brandId, {
-        ...fallbackBrand,
+      mapScrapeCreatorsAd(item, opts.brandId, {
+        ...opts.fallbackBrand,
         liveAdsCount: totalActiveAds,
       })
     );
 
-    return { totalActiveAds, ads };
+    return {
+      totalActiveAds,
+      pageId: first?.page_id ? String(first.page_id) : opts.pageId,
+      pageName: snap?.page_name || first?.page_name,
+      pageLikes:
+        typeof snap?.page_like_count === "number"
+          ? snap.page_like_count
+          : undefined,
+      pageProfilePicture: snap?.page_profile_picture_url,
+      pageProfileUri: snap?.page_profile_uri,
+      pageCategory: Array.isArray(snap?.page_categories)
+        ? snap.page_categories[0]
+        : undefined,
+      ads,
+    };
   } catch (err) {
     console.error("ScrapeCreators fetchCompanyActiveAds failed:", err);
     return { ads: [] };

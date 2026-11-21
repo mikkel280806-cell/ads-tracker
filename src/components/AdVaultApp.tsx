@@ -2,47 +2,38 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ArrowUpRight,
   Building2,
-  Calendar,
   Check,
-  ChevronRight,
-  ClipboardPaste,
   Clock,
-  Columns2,
   Compass,
+  Copy,
+  Film,
   FolderKanban,
-  LayoutGrid,
   Link2,
-  Loader2,
   Plus,
-  Radar,
   Search,
-  Settings2,
-  SlidersHorizontal,
-  Smartphone,
-  Square,
-  Upload,
-  X,
+  Sparkles,
+  Store,
 } from "lucide-react";
-import type { Ad, Board, Brand, ConnectorStatus } from "@/lib/types";
+import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
 import { SEED_ADS, SEED_BOARDS, SEED_BRANDS } from "@/lib/seed-data";
-import { getActiveDays, parseAdLink } from "@/lib/url-parser";
+import { getActiveDays } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
-import { ImportModal } from "./ImportModal";
-import { TemplatesGridView } from "./TemplatesGridView";
 import { CollectionsView } from "./CollectionsView";
 import { ShopsTableView } from "./ShopsTableView";
 import { ShopAnalyticsView } from "./ShopAnalyticsView";
-import { ConnectorsView } from "./ConnectorsView";
+import { ShopifyBagIcon } from "./BrandIcons";
 
-type ActiveView = "explore" | "templates" | "scout" | "collections" | "connectors";
-type SortOption = "newest" | "longest" | "reach";
+type ActiveView = "shops" | "explore" | "folders";
+type ExploreSubView = "ads" | "hooks" | "lp";
+type SortOption = "top" | "longest" | "duplicated" | "newest";
 
 const STORAGE_KEYS = {
-  ads: "adtrack_ads_v4",
-  brands: "adtrack_brands_v4",
-  boards: "adtrack_boards_v4",
+  ads: "adtrack_ads_v5",
+  brands: "adtrack_brands_v5",
+  boards: "adtrack_boards_v5",
 };
 
 interface AdVaultAppProps {
@@ -53,36 +44,32 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const [ads, setAds] = useState<Ad[]>(SEED_ADS);
   const [brands, setBrands] = useState<Brand[]>(SEED_BRANDS);
   const [boards, setBoards] = useState<Board[]>(SEED_BOARDS);
-  const [connectorStatus, setConnectorStatus] = useState<ConnectorStatus>(initialStatus);
   const [hydrated, setHydrated] = useState(false);
 
-  const [view, setView] = useState<ActiveView>("explore");
-  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
+  // Navigation: ONLY Shops, Explore, Folders!
+  const [view, setView] = useState<ActiveView>("shops");
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
-  const [mobileCols, setMobileCols] = useState<1 | 2>(1);
-  const [showFiltersRow, setShowFiltersRow] = useState(false);
-
-  // Quick-paste & 1-click Scout state
-  const [quickLink, setQuickLink] = useState("");
-  const [quickImporting, setQuickImporting] = useState(false);
-  const [quickScouting, setQuickScouting] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [quickFolderOpen, setQuickFolderOpen] = useState(false);
+  const [quickFolderName, setQuickFolderName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
-  // Search & filters
+  // Explore state
+  const [exploreSubView, setExploreSubView] = useState<ExploreSubView>("ads");
   const [search, setSearch] = useState("");
-  const [sourceFilter, setSourceFilter] = useState<"all" | "meta_ad_library" | "instagram">("all");
-  const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image">("all");
+  const [marketFilter, setMarketFilter] = useState<"ALL" | MarketCode>("ALL");
+  const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image" | "carousel">("all");
   const [brandFilter, setBrandFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("top");
+  const [visibleLimit, setVisibleLimit] = useState(24);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Modals / Sheets
+  // Ad Detail Sheet
   const [activeAdId, setActiveAdId] = useState<string | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [sharedUrl, setSharedUrl] = useState("");
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3200);
   };
 
   useEffect(() => {
@@ -91,14 +78,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     }
 
     let cancelled = false;
-
-    fetch("/api/status", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data) setConnectorStatus(data);
-      })
-      .catch(() => {});
-
     Promise.resolve().then(() => {
       if (cancelled) return;
       try {
@@ -106,26 +85,22 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         const savedBrands = localStorage.getItem(STORAGE_KEYS.brands);
         const savedBoards = localStorage.getItem(STORAGE_KEYS.boards);
 
-        if (savedAds) setAds(JSON.parse(savedAds));
-        if (savedBrands) setBrands(JSON.parse(savedBrands));
-        if (savedBoards) setBoards(JSON.parse(savedBoards));
+        if (savedAds) {
+          const parsed = JSON.parse(savedAds);
+          if (Array.isArray(parsed) && parsed.length > 0) setAds(parsed);
+        }
+        if (savedBrands) {
+          const parsed = JSON.parse(savedBrands);
+          if (Array.isArray(parsed) && parsed.length > 0) setBrands(parsed);
+        }
+        if (savedBoards) {
+          const parsed = JSON.parse(savedBoards);
+          if (Array.isArray(parsed) && parsed.length > 0) setBoards(parsed);
+        }
       } catch {
-        // fallback
+        // fallback to scraped catalog
       }
       setHydrated(true);
-
-      const params = new URLSearchParams(window.location.search);
-      const incomingUrl = params.get("url") || params.get("text") || "";
-      if (
-        params.get("share") === "1" ||
-        incomingUrl.includes("instagram.com") ||
-        incomingUrl.includes("facebook.com/ads")
-      ) {
-        const urlMatch = incomingUrl.match(/https?:\/\/\S+/);
-        setSharedUrl(urlMatch ? urlMatch[0] : incomingUrl);
-        setImportOpen(true);
-        window.history.replaceState({}, "", "/");
-      }
     });
 
     return () => {
@@ -140,15 +115,9 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       localStorage.setItem(STORAGE_KEYS.brands, JSON.stringify(brands));
       localStorage.setItem(STORAGE_KEYS.boards, JSON.stringify(boards));
     } catch {
-      // ignore
+      // ignore quota errors
     }
   }, [ads, brands, boards, hydrated]);
-
-  const handleToggleFavorite = (adId: string) => {
-    setAds((prev) =>
-      prev.map((a) => (a.id === adId ? { ...a, is_favorite: !a.is_favorite } : a))
-    );
-  };
 
   const handleToggleBoard = (adId: string, boardId: string) => {
     setAds((prev) =>
@@ -165,21 +134,32 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     );
   };
 
+  const handleToggleBrandFolder = (brandId: string, boardId: string) => {
+    setBrands((prev) =>
+      prev.map((b) => {
+        if (b.id !== brandId) return b;
+        const cur = b.folder_ids || [];
+        const exists = cur.includes(boardId);
+        return {
+          ...b,
+          folder_ids: exists ? cur.filter((id) => id !== boardId) : [...cur, boardId],
+        };
+      })
+    );
+  };
+
   const handleUpdateAd = (adId: string, patch: Partial<Ad>) => {
     setAds((prev) => prev.map((a) => (a.id === adId ? { ...a, ...patch } : a)));
   };
 
-  const handleUpdateBrand = (brandId: string, patch: Partial<Brand>) => {
+  const handleUpdateBrand = (brandId: string, patch: Partial<Brand>, freshAds?: Ad[]) => {
     setBrands((prev) => prev.map((b) => (b.id === brandId ? { ...b, ...patch } : b)));
-  };
-
-  const handleDeleteAd = (adId: string) => {
-    setAds((prev) => prev.filter((a) => a.id !== adId));
-  };
-
-  const handleDeleteBrand = (brandId: string) => {
-    setBrands((prev) => prev.filter((b) => b.id !== brandId));
-    if (selectedShopId === brandId) setSelectedShopId(null);
+    if (freshAds && freshAds.length > 0) {
+      setAds((prev) => {
+        const otherAds = prev.filter((a) => a.brand_id !== brandId);
+        return [...freshAds, ...otherAds];
+      });
+    }
   };
 
   const handleAddBrandWithAds = (brand: Brand, discoveredAds: Ad[] = []) => {
@@ -190,112 +170,25 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         const fresh = discoveredAds.filter((a) => !existingIds.has(a.id));
         return [...fresh, ...prev];
       });
-      showToast(`${brand.name} fundet + ${discoveredAds.length} live Meta-ads importeret!`);
+      showToast(
+        `${brand.name} scrapet + ${discoveredAds.length} live Meta-annoncer tilføjet!`
+      );
     } else {
-      showToast(`${brand.name} tilføjet til Scout!`);
-    }
-  };
-
-  const handleQuickScout = async (domainOrBrand: string) => {
-    setQuickScouting(true);
-    try {
-      const res = await fetch("/api/brand-lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: domainOrBrand }),
-      });
-      const data = await res.json();
-      if (res.ok && data.ok && data.brand) {
-        handleAddBrandWithAds(data.brand, Array.isArray(data.ads) ? data.ads : []);
-      } else {
-        showToast(data.error || "Kunne ikke hente brand.");
-      }
-    } catch {
-      showToast("Netværksfejl under brand-scouting.");
-    } finally {
-      setQuickScouting(false);
-    }
-  };
-
-  const handleImportedAds = (newAds: Ad[]) => {
-    setAds((prev) => [...newAds, ...prev]);
-    setBrands((prev) => {
-      const existingIds = new Set(prev.map((b) => b.id));
-      const added: Brand[] = [];
-      for (const ad of newAds) {
-        if (!existingIds.has(ad.brand_id)) {
-          existingIds.add(ad.brand_id);
-          added.push({
-            id: ad.brand_id,
-            name: ad.brand_name,
-            handle: ad.brand_handle,
-            avatar_initials: ad.brand_avatar_initials,
-            avatar_color: ad.brand_avatar_color,
-            logo_url: ad.brand_logo_url,
-            website_url: ad.landing_page_url || ad.source_url || "",
-            meta_ad_library_url:
-              ad.source_type === "meta_ad_library" ? ad.source_url : undefined,
-            category: "Importeret",
-            is_shopify: false,
-            is_tracked: true,
-            estimated_monthly_reach: ad.eu_reach,
-            last_synced_at: new Date().toISOString(),
-          });
-        }
-      }
-      return added.length > 0 ? [...added, ...prev] : prev;
-    });
-    setView("explore");
-    setSelectedBoardId(null);
-    setSelectedShopId(null);
-    showToast(`${newAds.length} annonce${newAds.length > 1 ? "r" : ""} gemt i Adtrack!`);
-  };
-
-  const parsedQuickLink = useMemo(() => parseAdLink(quickLink), [quickLink]);
-
-  const handleQuickImport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!parsedQuickLink.isValid) return;
-    setQuickImporting(true);
-    try {
-      const res = await fetch("/api/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: parsedQuickLink.rawUrl,
-          board_ids: selectedBoardId ? [selectedBoardId] : [],
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.ok && data.ads?.length) {
-        handleImportedAds(data.ads);
-        setQuickLink("");
-      }
-    } finally {
-      setQuickImporting(false);
-    }
-  };
-
-  const handleQuickClipboard = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text?.trim()) setQuickLink(text.trim());
-    } catch {
-      setImportOpen(true);
+      showToast(`${brand.name} scrapet og tilføjet til Shops!`);
     }
   };
 
   const handleCreateBoard = (name: string) => {
     const palette = ["#0027eb", "#16a34a", "#d97706", "#e11d48", "#0284c7"];
     const board: Board = {
-      id: `board-${Date.now()}`,
+      id: `folder-${Date.now()}`,
       name,
-      description: "Personlig kollektion",
+      description: "Personlig folder til shops og Meta ads",
       accent_color: palette[boards.length % palette.length],
       created_at: new Date().toISOString(),
     };
     setBoards((prev) => [...prev, board]);
-    showToast(`Collection "${name}" oprettet`);
+    showToast(`Folder "${name}" oprettet`);
   };
 
   const handleDeleteBoard = (boardId: string) => {
@@ -306,22 +199,39 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         board_ids: a.board_ids.filter((id) => id !== boardId),
       }))
     );
-    if (selectedBoardId === boardId) setSelectedBoardId(null);
+    setBrands((prev) =>
+      prev.map((b) => ({
+        ...b,
+        folder_ids: (b.folder_ids || []).filter((id) => id !== boardId),
+      }))
+    );
+    if (selectedFolderId === boardId) setSelectedFolderId(null);
   };
 
   const openShopAnalytics = (brandId: string) => {
     const exists = brands.some((b) => b.id === brandId);
     if (!exists) return;
     setSelectedShopId(brandId);
-    setView("scout");
+    setView("shops");
   };
 
+  const copyText = async (key: string, val: string) => {
+    try {
+      await navigator.clipboard.writeText(val);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1600);
+    } catch {
+      // ignore
+    }
+  };
+
+  // Filtered & sorted Explore ads
   const visibleAds = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = ads.filter((ad) => {
-      if (selectedBoardId && !ad.board_ids.includes(selectedBoardId)) return false;
+      if (marketFilter === "DK" && ad.market !== "DK") return false;
+      if (marketFilter === "US" && ad.market === "DK") return false;
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
-      if (sourceFilter !== "all" && ad.source_type !== sourceFilter) return false;
       if (mediaFilter !== "all" && ad.media_type !== mediaFilter) return false;
       if (q) {
         const haystack = [
@@ -329,13 +239,10 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           ad.brand_handle,
           ad.headline,
           ad.primary_text,
-          ad.ai_hook_verbal,
-          ad.ai_hook_visual,
-          ad.ai_angle,
-          ad.ai_format,
-          ad.ai_transcript,
-          ad.user_notes,
-          ...ad.tags,
+          ad.extracted_hook,
+          ad.hook_category,
+          ad.landing_page_url,
+          ad.cta_text,
         ]
           .filter(Boolean)
           .join(" ")
@@ -349,12 +256,74 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       if (sortBy === "longest") {
         return getActiveDays(b.started_running_at) - getActiveDays(a.started_running_at);
       }
-      if (sortBy === "reach") {
-        return (b.eu_reach || 0) - (a.eu_reach || 0);
+      if (sortBy === "duplicated") {
+        return (b.duplicated_count || 1) - (a.duplicated_count || 1);
       }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === "newest") {
+        return (
+          new Date(b.started_running_at).getTime() -
+          new Date(a.started_running_at).getTime()
+        );
+      }
+      // Top Performing
+      const scoreA = getActiveDays(a.started_running_at) * 1.2 + (a.duplicated_count || 1) * 16;
+      const scoreB = getActiveDays(b.started_running_at) * 1.2 + (b.duplicated_count || 1) * 16;
+      return scoreB - scoreA;
     });
-  }, [ads, selectedBoardId, brandFilter, sourceFilter, mediaFilter, search, sortBy]);
+  }, [ads, marketFilter, brandFilter, mediaFilter, search, sortBy]);
+
+  // Cross-brand winning hooks extracted from visibleAds
+  const exploreHooks = useMemo(() => {
+    const seen = new Set<string>();
+    const out: {
+      hook: string;
+      category: string;
+      days: number;
+      ad: Ad;
+    }[] = [];
+    for (const ad of visibleAds) {
+      const hook = (ad.extracted_hook || "").trim();
+      if (hook.length < 10) continue;
+      const k = hook.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({
+        hook,
+        category: ad.hook_category || "Product Benefit",
+        days: getActiveDays(ad.started_running_at),
+        ad,
+      });
+    }
+    return out;
+  }, [visibleAds]);
+
+  // Cross-brand top landing pages extracted from visibleAds
+  const exploreLandingPages = useMemo(() => {
+    const map = new Map<
+      string,
+      { url: string; path: string; brandName: string; brandId: string; market: MarketCode; count: number; ads: Ad[] }
+    >();
+    for (const ad of visibleAds) {
+      if (!ad.landing_page_url) continue;
+      const key = `${ad.brand_id}|${ad.landing_page_path || "/"}`;
+      const ex = map.get(key);
+      if (ex) {
+        ex.count++;
+        ex.ads.push(ad);
+      } else {
+        map.set(key, {
+          url: ad.landing_page_url,
+          path: ad.landing_page_path || "/",
+          brandName: ad.brand_name,
+          brandId: ad.brand_id,
+          market: ad.market,
+          count: 1,
+          ads: [ad],
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [visibleAds]);
 
   const activeAd = useMemo(
     () => ads.find((a) => a.id === activeAdId) || null,
@@ -366,157 +335,209 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     [brands, selectedShopId]
   );
 
-  const activeBoard = boards.find((b) => b.id === selectedBoardId);
+  const dkAdsCount = useMemo(() => ads.filter((a) => a.market === "DK").length, [ads]);
+  const usAdsCount = useMemo(() => ads.filter((a) => a.market !== "DK").length, [ads]);
 
   return (
-    <div className="flex min-h-dvh w-full bg-[#05060A]">
-      {/* KONVERT-INSPIRED OBSIDIAN SIDEBAR WITH ADTRACK #0027eb COBALT AMBIENT GLOW */}
-      <aside className="adtrack-sidebar sticky top-0 hidden h-dvh w-[238px] shrink-0 flex-col px-3.5 py-5 text-white lg:flex">
-        {/* Adtrack Wordmark + Blue Icon */}
+    <div className="flex min-h-dvh w-full bg-[#05060B]">
+      {/* =====================================================================
+          ADTRACK OBSIDIAN SIDEBAR — ONLY SHOPS, EXPLORE, AND FOLDERS
+         ===================================================================== */}
+      <aside className="adtrack-sidebar sticky top-0 hidden h-dvh w-[242px] shrink-0 flex-col px-3.5 py-5 text-white lg:flex">
+        {/* Brand Wordmark */}
         <button
           type="button"
           onClick={() => {
-            setView("explore");
-            setSelectedBoardId(null);
+            setView("shops");
             setSelectedShopId(null);
+            setSelectedFolderId(null);
           }}
-          className="mb-6 flex items-center gap-2.5 px-2 text-left"
+          className="mb-7 flex items-center justify-between px-2 text-left"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons/logo.png"
-            alt="Adtrack"
-            className="h-7 w-7 rounded-[8px] shadow-[0_4px_14px_rgba(0,39,235,0.45)]"
-          />
-          <span className="font-display text-[17px] font-extrabold tracking-[-0.03em] text-white">
-            Adtrack
+          <span className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icons/logo.png"
+              alt="Adtrack"
+              className="h-7.5 w-7.5 rounded-[9px] shadow-[0_4px_16px_rgba(0,39,235,0.55)]"
+            />
+            <span className="font-display text-[18px] font-bold tracking-[-0.03em] text-white">
+              Adtrack
+            </span>
+          </span>
+          <span className="rounded-md border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono-num text-[9.5px] font-semibold tracking-wider text-white/75">
+            META
           </span>
         </button>
 
-        {/* Primary Nav (Clean Konvert Pill Rows) */}
-        <nav className="space-y-1">
-          <button
-            type="button"
-            onClick={() => {
-              setView("explore");
-              setSelectedBoardId(null);
-              setSelectedShopId(null);
-            }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium transition-colors"
-            style={
-              view === "explore" && !selectedBoardId
-                ? { backgroundColor: "rgba(255,255,255,0.11)", color: "#FFFFFF" }
-                : { color: "rgba(255,255,255,0.62)" }
-            }
-          >
-            <span className="flex items-center gap-2.5">
-              <Compass className="h-[17px] w-[17px]" />
-              Explore
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setView("templates");
-              setSelectedBoardId(null);
-              setSelectedShopId(null);
-            }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium transition-colors"
-            style={
-              view === "templates"
-                ? { backgroundColor: "rgba(255,255,255,0.11)", color: "#FFFFFF" }
-                : { color: "rgba(255,255,255,0.62)" }
-            }
-          >
-            <span className="flex items-center gap-2.5">
-              <LayoutGrid className="h-[17px] w-[17px]" />
-              Templates
-            </span>
-            <span className="rounded-full bg-white/[0.1] px-2 py-0.5 font-mono-num text-[10px] font-semibold text-white/75">
-              {ads.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setView("scout");
-              setSelectedBoardId(null);
-              setSelectedShopId(null);
-            }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium transition-colors"
-            style={
-              view === "scout"
-                ? { backgroundColor: "rgba(255,255,255,0.11)", color: "#FFFFFF" }
-                : { color: "rgba(255,255,255,0.62)" }
-            }
-          >
-            <span className="flex items-center gap-2.5">
-              <Radar className="h-[17px] w-[17px]" />
-              Scout
-            </span>
-            <span className="rounded-full bg-[#0027eb] px-2 py-0.5 text-[10px] font-semibold text-white shadow-[0_2px_10px_rgba(0,39,235,0.5)]">
-              Live
-            </span>
-          </button>
-        </nav>
-
-        {/* My Workspace Section */}
-        <div className="mt-7 space-y-1">
-          <p className="px-3 pb-1 text-[11px] font-medium text-white/40">
-            My Workspace
+        {/* SECTION 1: DISCOVER (Shops + Explore ONLY) */}
+        <div className="space-y-1">
+          <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
+            Discover
           </p>
 
           <button
             type="button"
             onClick={() => {
-              setView("collections");
-              setSelectedBoardId(null);
+              setView("shops");
+              setSelectedShopId(null);
+              setSelectedFolderId(null);
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
+            style={
+              view === "shops"
+                ? {
+                    backgroundColor: "rgba(255,255,255,0.11)",
+                    color: "#FFFFFF",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
+                  }
+                : { color: "rgba(255,255,255,0.62)" }
+            }
+          >
+            <span className="flex items-center gap-2.5">
+              <Store
+                className="h-[17px] w-[17px]"
+                style={{ color: view === "shops" ? "#6B8BFF" : undefined }}
+              />
+              Shops
+            </span>
+            <span className="rounded-full bg-white/[0.09] px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white/80">
+              {brands.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setView("explore");
+              setSelectedShopId(null);
+              setSelectedFolderId(null);
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
+            style={
+              view === "explore"
+                ? {
+                    backgroundColor: "rgba(255,255,255,0.11)",
+                    color: "#FFFFFF",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
+                  }
+                : { color: "rgba(255,255,255,0.62)" }
+            }
+          >
+            <span className="flex items-center gap-2.5">
+              <Compass
+                className="h-[17px] w-[17px]"
+                style={{ color: view === "explore" ? "#6B8BFF" : undefined }}
+              />
+              Explore
+            </span>
+            <span className="rounded-full bg-[#0027eb] px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white shadow-[0_2px_10px_rgba(0,39,235,0.55)]">
+              {ads.length}
+            </span>
+          </button>
+        </div>
+
+        {/* SECTION 2: FOLDERS */}
+        <div className="mt-7 space-y-1">
+          <div className="flex items-center justify-between px-3 pb-1.5">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
+              Folders
+            </p>
+            <button
+              type="button"
+              onClick={() => setQuickFolderOpen((v) => !v)}
+              title="Ny folder"
+              className="flex h-5 w-5 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setView("folders");
+              setSelectedFolderId(null);
               setSelectedShopId(null);
             }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium transition-colors"
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
             style={
-              view === "collections" || Boolean(selectedBoardId)
-                ? { backgroundColor: "rgba(255,255,255,0.11)", color: "#FFFFFF" }
+              view === "folders" && !selectedFolderId
+                ? {
+                    backgroundColor: "rgba(255,255,255,0.11)",
+                    color: "#FFFFFF",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
+                  }
                 : { color: "rgba(255,255,255,0.68)" }
             }
           >
             <span className="flex items-center gap-2.5">
-              <FolderKanban className="h-[17px] w-[17px]" />
-              My Collections
+              <FolderKanban
+                className="h-[17px] w-[17px]"
+                style={{
+                  color: view === "folders" && !selectedFolderId ? "#6B8BFF" : undefined,
+                }}
+              />
+              Folders
             </span>
-            <ChevronRight className="h-3.5 w-3.5 text-white/40" />
+            <span className="font-mono-num text-[10.5px] text-white/45">
+              {boards.length}
+            </span>
           </button>
 
-          {/* Compact quick-links to collections */}
-          <div className="space-y-0.5 pl-4 pt-1">
-            {boards.slice(0, 5).map((board) => {
-              const count = ads.filter((a) => a.board_ids.includes(board.id)).length;
-              const active = view === "explore" && selectedBoardId === board.id;
+          {quickFolderOpen && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!quickFolderName.trim()) return;
+                handleCreateBoard(quickFolderName.trim());
+                setQuickFolderName("");
+                setQuickFolderOpen(false);
+              }}
+              className="px-2 py-1"
+            >
+              <input
+                type="text"
+                autoFocus
+                value={quickFolderName}
+                onChange={(e) => setQuickFolderName(e.target.value)}
+                placeholder="Folder navn + Enter"
+                className="w-full rounded-lg border border-white/15 bg-white/[0.08] px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/40 focus:border-[#4D6BFF]"
+              />
+            </form>
+          )}
+
+          {/* Direct Folder List */}
+          <div className="space-y-0.5 pl-2 pt-1">
+            {boards.map((board) => {
+              const count =
+                ads.filter((a) => a.board_ids.includes(board.id)).length +
+                brands.filter((b) => (b.folder_ids || []).includes(board.id)).length;
+              const active = view === "folders" && selectedFolderId === board.id;
               return (
                 <button
                   key={board.id}
                   type="button"
                   onClick={() => {
-                    setSelectedBoardId(board.id);
-                    setView("explore");
+                    setSelectedFolderId(board.id);
+                    setSelectedShopId(null);
+                    setView("folders");
                   }}
-                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors"
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-white/[0.06]"
                   style={
                     active
-                      ? { backgroundColor: "rgba(255,255,255,0.1)", color: "#FFFFFF" }
-                      : { color: "rgba(255,255,255,0.48)" }
+                      ? { backgroundColor: "rgba(255,255,255,0.11)", color: "#FFFFFF" }
+                      : { color: "rgba(255,255,255,0.54)" }
                   }
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
+                      className="h-2 w-2 shrink-0 rounded-full"
                       style={{ backgroundColor: board.accent_color }}
                     />
                     <span className="truncate">{board.name}</span>
                   </span>
-                  <span className="font-mono-num text-[10px] text-white/35">
+                  <span className="font-mono-num text-[10.5px] text-white/35">
                     {count}
                   </span>
                 </button>
@@ -525,114 +546,54 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           </div>
         </div>
 
-        {/* Bottom Utility Links over Cobalt #0027eb Ambient Glow */}
-        <div className="mt-auto space-y-1 border-t border-white/[0.08] pt-4">
-          <button
-            id="desktop-new-ad-btn"
-            type="button"
-            onClick={() => {
-              setSharedUrl("");
-              setImportOpen(true);
-            }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[12.5px] font-medium text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white"
-          >
-            <span className="flex items-center gap-2.5">
-              <Plus className="h-4 w-4 text-[#6B8BFF]" />
-              Importér Link / Fil
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setView("connectors");
-              setSelectedShopId(null);
-            }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[12.5px] font-medium transition-colors hover:bg-white/[0.08]"
-            style={
-              view === "connectors"
-                ? { backgroundColor: "rgba(255,255,255,0.11)", color: "#FFFFFF" }
-                : { color: "rgba(255,255,255,0.72)" }
-            }
-          >
-            <span className="flex items-center gap-2.5">
-              <Smartphone className="h-4 w-4" />
-              Mobil PWA &amp; API
-            </span>
-            <span className="rounded-full bg-[#0027eb] px-1.5 py-0.5 text-[9px] font-bold text-white">
-              PWA
-            </span>
-          </button>
-
-          {/* Bottom Personal Workspace Identity Pill */}
-          <button
-            type="button"
-            onClick={() => setView("connectors")}
-            className="mt-2 flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0027eb] font-display text-xs font-bold text-white shadow-[0_2px_10px_rgba(0,39,235,0.55)]">
-              A
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12.5px] font-semibold leading-tight text-white">
-                Adtrack Personal
-              </p>
-              <p className="mt-0.5 truncate text-[11px] text-white/50">
-                {connectorStatus.scrapeCreators ? "ScrapeCreators Live" : "Klar til API"}
-              </p>
+        {/* Bottom Live Index Card over Cobalt Ambient Glow */}
+        <div className="mt-auto border-t border-white/[0.08] pt-4">
+          <div className="rounded-2xl border border-white/[0.09] bg-white/[0.04] p-3 backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white">
+                <span className="h-2 w-2 rounded-full bg-[#22C55E] shadow-[0_0_8px_#22C55E]" />
+                Meta Scraper Active
+              </span>
+              <span className="text-[11px]">🇩🇰 🇺🇸</span>
             </div>
-          </button>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-white/55">
+              {brands.length} Shopify-shops &amp; {ads.length} live Meta-annoncer indekseret.
+              {initialStatus.scrapeCreators ? " Live API klar." : ""}
+            </p>
+          </div>
         </div>
       </aside>
 
-      {/* FLOATING CRISP WHITE MAIN CANVAS */}
+      {/* =====================================================================
+          FLOATING ELEVATED WHITE MAIN WORKSPACE
+         ===================================================================== */}
       <div className="flex min-w-0 flex-1 flex-col lg:p-2.5 lg:pl-0">
         {/* MOBILE TOP BAR */}
-        <header className="pt-safe sticky top-0 z-30 flex items-center justify-between bg-[#05060A] px-4 py-3 text-white lg:hidden">
+        <header className="pt-safe sticky top-0 z-30 flex items-center justify-between bg-[#05060B] px-4 py-3 text-white lg:hidden">
           <button
             type="button"
             onClick={() => {
-              setView("explore");
-              setSelectedBoardId(null);
+              setView("shops");
               setSelectedShopId(null);
+              setSelectedFolderId(null);
             }}
             className="flex items-center gap-2"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icons/logo.png" alt="Adtrack" className="h-7 w-7 rounded-lg" />
-            <span className="font-display text-base font-extrabold tracking-[-0.03em]">
+            <span className="font-display text-[17px] font-bold tracking-[-0.03em]">
               Adtrack
             </span>
           </button>
 
-          <div className="flex items-center gap-1.5">
-            {view === "explore" && (
-              <button
-                type="button"
-                onClick={() => setMobileCols((c) => (c === 1 ? 2 : 1))}
-                aria-label="Skift kolonne-visning"
-                className="rounded-lg bg-white/10 p-2 text-white"
-              >
-                {mobileCols === 1 ? (
-                  <Columns2 className="h-4 w-4" />
-                ) : (
-                  <Square className="h-4 w-4" />
-                )}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setView("connectors")}
-              aria-label="Connectors og PWA"
-              className="rounded-lg bg-white/10 p-2 text-white"
-            >
-              <Settings2 className="h-4 w-4" />
-            </button>
-          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 font-mono-num text-[11px] font-semibold text-white/90">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+            🇩🇰 🇺🇸 {ads.length} ads
+          </span>
         </header>
 
-        {/* WHITE WORKSPACE CARD */}
-        <main className="flex-1 bg-white px-4 py-5 pb-28 text-[#101828] sm:px-6 lg:rounded-[20px] lg:px-7 lg:py-6 lg:pb-12">
+        {/* WHITE WORKSPACE CANVAS */}
+        <main className="flex-1 bg-white px-4 py-5 pb-28 text-[#0F172A] sm:px-6 lg:rounded-[22px] lg:px-7 lg:py-6 lg:pb-12">
           {/* Global Live Toast */}
           {toast && (
             <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-[#0027eb]/20 bg-[#EEF2FF] px-3.5 py-2 text-xs font-semibold text-[#0027eb]">
@@ -641,468 +602,425 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             </div>
           )}
 
-          {/* VIEW 1: SCOUT (Brandtracker & Shop Analytics) */}
-          {view === "scout" && selectedShop && (
+          {/* =================================================================
+              VIEW 1: SHOPS (Table Explorer + Full Trendtrack Shop Analytics)
+             ================================================================= */}
+          {view === "shops" && selectedShop && (
             <ShopAnalyticsView
               brand={selectedShop}
               ads={ads}
               boards={boards}
               onBack={() => setSelectedShopId(null)}
               onOpenAd={(ad) => setActiveAdId(ad.id)}
-              onToggleFavorite={handleToggleFavorite}
               onToggleBoard={handleToggleBoard}
+              onToggleBrandFolder={handleToggleBrandFolder}
               onUpdateBrand={handleUpdateBrand}
             />
           )}
 
-          {view === "scout" && !selectedShop && (
+          {view === "shops" && !selectedShop && (
             <ShopsTableView
               brands={brands}
               ads={ads}
-              onOpenShop={(brandId) => setSelectedShopId(brandId)}
-              onOpenAd={(ad) => setActiveAdId(ad.id)}
-              onAddBrand={handleAddBrandWithAds}
-              onDeleteBrand={handleDeleteBrand}
-            />
-          )}
-
-          {/* VIEW 2: TEMPLATES (Konvert Visual Creative Wall) */}
-          {view === "templates" && (
-            <TemplatesGridView
-              ads={ads}
-              onOpenAd={(ad) => setActiveAdId(ad.id)}
-              onToggleFavorite={handleToggleFavorite}
-              onOpenImport={() => {
-                setSharedUrl("");
-                setImportOpen(true);
-              }}
-              onQuickScout={handleQuickScout}
-              scouting={quickScouting}
-            />
-          )}
-
-          {/* VIEW 3: COLLECTIONS (Konvert 3-Photo Asymmetric Bento Grid) */}
-          {view === "collections" && (
-            <CollectionsView
               boards={boards}
-              ads={ads}
-              onSelectBoard={(boardId) => {
-                setSelectedBoardId(boardId);
-                setView("explore");
-              }}
-              onCreateBoard={handleCreateBoard}
-              onDeleteBoard={handleDeleteBoard}
+              onOpenShop={(brandId) => setSelectedShopId(brandId)}
+              onAddBrand={handleAddBrandWithAds}
+              onToggleBrandFolder={handleToggleBrandFolder}
             />
           )}
 
-          {/* VIEW 4: CONNECTORS & PWA */}
-          {view === "connectors" && <ConnectorsView status={connectorStatus} />}
-
-          {/* VIEW 5: EXPLORE (Konvert Signature Ads Feed) */}
+          {/* =================================================================
+              VIEW 2: EXPLORE (Global Scraped Meta Ad Library + Hooks + LP)
+             ================================================================= */}
           {view === "explore" && (
             <div className="space-y-5">
-              {/* KONVERT EXPLORE HEADER */}
+              {/* Explore Header */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="adtrack-icon-badge flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white">
+                  <div className="adtrack-icon-badge flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white">
                     <Compass className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h1 className="font-display text-[17px] font-bold leading-tight text-[#101828]">
-                        {activeBoard ? activeBoard.name : "Explore"}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="font-display text-[20px] font-bold leading-tight text-[#0F172A]">
+                        Explore
                       </h1>
-                      {activeBoard && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedBoardId(null)}
-                          className="inline-flex items-center gap-1 rounded-full bg-[#F4F5F7] px-2 py-0.5 text-[11px] font-medium text-[#475467] hover:bg-[#EAECF0]"
-                        >
-                          <X className="h-3 w-3" />
-                          Alle ads
-                        </button>
-                      )}
+                      <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
+                        {visibleAds.length} Meta ads
+                      </span>
                     </div>
-                    <p className="mt-0.5 text-[12.5px] text-[#667085]">
-                      {activeBoard
-                        ? activeBoard.description
-                        : "Gennemse dine gemte Instagram & Meta ads — søg i hooks, scripts og koncepter"}
+                    <p className="mt-0.5 text-[12.5px] text-[#64748B]">
+                      Live scrapet Meta Ad Library fra danske og amerikanske e-commerce brands — søg i ads, hooks, copy og landing pages
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setView("scout")}
-                    className="hidden items-center gap-1.5 rounded-xl border border-[#EAECF0] bg-white px-3.5 py-2 text-xs font-semibold text-[#344054] transition-colors hover:border-[#0027eb] hover:text-[#0027eb] sm:inline-flex"
-                  >
-                    <Radar className="h-3.5 w-3.5" />
-                    Scout Brand
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSharedUrl("");
-                      setImportOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#101828] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0027eb]"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Importér Ad
-                  </button>
+                {/* Sub-mode switcher: Ads Feed | Hooks Library | Landing Pages */}
+                <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F5F7FA] p-1 text-xs font-semibold">
+                  {[
+                    { id: "ads" as const, label: "Meta Ads", count: visibleAds.length },
+                    { id: "hooks" as const, label: "Hooks & Copy", count: exploreHooks.length },
+                    { id: "lp" as const, label: "Landing Pages", count: exploreLandingPages.length },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setExploreSubView(m.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+                        exploreSubView === m.id
+                          ? "bg-white text-[#0F172A] shadow-xs"
+                          : "text-[#64748B] hover:text-[#0F172A]"
+                      }`}
+                    >
+                      <span>{m.label}</span>
+                      <span
+                        className={`rounded px-1.5 py-px font-mono-num text-[10px] font-bold ${
+                          exploreSubView === m.id
+                            ? "bg-[#EEF2FF] text-[#0027eb]"
+                            : "bg-[#E9EDF4] text-[#64748B]"
+                        }`}
+                      >
+                        {m.count}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* KONVERT CLEAN FILTER TOOLBAR: Left Search · Right Minimal Inline Controls */}
-              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                <div className="relative w-full md:max-w-[340px]">
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-                  <input
-                    id="swipe-search-input"
-                    type="search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search brands or keywords"
-                    className="w-full rounded-xl border border-[#EAECF0] bg-white py-2 pl-9 pr-4 text-[13px] text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.03)] outline-none transition-colors placeholder:text-[#98A2B3] focus:border-[#0027eb]"
-                  />
+              {/* Filters Toolbar */}
+              <div className="flex flex-col justify-between gap-3 rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-3 xl:flex-row xl:items-center">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {/* Search */}
+                  <div className="relative min-w-[220px] flex-1 sm:w-72 sm:flex-none">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                    <input
+                      id="explore-search-input"
+                      type="search"
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setVisibleLimit(24);
+                      }}
+                      placeholder="Søg i brands, hooks, ad copy, LP..."
+                      className="w-full rounded-xl border border-[#DCE1EC] bg-white py-2 pl-9 pr-3 text-xs text-[#0F172A] outline-none transition-colors focus:border-[#0027eb]"
+                    />
+                  </div>
+
+                  {/* Market Pills */}
+                  <div className="inline-flex rounded-xl border border-[#E2E6EF] bg-white p-0.5 text-xs font-semibold">
+                    {[
+                      { id: "ALL" as const, label: `Alle (${ads.length})` },
+                      { id: "DK" as const, label: `🇩🇰 DK (${dkAdsCount})` },
+                      { id: "US" as const, label: `🇺🇸 US (${usAdsCount})` },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          setMarketFilter(m.id);
+                          setVisibleLimit(24);
+                        }}
+                        className={`rounded-lg px-2.5 py-1.5 transition-all ${
+                          marketFilter === m.id
+                            ? "bg-[#0027eb] text-white shadow-xs"
+                            : "text-[#475569] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Right Konvert-style lightweight filter items */}
-                <div className="no-scrollbar flex items-center gap-2 overflow-x-auto text-[12.5px] font-medium text-[#475467]">
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 hover:bg-[#F4F5F7]">
-                    <Clock className="h-3.5 w-3.5 text-[#667085]" />
+                {/* Format + Brand + Sort */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-1.5">
+                    <Film className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
-                      aria-label="Sortér"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="cursor-pointer bg-transparent text-[12.5px] font-medium text-[#344054] outline-none"
+                      aria-label="Format"
+                      value={mediaFilter}
+                      onChange={(e) =>
+                        setMediaFilter(
+                          e.target.value as "all" | "video" | "image" | "carousel"
+                        )
+                      }
+                      className="cursor-pointer bg-transparent font-medium text-[#334155] outline-none"
                     >
-                      <option value="newest">Newest</option>
-                      <option value="longest">Longest live</option>
-                      <option value="reach">Highest reach</option>
+                      <option value="all">Alle Formater</option>
+                      <option value="video">Video</option>
+                      <option value="image">Static Image</option>
+                      <option value="carousel">Carousel / DCO</option>
                     </select>
                   </div>
 
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 hover:bg-[#F4F5F7]">
-                    <Building2 className="h-3.5 w-3.5 text-[#667085]" />
+                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
-                      aria-label="Vælg brand"
+                      aria-label="Vælg shop"
                       value={brandFilter}
                       onChange={(e) => setBrandFilter(e.target.value)}
-                      className="cursor-pointer bg-transparent text-[12.5px] font-medium text-[#344054] outline-none"
+                      className="cursor-pointer bg-transparent font-medium text-[#334155] outline-none"
                     >
-                      <option value="all">{brands.length} Brands</option>
+                      <option value="all">Alle Shops ({brands.length})</option>
                       {brands.map((b) => (
                         <option key={b.id} value={b.id}>
+                          {b.market === "DK" ? "🇩🇰 " : "🇺🇸 "}
                           {b.name}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMediaFilter((m) =>
-                        m === "all" ? "video" : m === "video" ? "image" : "all"
-                      )
-                    }
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-[#F4F5F7]"
-                    style={
-                      mediaFilter !== "all"
-                        ? { backgroundColor: "#EEF2FF", color: "#0027eb" }
-                        : undefined
-                    }
-                  >
-                    <Calendar className="h-3.5 w-3.5" />
-                    {mediaFilter === "all"
-                      ? "All formats"
-                      : mediaFilter === "video"
-                        ? "Videos"
-                        : "Statics"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowFiltersRow((v) => !v)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-[#F4F5F7]"
-                    style={
-                      showFiltersRow || sourceFilter !== "all"
-                        ? { backgroundColor: "#EEF2FF", color: "#0027eb" }
-                        : undefined
-                    }
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    Filters
-                  </button>
+                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-1.5">
+                    <Clock className="h-3.5 w-3.5 text-[#64748B]" />
+                    <select
+                      aria-label="Sortér"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="cursor-pointer bg-transparent font-semibold text-[#0F172A] outline-none"
+                    >
+                      <option value="top">Top Performing</option>
+                      <option value="longest">Longest Active</option>
+                      <option value="duplicated">Most Duplicated</option>
+                      <option value="newest">Newest Launched</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {/* Optional expandable source filter strip */}
-              {showFiltersRow && (
-                <div className="animate-sheet-up flex flex-wrap items-center gap-2 rounded-xl border border-[#EAECF0] bg-[#FAFBFD] px-3 py-2">
-                  {[
-                    { id: "all", label: "Alle kilder" },
-                    { id: "meta_ad_library", label: "Meta Ad Library" },
-                    { id: "instagram", label: "Instagram" },
-                  ].map((pill) => {
-                    const active = sourceFilter === pill.id;
-                    return (
+              {/* SUB-VIEW A: META ADS FEED */}
+              {exploreSubView === "ads" && (
+                <>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {visibleAds.slice(0, visibleLimit).map((ad, idx) => (
+                      <AdCard
+                        key={ad.id}
+                        ad={ad}
+                        boards={boards}
+                        rank={idx < 10 ? idx + 1 : undefined}
+                        onOpen={(item) => setActiveAdId(item.id)}
+                        onToggleBoard={handleToggleBoard}
+                        onOpenBrand={openShopAnalytics}
+                      />
+                    ))}
+                  </div>
+
+                  {visibleAds.length > visibleLimit && (
+                    <div className="flex justify-center pt-2">
                       <button
-                        key={pill.id}
                         type="button"
-                        onClick={() =>
-                          setSourceFilter(
-                            pill.id as "all" | "meta_ad_library" | "instagram"
-                          )
-                        }
-                        className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
-                        style={
-                          active
-                            ? { backgroundColor: "#0027eb", color: "#FFFFFF" }
-                            : { backgroundColor: "#FFFFFF", color: "#475467", border: "1px solid #EAECF0" }
-                        }
+                        onClick={() => setVisibleLimit((n) => n + 24)}
+                        className="rounded-xl border border-[#DCE1EC] bg-white px-5 py-2.5 font-display text-xs font-semibold text-[#0F172A] shadow-xs transition-all hover:border-[#0027eb] hover:text-[#0027eb]"
                       >
-                        {pill.label}
+                        Vis flere annoncer ({visibleAds.length - visibleLimit} tilbage)
                       </button>
-                    );
-                  })}
+                    </div>
+                  )}
+
+                  {visibleAds.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-[#D6DCE8] bg-[#FAFBFD] py-16 text-center">
+                      <p className="font-display text-sm font-bold text-[#0F172A]">
+                        Ingen annoncer matcher dit filter
+                      </p>
+                      <p className="mt-1 text-xs text-[#64748B]">
+                        Prøv at skifte marked, format eller ryd søgefeltet.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* SUB-VIEW B: CROSS-BRAND HOOKS & COPY LIBRARY */}
+              {exploreSubView === "hooks" && (
+                <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+                  {exploreHooks.slice(0, 48).map((item, idx) => (
+                    <div
+                      key={`${item.ad.id}-${idx}`}
+                      className="adtrack-card-interactive flex flex-col justify-between gap-3 rounded-2xl p-4"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openShopAnalytics(item.ad.brand_id)}
+                            className="inline-flex items-center gap-1.5 font-display text-xs font-bold text-[#0F172A] hover:text-[#0027eb]"
+                          >
+                            <span>{item.ad.market === "DK" ? "🇩🇰" : "🇺🇸"}</span>
+                            {item.ad.brand_name}
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10.5px] font-semibold text-[#0027eb]">
+                              <Sparkles className="h-2.5 w-2.5" />
+                              {item.category}
+                            </span>
+                            <span className="rounded-md bg-[#ECFDF3] px-2 py-0.5 font-mono-num text-[10.5px] font-bold text-[#15803D]">
+                              {item.days}d
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="font-display text-[14.5px] font-semibold leading-snug text-[#0F172A]">
+                          &ldquo;{item.hook}&rdquo;
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-[#EFF2F6] pt-2.5">
+                        <span className="truncate font-mono-num text-[11px] text-[#64748B]">
+                          {item.ad.landing_page_path || "/"}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => copyText(`exhook-${idx}`, item.hook)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#DCE1EC] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#334155] hover:border-[#0027eb] hover:text-[#0027eb]"
+                          >
+                            {copiedKey === `exhook-${idx}` ? (
+                              <Check className="h-3 w-3 text-[#16A34A]" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                            Kopiér
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveAdId(item.ad.id)}
+                            className="rounded-lg bg-[#0F172A] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#0027eb]"
+                          >
+                            Se ad
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {/* SUBTLE 1-CLICK LINK-DROP BAR (Instagram / Meta Ad Library) */}
-              <form
-                onSubmit={handleQuickImport}
-                className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#EAECF0] bg-[#FAFBFD] p-1.5 transition-colors focus-within:border-[#0027eb] focus-within:bg-white sm:flex-nowrap"
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5">
-                  <Link2 className="h-4 w-4 shrink-0 text-[#0027eb]" />
-                  <input
-                    id="quick-import-input"
-                    type="url"
-                    value={quickLink}
-                    onChange={(e) => setQuickLink(e.target.value)}
-                    placeholder="Indsæt Instagram Reel eller Meta Ad Library link for at gemme..."
-                    className="w-full bg-transparent py-1.5 text-[13px] text-[#101828] outline-none placeholder:text-[#98A2B3]"
-                  />
-                </div>
-                <div className="flex w-full items-center justify-end gap-1.5 sm:w-auto">
-                  {!quickLink.trim() && (
-                    <button
-                      type="button"
-                      onClick={handleQuickClipboard}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#EAECF0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#344054] hover:border-[#0027eb] hover:text-[#0027eb]"
+              {/* SUB-VIEW C: CROSS-BRAND TOP LANDING PAGES */}
+              {exploreSubView === "lp" && (
+                <div className="space-y-3">
+                  {exploreLandingPages.slice(0, 40).map((lp, idx) => (
+                    <div
+                      key={`${lp.brandId}-${lp.path}-${idx}`}
+                      className="adtrack-card flex flex-col justify-between gap-3 rounded-2xl p-4 sm:flex-row sm:items-center"
                     >
-                      <ClipboardPaste className="h-3.5 w-3.5" />
-                      Indsæt
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSharedUrl(quickLink);
-                      setImportOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#EAECF0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#344054] hover:bg-[#F4F5F7]"
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Upload</span>
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={!parsedQuickLink.isValid || quickImporting}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#0027eb] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-40"
-                  >
-                    {quickImporting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Plus className="h-3.5 w-3.5" />
-                    )}
-                    Gem
-                  </button>
-                </div>
-              </form>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <ShopifyBagIcon className="h-4 w-4 shrink-0" />
+                          <button
+                            type="button"
+                            onClick={() => openShopAnalytics(lp.brandId)}
+                            className="font-display text-xs font-bold text-[#0027eb] hover:underline"
+                          >
+                            {lp.market === "DK" ? "🇩🇰 " : "🇺🇸 "}
+                            {lp.brandName}
+                          </button>
+                          <span className="truncate font-display text-sm font-bold text-[#0F172A]">
+                            {lp.path}
+                          </span>
+                          <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
+                            {lp.count} active ads
+                          </span>
+                        </div>
+                        <p className="flex items-center gap-1 truncate font-mono-num text-[11.5px] text-[#64748B]">
+                          <Link2 className="h-3 w-3 shrink-0" />
+                          {lp.url}
+                        </p>
+                      </div>
 
-              {/* EXPLORE MASONRY FEED OR CLEAN LIVE QUICK-START */}
-              {visibleAds.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#D8DCE3] bg-[#FAFBFD] px-6 py-16 text-center">
-                  <div className="adtrack-icon-badge mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-white">
-                    <Compass className="h-6 w-6" />
-                  </div>
-                  <h2 className="font-display text-base font-bold text-[#101828]">
-                    {ads.length === 0
-                      ? "Dit Adtrack-bibliotek er klar"
-                      : "Ingen annoncer matcher dine filtre"}
-                  </h2>
-                  <p className="mt-1.5 max-w-md text-xs leading-relaxed text-[#667085]">
-                    {ads.length === 0
-                      ? "Indsæt et Instagram- eller Meta Ad Library-link i feltet ovenfor — eller klik på et brand herunder for at hente rigtige live Meta-annoncer nu."
-                      : "Prøv at nulstille din søgning eller filtre."}
-                  </p>
-
-                  {ads.length === 0 ? (
-                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                      {["loopearplugs.com", "ridge.com", "gymshark.com"].map((domain) => (
-                        <button
-                          key={domain}
-                          type="button"
-                          disabled={quickScouting}
-                          onClick={() => handleQuickScout(domain)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-[#E2E5EB] bg-white px-3.5 py-2 text-xs font-semibold text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all hover:border-[#0027eb] hover:text-[#0027eb] disabled:opacity-50"
+                      <div className="flex shrink-0 items-center gap-2.5">
+                        <div className="flex -space-x-2">
+                          {lp.ads.slice(0, 3).map((a) => (
+                            <button
+                              key={a.id}
+                              type="button"
+                              onClick={() => setActiveAdId(a.id)}
+                              className="h-9 w-9 overflow-hidden rounded-lg border-2 border-white bg-[#F3F5F9] shadow-xs"
+                            >
+                              {(a.fallback_image_url || a.thumbnail_url) && (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={a.fallback_image_url || a.thumbnail_url}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <a
+                          href={lp.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-xl border border-[#DCE1EC] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb] hover:text-[#0027eb]"
                         >
-                          {quickScouting ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0027eb]" />
-                          ) : (
-                            <Radar className="h-3.5 w-3.5 text-[#0027eb]" />
-                          )}
-                          Hent live ads: {domain}
-                        </button>
-                      ))}
+                          Åbn LP
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearch("");
-                        setSourceFilter("all");
-                        setMediaFilter("all");
-                        setBrandFilter("all");
-                      }}
-                      className="mt-4 rounded-xl bg-[#0027eb] px-4 py-2 text-xs font-semibold text-white"
-                    >
-                      Nulstil filtre
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div
-                  className={
-                    mobileCols === 2
-                      ? "columns-2 gap-3 sm:columns-2 sm:gap-4 lg:columns-3 xl:columns-4"
-                      : "columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4"
-                  }
-                >
-                  {visibleAds.map((ad) => (
-                    <AdCard
-                      key={ad.id}
-                      ad={ad}
-                      boards={boards}
-                      compact={mobileCols === 2}
-                      onOpen={(item) => setActiveAdId(item.id)}
-                      onToggleFavorite={handleToggleFavorite}
-                      onToggleBoard={handleToggleBoard}
-                      onOpenBrand={openShopAnalytics}
-                    />
                   ))}
                 </div>
               )}
             </div>
           )}
+
+          {/* =================================================================
+              VIEW 3: FOLDERS
+             ================================================================= */}
+          {view === "folders" && (
+            <CollectionsView
+              boards={boards}
+              ads={ads}
+              brands={brands}
+              selectedFolderId={selectedFolderId}
+              onSelectFolder={(id) => setSelectedFolderId(id)}
+              onCreateBoard={handleCreateBoard}
+              onDeleteBoard={handleDeleteBoard}
+              onOpenShop={openShopAnalytics}
+              onOpenAd={(ad) => setActiveAdId(ad.id)}
+              onToggleBoard={handleToggleBoard}
+            />
+          )}
         </main>
-
-        {/* MOBILE FIXED BOTTOM TAB BAR (Adtrack PWA) */}
-        <nav
-          aria-label="Mobil navigation"
-          className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-[#EAECF0] bg-white/95 backdrop-blur-xl lg:hidden"
-        >
-          <div className="mx-auto grid max-w-md grid-cols-5 items-center px-2 pt-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setView("explore");
-                setSelectedBoardId(null);
-                setSelectedShopId(null);
-              }}
-              className="flex flex-col items-center gap-1 py-1.5 text-[10px] font-semibold"
-              style={{
-                color: view === "explore" && !selectedBoardId ? "#0027eb" : "#667085",
-              }}
-            >
-              <Compass className="h-5 w-5" />
-              Explore
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setView("templates");
-                setSelectedBoardId(null);
-                setSelectedShopId(null);
-              }}
-              className="flex flex-col items-center gap-1 py-1.5 text-[10px] font-semibold"
-              style={{ color: view === "templates" ? "#0027eb" : "#667085" }}
-            >
-              <LayoutGrid className="h-5 w-5" />
-              Templates
-            </button>
-
-            <div className="flex justify-center">
-              <button
-                id="mobile-new-ad-btn"
-                type="button"
-                onClick={() => {
-                  setSharedUrl("");
-                  setImportOpen(true);
-                }}
-                aria-label="Importér annonce"
-                className="-mt-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0027eb] text-white shadow-[0_6px_18px_rgba(0,39,235,0.4)] transition-transform active:scale-95"
-              >
-                <Plus className="h-6 w-6" />
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setView("scout");
-                setSelectedShopId(null);
-              }}
-              className="flex flex-col items-center gap-1 py-1.5 text-[10px] font-semibold"
-              style={{ color: view === "scout" ? "#0027eb" : "#667085" }}
-            >
-              <Radar className="h-5 w-5" />
-              Scout
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setView("collections");
-                setSelectedBoardId(null);
-              }}
-              className="flex flex-col items-center gap-1 py-1.5 text-[10px] font-semibold"
-              style={{
-                color:
-                  view === "collections" || Boolean(selectedBoardId)
-                    ? "#0027eb"
-                    : "#667085",
-              }}
-            >
-              <FolderKanban className="h-5 w-5" />
-              Collections
-            </button>
-          </div>
-        </nav>
       </div>
 
-      {/* IMPORT MODAL */}
-      <ImportModal
-        key={sharedUrl || "default"}
-        open={importOpen}
-        initialUrl={sharedUrl}
-        boards={boards}
-        onClose={() => setImportOpen(false)}
-        onImported={handleImportedAds}
-      />
+      {/* =====================================================================
+          MOBILE BOTTOM NAVIGATION — ONLY SHOPS, EXPLORE, FOLDERS!
+         ===================================================================== */}
+      <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-white/10 bg-[#05060B]/95 px-3 pt-2 backdrop-blur-xl lg:hidden">
+        {[
+          { id: "shops" as ActiveView, label: "Shops", icon: Store },
+          { id: "explore" as ActiveView, label: "Explore", icon: Compass },
+          { id: "folders" as ActiveView, label: "Folders", icon: FolderKanban },
+        ].map((item) => {
+          const Icon = item.icon;
+          const active = view === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setView(item.id);
+                setSelectedShopId(null);
+                if (item.id !== "folders") setSelectedFolderId(null);
+              }}
+              className="flex flex-col items-center gap-1 py-1.5 text-[11px] font-semibold transition-colors"
+              style={{ color: active ? "#6B8BFF" : "rgba(255,255,255,0.56)" }}
+            >
+              <Icon className="h-[19px] w-[19px]" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-      {/* AD DETAIL MODAL / MOBILE SHEET */}
+      {/* AD DETAIL SHEET */}
       <AdDetailSheet
         ad={activeAd}
         boards={boards}
         onClose={() => setActiveAdId(null)}
         onUpdateAd={handleUpdateAd}
-        onDeleteAd={handleDeleteAd}
         onToggleBoard={handleToggleBoard}
         onOpenBrand={openShopAnalytics}
       />

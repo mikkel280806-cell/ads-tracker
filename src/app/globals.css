@@ -3,14 +3,13 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================================
-   ADTRACK DESIGN SYSTEM
-   Brand Primary: Electric Cobalt (#0027eb)
-   Shell: Deep Obsidian Sidebar (#05060A) + Cobalt Ambient Glow + Crisp White Canvas
-   Typography: Plus Jakarta Sans (Display) · Inter (UI) · JetBrains Mono (Metrics)
+   ADTRACK DESIGN SYSTEM v2
+   Primary: Electric Cobalt (#0027eb)
+   Shell: Deep Obsidian Sidebar (#05060B) + Multi-layer Cobalt Aura + Elevated White Workspace
+   Typography: Instrument Sans (Display / Headings) · Geist (Body) · Geist Mono (Metrics)
    ============================================================================ */
 
 :root {
-  /* Adtrack Brand Palette */
   --brand-50: #eef2ff;
   --brand-100: #dde5ff;
   --brand-200: #c2d0ff;
@@ -26,53 +25,59 @@
   --brand-soft: rgba(0, 39, 235, 0.08);
   --brand-border: rgba(0, 39, 235, 0.22);
 
-  /* Obsidian Sidebar & Floating Canvas */
-  --sidebar-bg: #05060a;
-  --sidebar-surface: rgba(255, 255, 255, 0.08);
-  --sidebar-surface-active: rgba(255, 255, 255, 0.12);
+  --sidebar-bg: #05060b;
+  --sidebar-surface: rgba(255, 255, 255, 0.06);
+  --sidebar-surface-active: rgba(255, 255, 255, 0.11);
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-text: #f9fafb;
+  --sidebar-text: #f8fafc;
   --sidebar-muted: rgba(255, 255, 255, 0.56);
 
-  /* Crisp Light Workspace */
   --background: #ffffff;
-  --foreground: #101828;
+  --surface-subtle: #f7f8fb;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #101828;
-  --muted: #f4f5f7;
-  --muted-foreground: #667085;
+  --card-foreground: #0f172a;
+  --muted: #f3f5f9;
+  --muted-foreground: #64748b;
   --primary: #0027eb;
   --primary-foreground: #ffffff;
-  --secondary: #f4f5f7;
-  --secondary-foreground: #1d2432;
-  --border: #eaecf0;
-  --input: #e2e5eb;
+  --secondary: #f3f5f9;
+  --secondary-foreground: #1e293b;
+  --border: #e6e9f0;
+  --input: #dfe3ec;
   --ring: rgba(0, 39, 235, 0.22);
 
   --destructive: #e11d48;
   --destructive-foreground: #9f1239;
   --success: #16a34a;
-  --success-foreground: #166534;
+  --success-foreground: #15803d;
   --info: #0027eb;
   --info-foreground: #0027eb;
   --warning: #d97706;
   --warning-foreground: #92400e;
-  --invert: #101828;
+  --invert: #0f172a;
   --invert-foreground: #ffffff;
   --focus: #0027eb;
   --focus-foreground: #0027eb;
 
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.03);
-  --shadow-card-hover: 0 8px 24px rgba(0, 39, 235, 0.08), 0 2px 6px rgba(16, 24, 40, 0.04);
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 14px -2px rgba(15, 23, 42, 0.035);
+  --shadow-card-hover:
+    0 12px 28px -6px rgba(0, 39, 235, 0.1),
+    0 4px 10px -2px rgba(15, 23, 42, 0.05);
+  --shadow-elevated:
+    0 20px 44px -12px rgba(15, 23, 42, 0.14),
+    0 4px 12px -2px rgba(15, 23, 42, 0.05);
 
   color-scheme: light;
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-jakarta), system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-sans: var(--font-geist), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-instrument), var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-brand: var(--brand);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -108,12 +113,15 @@
 html,
 body {
   font-family: var(--font-sans);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.008em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
 }
 
+h1,
+h2,
+h3,
 .font-display {
   font-family: var(--font-display);
   letter-spacing: -0.025em;
@@ -124,27 +132,68 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Signature Adtrack Obsidian Sidebar with subtle Cobalt #0027eb Ambient Glow */
+/* Signature Adtrack Obsidian Sidebar with Multi-Layer Cobalt #0027eb Depth Glow */
 .adtrack-sidebar {
-  background-color: #05060a;
+  background-color: #05060b;
   background-image:
-    radial-gradient(125% 48% at 18% 100%, rgba(0, 39, 235, 0.52) 0%, rgba(0, 39, 235, 0.14) 44%, transparent 76%),
-    radial-gradient(70% 24% at 0% 0%, rgba(0, 39, 235, 0.12) 0%, transparent 70%);
+    radial-gradient(140% 52% at 15% 100%, rgba(0, 39, 235, 0.56) 0%, rgba(0, 39, 235, 0.16) 44%, transparent 76%),
+    radial-gradient(95% 30% at 85% 0%, rgba(56, 107, 255, 0.14) 0%, transparent 65%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, transparent 28%);
 }
 
-/* Signature Adtrack Header Icon Badge (Dark Obsidian -> Electric Cobalt #0027eb) */
+/* Signature Adtrack Cobalt Icon Badge with Specular Top Edge */
 .adtrack-icon-badge {
-  background: linear-gradient(145deg, #0b1029 0%, #001ca8 58%, #0027eb 100%);
+  background: linear-gradient(145deg, #0c1438 0%, #0020c4 52%, #1d46ff 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    0 4px 12px rgba(0, 39, 235, 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 6px 16px -3px rgba(0, 39, 235, 0.38);
+}
+
+/* Primary Electric Cobalt CTA Gradient */
+.adtrack-btn-primary {
+  background: linear-gradient(180deg, #1b43ff 0%, #0027eb 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 2px 8px -1px rgba(0, 39, 235, 0.38);
+}
+.adtrack-btn-primary:hover {
+  background: linear-gradient(180deg, #0d36ff 0%, #001fc2 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 6px 16px -2px rgba(0, 39, 235, 0.44);
+}
+
+/* Subtle Elevated Light Surface Card */
+.adtrack-card {
+  background: #ffffff;
+  border: 1px solid #e7eaf1;
+  box-shadow: var(--shadow-card);
+}
+.adtrack-card-interactive {
+  background: #ffffff;
+  border: 1px solid #e7eaf1;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.adtrack-card-interactive:hover {
+  border-color: #cfd7e8;
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Subtle KPI Surface with Micro-Gradient */
+.adtrack-kpi-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+  border: 1px solid #e6e9f0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 3px rgba(15, 23, 42, 0.035);
 }
 
 /* Safe area helpers for iOS PWA standalone mode */
 .pb-safe {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
-
 .pt-safe {
   padding-top: env(safe-area-inset-top);
 }
@@ -153,14 +202,15 @@ body {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #d8dce3;
+  background: #d4d9e3;
   border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b9c1d0;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -183,5 +233,5 @@ body {
 }
 
 .animate-sheet-up {
-  animation: sheetUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: sheetUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }

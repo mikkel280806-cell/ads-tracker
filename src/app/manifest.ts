@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Adtrack — E-commerce Ads & Brand Tracker",
+    name: "Adtrack — E-commerce Shops & Meta Ad Intelligence",
     short_name: "Adtrack",
     description:
-      "Din egen Trendtrack & Foreplay til Instagram, Meta Ad Library, shops og konkurrent-overvågning.",
+      "Track danske og amerikanske e-commerce shops, live Meta Ad Library annoncer, pixels, Shopify apps, produkter, landing pages og hooks.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#08090B",
+    background_color: "#05060B",
     theme_color: "#0027eb",
     categories: ["business", "productivity", "marketing"],
     icons: [
@@ -26,14 +26,5 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
-    share_target: {
-      action: "/?share=1",
-      method: "GET",
-      params: {
-        title: "title",
-        text: "text",
-        url: "url",
-      },
-    },
   };
 }
