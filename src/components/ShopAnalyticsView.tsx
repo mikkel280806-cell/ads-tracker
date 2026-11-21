@@ -536,7 +536,14 @@ export function ShopAnalyticsView({
     }
   };
 
-  const marketFlag = brand.market === "DK" ? "🇩🇰" : brand.market === "EU" ? "🇪🇺" : "🇺🇸";
+  const marketFlag =
+    brand.country_code === "FR"
+      ? "🇫🇷"
+      : brand.market === "DK"
+        ? "🇩🇰"
+        : brand.market === "EU"
+          ? "🇪🇺"
+          : "🇺🇸";
 
   return (
     <div className="space-y-5">

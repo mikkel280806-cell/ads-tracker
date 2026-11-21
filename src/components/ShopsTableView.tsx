@@ -401,7 +401,13 @@ export function ShopsTableView({
             ];
             const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
             const marketFlag =
-              brand.market === "DK" ? "🇩🇰" : brand.market === "EU" ? "🇪🇺" : "🇺🇸";
+              brand.country_code === "FR"
+                ? "🇫🇷"
+                : brand.market === "DK"
+                  ? "🇩🇰"
+                  : brand.market === "EU"
+                    ? "🇪🇺"
+                    : "🇺🇸";
             const savedInFolder = (brand.folder_ids || []).length > 0;
 
             return (

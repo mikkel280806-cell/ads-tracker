@@ -94,13 +94,21 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         const savedBrands = localStorage.getItem(STORAGE_KEYS.brands);
         const savedBoards = localStorage.getItem(STORAGE_KEYS.boards);
 
-        if (savedAds) {
-          const parsed = JSON.parse(savedAds);
-          if (Array.isArray(parsed) && parsed.length > 0) setAds(parsed);
-        }
         if (savedBrands) {
-          const parsed = JSON.parse(savedBrands);
-          if (Array.isArray(parsed) && parsed.length > 0) setBrands(parsed);
+          const parsed: Brand[] = JSON.parse(savedBrands);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(parsed.map((b) => b.id));
+            const newSeedBrands = SEED_BRANDS.filter((b) => !existingIds.has(b.id));
+            setBrands([...newSeedBrands, ...parsed]);
+          }
+        }
+        if (savedAds) {
+          const parsed: Ad[] = JSON.parse(savedAds);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(parsed.map((a) => a.id));
+            const newSeedAds = SEED_ADS.filter((a) => !existingIds.has(a.id));
+            setAds([...newSeedAds, ...parsed]);
+          }
         }
         if (savedBoards) {
           const parsed = JSON.parse(savedBoards);

@@ -98,29 +98,35 @@ export async function GET() {
     let ads = (adsRes.data || []).map((r) => r.payload as Ad);
     let folders = (foldersRes.data || []) as Board[];
 
-    // Auto-seed the real scraped DK + US catalog on first connect!
-    if (brands.length === 0 && SEED_BRANDS.length > 0) {
+    // Incrementally sync any newly scraped catalog brands/ads not yet in Supabase
+    const existingBrandIds = new Set(brands.map((b) => b.id));
+    const missingBrands = SEED_BRANDS.filter((b) => !existingBrandIds.has(b.id));
+
+    if (missingBrands.length > 0) {
+      const missingBrandIdSet = new Set(missingBrands.map((b) => b.id));
+      const missingAds = SEED_ADS.filter((a) => missingBrandIdSet.has(a.brand_id));
+
       await supabase
         .from("adtrack_brands")
-        .upsert(SEED_BRANDS.map(toBrandRow), { onConflict: "id" });
-      if (SEED_ADS.length > 0) {
-        // Batch upsert in chunks of 100
-        for (let i = 0; i < SEED_ADS.length; i += 100) {
-          await supabase
-            .from("adtrack_ads")
-            .upsert(SEED_ADS.slice(i, i + 100).map(toAdRow), {
-              onConflict: "id",
-            });
-        }
-      }
-      if (folders.length === 0 && SEED_BOARDS.length > 0) {
+        .upsert(missingBrands.map(toBrandRow), { onConflict: "id" });
+
+      for (let i = 0; i < missingAds.length; i += 100) {
         await supabase
-          .from("adtrack_folders")
-          .upsert(SEED_BOARDS.map(toFolderRow), { onConflict: "id" });
-        folders = SEED_BOARDS;
+          .from("adtrack_ads")
+          .upsert(missingAds.slice(i, i + 100).map(toAdRow), {
+            onConflict: "id",
+          });
       }
-      brands = SEED_BRANDS;
-      ads = SEED_ADS;
+
+      brands = [...missingBrands, ...brands];
+      ads = [...missingAds, ...ads];
+    }
+
+    if (folders.length === 0 && SEED_BOARDS.length > 0) {
+      await supabase
+        .from("adtrack_folders")
+        .upsert(SEED_BOARDS.map(toFolderRow), { onConflict: "id" });
+      folders = SEED_BOARDS;
     }
 
     return NextResponse.json({
