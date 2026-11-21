@@ -45,6 +45,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const [brands, setBrands] = useState<Brand[]>(SEED_BRANDS);
   const [boards, setBoards] = useState<Board[]>(SEED_BOARDS);
   const [hydrated, setHydrated] = useState(false);
+  const [supabaseSynced, setSupabaseSynced] = useState(initialStatus.supabase);
 
   // Navigation: ONLY Shops, Explore, Folders!
   const [view, setView] = useState<ActiveView>("shops");
@@ -70,6 +71,14 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3200);
+  };
+
+  const syncCatalog = (payload: Record<string, unknown>) => {
+    fetch("/api/catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
   };
 
   useEffect(() => {
@@ -101,6 +110,28 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         // fallback to scraped catalog
       }
       setHydrated(true);
+
+      // Hydrate from live Supabase Postgres when configured (auto-seeds on first load)
+      fetch("/api/catalog", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (cancelled || !data) return;
+          if (data.synced) {
+            setSupabaseSynced(true);
+            if (Array.isArray(data.brands) && data.brands.length > 0) {
+              setBrands(data.brands);
+            }
+            if (Array.isArray(data.ads) && data.ads.length > 0) {
+              setAds(data.ads);
+            }
+            if (Array.isArray(data.folders) && data.folders.length > 0) {
+              setBoards(data.folders);
+            }
+          } else {
+            setSupabaseSynced(false);
+          }
+        })
+        .catch(() => {});
     });
 
     return () => {
@@ -120,46 +151,56 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   }, [ads, brands, boards, hydrated]);
 
   const handleToggleBoard = (adId: string, boardId: string) => {
-    setAds((prev) =>
-      prev.map((a) => {
-        if (a.id !== adId) return a;
-        const exists = a.board_ids.includes(boardId);
-        return {
-          ...a,
-          board_ids: exists
-            ? a.board_ids.filter((id) => id !== boardId)
-            : [...a.board_ids, boardId],
-        };
-      })
-    );
+    const existing = ads.find((a) => a.id === adId);
+    if (!existing) return;
+    const hasBoard = existing.board_ids.includes(boardId);
+    const updatedAd: Ad = {
+      ...existing,
+      board_ids: hasBoard
+        ? existing.board_ids.filter((id) => id !== boardId)
+        : [...existing.board_ids, boardId],
+    };
+    setAds((prev) => prev.map((a) => (a.id === adId ? updatedAd : a)));
+    syncCatalog({ action: "upsert_ad", ad: updatedAd });
   };
 
   const handleToggleBrandFolder = (brandId: string, boardId: string) => {
-    setBrands((prev) =>
-      prev.map((b) => {
-        if (b.id !== brandId) return b;
-        const cur = b.folder_ids || [];
-        const exists = cur.includes(boardId);
-        return {
-          ...b,
-          folder_ids: exists ? cur.filter((id) => id !== boardId) : [...cur, boardId],
-        };
-      })
-    );
+    const existing = brands.find((b) => b.id === brandId);
+    if (!existing) return;
+    const cur = existing.folder_ids || [];
+    const hasFolder = cur.includes(boardId);
+    const updatedBrand: Brand = {
+      ...existing,
+      folder_ids: hasFolder ? cur.filter((id) => id !== boardId) : [...cur, boardId],
+    };
+    setBrands((prev) => prev.map((b) => (b.id === brandId ? updatedBrand : b)));
+    syncCatalog({ action: "upsert_brand", brand: updatedBrand });
   };
 
   const handleUpdateAd = (adId: string, patch: Partial<Ad>) => {
-    setAds((prev) => prev.map((a) => (a.id === adId ? { ...a, ...patch } : a)));
+    const existing = ads.find((a) => a.id === adId);
+    if (!existing) return;
+    const updatedAd: Ad = { ...existing, ...patch };
+    setAds((prev) => prev.map((a) => (a.id === adId ? updatedAd : a)));
+    syncCatalog({ action: "upsert_ad", ad: updatedAd });
   };
 
   const handleUpdateBrand = (brandId: string, patch: Partial<Brand>, freshAds?: Ad[]) => {
-    setBrands((prev) => prev.map((b) => (b.id === brandId ? { ...b, ...patch } : b)));
+    const existing = brands.find((b) => b.id === brandId);
+    if (!existing) return;
+    const updatedBrand: Brand = { ...existing, ...patch };
+    setBrands((prev) => prev.map((b) => (b.id === brandId ? updatedBrand : b)));
     if (freshAds && freshAds.length > 0) {
       setAds((prev) => {
         const otherAds = prev.filter((a) => a.brand_id !== brandId);
         return [...freshAds, ...otherAds];
       });
     }
+    syncCatalog({
+      action: "upsert_brand_and_ads",
+      brand: updatedBrand,
+      ads: freshAds || [],
+    });
   };
 
   const handleAddBrandWithAds = (brand: Brand, discoveredAds: Ad[] = []) => {
@@ -176,6 +217,11 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     } else {
       showToast(`${brand.name} scrapet og tilføjet til Shops!`);
     }
+    syncCatalog({
+      action: "upsert_brand_and_ads",
+      brand,
+      ads: discoveredAds,
+    });
   };
 
   const handleCreateBoard = (name: string) => {
@@ -188,6 +234,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       created_at: new Date().toISOString(),
     };
     setBoards((prev) => [...prev, board]);
+    syncCatalog({ action: "upsert_folder", folder: board });
     showToast(`Folder "${name}" oprettet`);
   };
 
@@ -205,6 +252,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         folder_ids: (b.folder_ids || []).filter((id) => id !== boardId),
       }))
     );
+    syncCatalog({ action: "delete_folder", folderId: boardId });
     if (selectedFolderId === boardId) setSelectedFolderId(null);
   };
 
@@ -552,13 +600,17 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white">
                 <span className="h-2 w-2 rounded-full bg-[#22C55E] shadow-[0_0_8px_#22C55E]" />
-                Meta Scraper Active
+                {supabaseSynced ? "Supabase Live Sync" : "Meta Scraper Active"}
               </span>
               <span className="text-[11px]">🇩🇰 🇺🇸</span>
             </div>
             <p className="mt-1.5 text-[11px] leading-relaxed text-white/55">
               {brands.length} Shopify-shops &amp; {ads.length} live Meta-annoncer indekseret.
-              {initialStatus.scrapeCreators ? " Live API klar." : ""}
+              {supabaseSynced
+                ? " Synkroniseret med Supabase."
+                : initialStatus.scrapeCreators
+                  ? " Live API klar."
+                  : ""}
             </p>
           </div>
         </div>
