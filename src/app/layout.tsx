@@ -11,25 +11,25 @@ const inter = Inter({
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["500", "600", "700", "800"],
   display: "swap",
 });
 
 const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "AdVault — E-commerce Ads Library & Brand Tracker",
+  title: "Adtrack — E-commerce Ads Library & Brand Tracker",
   description:
-    "Dit personlige Foreplay & TrendTrack ad-bibliotek til Instagram og Meta Ad Library med permanent lagring, boards og AI-analyse.",
+    "Dit personlige Trendtrack & Foreplay ad-bibliotek til Instagram, Meta Ad Library og e-commerce konkurrent-analyse.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AdVault",
+    title: "Adtrack",
   },
   icons: {
     icon: [
@@ -45,10 +45,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0A0B0D" },
-    { media: "(prefers-color-scheme: light)", color: "#F5F4F0" },
-  ],
+  themeColor: "#0027eb",
 };
 
 export default function RootLayout({
@@ -59,11 +56,10 @@ export default function RootLayout({
   return (
     <html
       lang="da"
-      data-theme="dark"
       suppressHydrationWarning
-      className={`dark ${inter.variable} ${jakarta.variable} ${jetbrains.variable} h-full`}
+      className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable} h-full`}
     >
-      <body className="min-h-full antialiased selection:bg-emerald-500/25">
+      <body className="min-h-full bg-[#08090B] text-[#111318] antialiased selection:bg-[#0027eb]/15 selection:text-[#0027eb]">
         {children}
       </body>
     </html>

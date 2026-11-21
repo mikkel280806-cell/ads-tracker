@@ -1,27 +1,14 @@
-# AdVault — Personlig Foreplay & TrendTrack Ads Tracker
+# Adtrack — Personlig Trendtrack & Foreplay Ads Tracker
 
-En hurtig, personlig e-commerce ads tracker bygget med **Next.js (App Router) + Tailwind CSS + Supabase + InstaBox.sh** — designet til både desktop og som installerbar **mobil-app (PWA)** på iPhone og Android.
+Din egen lynhurtige e-commerce creative intelligence-app i **#0027eb**, bygget med **Next.js (App Router) + Tailwind CSS + ReUI + Supabase + InstaBox.sh** — designet med kulsort sidebar, kridhvidt Trendtrack-workspace og fuld **mobil-app (PWA)** på iPhone og Android.
 
 ## Funktioner
-- **Foreplay Swipe File**: Gem annoncer fra **Meta Ad Library** og **Instagram (Reels & Posts)** eller upload manuelt. Organisér i **Boards**, tilføj tags, noter og generér **UGC Creator Briefs** med 1 klik.
-- **TrendTrack Brand Tracker**: Følg konkurrerende brands, se aktive Meta-ads, **dage live (30d+ vinder-badges)**, **EU Reach**, Shopify-status og direkte links til deres Ad Library & webshop.
-- **Permanent Medielagring**: Downloads fra Meta/Instagram gemmes permanent i **Supabase Storage** (`ad-media` bucket), så annoncer aldrig udløber.
-- **On-Demand AI-worker på InstaBox.sh**: Vækker automatisk din InstaBox VM fra 30-minutters dvale via `INSTABOX_API_KEY` (`POST /v1/machines/{id}/wake` + `exec`), kører `ffmpeg` + lokal `faster-whisper` + officiel `agy acp` og skriver hooks, transskription og script-struktur tilbage til Supabase. Indeholder også **1-kliks "Kopiér til Gemini"** + JSON-import direkte i UI'et.
-- **Mobil PWA ("Føj til hjemmeskærm")**: Standalone fuldskærm på iOS/Android, fast tommelfinger-venlig bund-navigation, 1-kliks *"Indsæt fra udklipsholder"*, Android Share Target og opskrift til iPhone Apple Genvej.
+- **Ads (Trendtrack + Foreplay Swipe File)**: Gem annoncer fra **Meta Ad Library** og **Instagram (Reels & Posts)** med 1 klik via Quick-Paste baren eller manuel upload. Hvert kort viser EU Reach, Est. Spend, Daily Spend, aktive dage, Duplicated-antal, hvid Play-knap, domæne + CTA og **"Save to Favorites"** med board-vælger.
+- **Shops & Shop Analytics (Trendtrack + SimilarWeb)**: Følg konkurrerende webshops i Trendtrack-tabel med **Monthly Visits area-grafer**, **Meta Ads grafer**, Shopify-tema, Trustpilot-score, Pixels, landefordeling (`Visitor Countries`) og live `/api/traffic` integration mod **SimilarWeb API** / **RapidAPI SimilarWeb**.
+- **Brandtracker**: Rangerede Top EU Ads (`#1`, `#2`, `#3`...) på tværs af fulgte konkurrenter.
+- **Permanent Medielagring**: Videoer og billeder downloades og lagres permanent i **Supabase Storage** (`ad-media` bucket), så ads aldrig udløber.
+- **InstaBox.sh Auto-Wake AI/Video-Worker**: Vækker automatisk din InstaBox VM fra 30 min. dvale via `INSTABOX_API_KEY` (`POST /v1/machines/{id}/wake` + `exec`), kører `ffmpeg` + lokal `faster-whisper` + officiel `agy acp`, plus 1-kliks **"Kopiér til Gemini"** og **UGC Creator Brief generator**.
+- **Mobil PWA ("Føj til hjemmeskærm")**: Eget blåt **Adtrack**-ikon, fuldskærm uden browser-bar, bund-navigation, 1/2-kolonners mobil-toggle, Android Share Target og iPhone Apple Genvej-opskrift.
 
-## Hurtig start lokalt
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
-```
-Appen virker med det samme i **Lokal / Demo Mode** med indbygget data og `localStorage` — også før du tilføjer API-nøgler.
-
-## Tilslutning af Services
-1. **Supabase**: Opret projekt på supabase.com → kør `supabase/schema.sql` i SQL Editor → tilføj `NEXT_PUBLIC_SUPABASE_URL` og `SUPABASE_SERVICE_ROLE_KEY` i Vercel / `.env.local`.
-2. **Vercel**: Importer GitHub-repoet på vercel.com og indsæt miljøvariablerne fra `.env.example`.
-3. **ScrapeCreators (Live Link-Import)**: Tilføj `SCRAPECREATORS_API_KEY` for automatisk udtræk af video, annoncetekst, CTA og EU-reach fra Meta Ad Library og Instagram.
-4. **InstaBox.sh (Auto-Wake AI/Video-Worker)**:
-   - Kopiér `worker/`-mappen over på din InstaBox VM (`/home/user/advault-worker/`).
-   - Installér `ffmpeg`, `faster-whisper` og log ind én gang med `agy acp --login`.
-   - Tilføj `INSTABOX_API_KEY` og `INSTABOX_MACHINE_ID` i Vercel.
+## Miljøvariabler
+Se [.env.example](./.env.example) for alle nøgler til **Supabase**, **ScrapeCreators/Apify**, **SimilarWeb/RapidAPI** og **InstaBox.sh**.

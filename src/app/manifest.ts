@@ -2,15 +2,15 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "AdVault — E-commerce Ads Library",
-    short_name: "AdVault",
+    name: "Adtrack — E-commerce Ads & Brand Tracker",
+    short_name: "Adtrack",
     description:
-      "Personlig Foreplay & TrendTrack ads tracker til Instagram og Meta Ad Library.",
+      "Din egen Trendtrack & Foreplay til Instagram, Meta Ad Library, shops og konkurrent-overvågning.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#0A0B0D",
-    theme_color: "#0A0B0D",
+    background_color: "#08090B",
+    theme_color: "#0027eb",
     categories: ["business", "productivity", "marketing"],
     icons: [
       {

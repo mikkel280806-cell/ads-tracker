@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import {
+  BarChart3,
   Check,
   CheckCircle2,
   Circle,
@@ -11,12 +12,9 @@ import {
   Loader2,
   Server,
   Smartphone,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import type { ConnectorStatus } from "@/lib/types";
-import { Badge } from "@/components/reui/badge";
-import { Frame, FramePanel } from "@/components/reui/frame";
 
 interface ConnectorsViewProps {
   status: ConnectorStatus;
@@ -28,7 +26,7 @@ export function ConnectorsView({ status }: ConnectorsViewProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://din-app.vercel.app";
+    typeof window !== "undefined" ? window.location.origin : "https://adtrack.vercel.app";
 
   const copy = async (id: string, text: string) => {
     try {
@@ -60,22 +58,31 @@ export function ConnectorsView({ status }: ConnectorsViewProps) {
 
   const connectors = [
     {
-      name: "Supabase (Database & Permanent Storage)",
+      name: "Supabase (Database & Permanent Video-Storage)",
       connected: status.supabase,
       icon: Database,
       description:
-        "Gemmer alle ads, brands, boards, tags og selve videofilerne permanent, så Meta/Instagram-links aldrig udløber.",
+        "Gemmer alle ads, shops, boards, tags og selve videofilerne permanent, så Meta/Instagram-links aldrig udløber.",
       envVars: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
       actionHint: "Kør supabase/schema.sql i Supabase SQL Editor.",
     },
     {
-      name: "ScrapeCreators / Apify (Link-Import)",
+      name: "ScrapeCreators / Apify (Instagram & Meta Ad Library)",
       connected: status.scrapeCreators || status.apify,
       icon: Globe,
       description:
-        "Henter automatisk HD-video, annoncetekst, CTA, landingsside og EU-reach fra Meta Ad Library og Instagram-links.",
+        "Henter HD-video, annoncetekst, CTA, landingsside, duplikeringer og EU-reach fra Meta Ad Library og Instagram-links.",
       envVars: ["SCRAPECREATORS_API_KEY"],
       actionHint: "Opret nøgle på scrapecreators.com (eller apify.com).",
+    },
+    {
+      name: "SimilarWeb / RapidAPI (Shop Traffic & Lande)",
+      connected: status.similarweb,
+      icon: BarChart3,
+      description:
+        "Henter månedlige besøgende, trafikvækst over tid og landefordeling på enhver konkurrent-webshop i Shops & Shop Analytics.",
+      envVars: ["SIMILARWEB_API_KEY", "RAPIDAPI_KEY"],
+      actionHint: "Brug enten officiel SimilarWeb API eller billig RapidAPI SimilarWeb-nøgle.",
     },
     {
       name: "InstaBox.sh (On-Demand AI & Video Worker)",
@@ -87,15 +94,6 @@ export function ConnectorsView({ status }: ConnectorsViewProps) {
       actionHint: "Worker er klar i /data/advault-worker/ på din ad-tracker VM.",
       hasWakeTest: true,
     },
-    {
-      name: "Cloud AI Fallback (Groq / Gemini API)",
-      connected: status.groq || status.gemini,
-      icon: Sparkles,
-      description:
-        "Valgfri fallback hvis du vil køre AI uden InstaBox — ellers brug 1-kliks 'Kopiér til Gemini' inde på hver ad.",
-      envVars: ["GROQ_API_KEY", "GEMINI_API_KEY"],
-      actionHint: "100% valgfri.",
-    },
   ];
 
   const shortcutPayload = `POST ${origin}/api/import\nHeader: Content-Type: application/json\nBody: { "url": "<Genvejsinput>" }`;
@@ -103,239 +101,199 @@ export function ConnectorsView({ status }: ConnectorsViewProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">
-          Connectors & Mobil PWA
+        <h1 className="font-display text-2xl font-bold tracking-tight text-[#111318]">
+          Connectors &amp; Mobil PWA
         </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-          Live status på dine forbundne tjenester, InstaBox.sh auto-wake og opsætning på telefonen.
+        <p className="mt-1 text-sm text-[#667085]">
+          Status på Supabase, ScrapeCreators, SimilarWeb, InstaBox.sh auto-wake og opsætning på telefonen.
         </p>
       </div>
 
       {/* Mode Banner */}
-      <Frame spacing="sm">
-        <FramePanel className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-start gap-3">
-            <span
-              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{
-                backgroundColor:
-                  status.mode === "live" ? "var(--accent-live)" : "var(--accent-winner)",
-              }}
-            />
-            <div>
-              <p className="text-sm font-semibold">
-                {status.mode === "live"
-                  ? "Live Mode — Forbundet til Supabase"
-                  : "Lokal / Demo Mode — Klar til Supabase-nøgler"}
-              </p>
-              <p className="mt-0.5 text-xs" style={{ color: "var(--text-secondary)" }}>
-                {status.mode === "live"
-                  ? "Alle ændringer og importerede annoncer gemmes direkte i din Supabase Postgres database."
-                  : "Alt virker allerede i browseren. Tilføj Supabase- og ScrapeCreators-nøgler i Vercel for fuld cloud-synk på tværs af PC og telefon."}
-              </p>
-            </div>
+      <div className="flex flex-col justify-between gap-3 rounded-2xl border border-[#E6E8EC] bg-[#FAFBFD] p-4 sm:flex-row sm:items-center">
+        <div className="flex items-start gap-3">
+          <span
+            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{
+              backgroundColor: status.mode === "live" ? "#16A34A" : "#0027eb",
+            }}
+          />
+          <div>
+            <p className="text-sm font-bold text-[#111318]">
+              {status.mode === "live"
+                ? "Live Mode — Forbundet til Supabase"
+                : "Lokal / Demo Mode — Klar til Vercel & Supabase nøgler"}
+            </p>
+            <p className="mt-0.5 text-xs text-[#667085]">
+              {status.mode === "live"
+                ? "Alle ændringer og importerede annoncer gemmes direkte i din Supabase Postgres database."
+                : "Alt virker allerede i browseren. Tilføj dine miljøvariabler i Vercel for 24/7 synk på tværs af PC og telefon."}
+            </p>
           </div>
-          <Badge
-            size="lg"
-            radius="full"
-            variant={status.instabox ? "success-light" : "warning-light"}
-          >
-            {status.instabox ? "InstaBox Forbundet" : "Klar til opsætning"}
-          </Badge>
-        </FramePanel>
-      </Frame>
+        </div>
+        <span
+          className="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold"
+          style={
+            status.instabox
+              ? { backgroundColor: "#ECFDF3", color: "#15803D" }
+              : { backgroundColor: "#EEF2FF", color: "#0027eb" }
+          }
+        >
+          {status.instabox ? "InstaBox Forbundet" : "Klar til opsætning"}
+        </span>
+      </div>
 
-      {/* Connector Cards in ReUI Frames */}
+      {/* Connector Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {connectors.map((c) => {
           const Icon = c.icon;
           return (
-            <Frame key={c.name} spacing="sm">
-              <FramePanel className="flex flex-col justify-between gap-4">
-                <div className="space-y-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: "var(--bg-elevated)" }}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <h2 className="font-display text-sm font-semibold">
-                        {c.name}
-                      </h2>
+            <div
+              key={c.name}
+              className="flex flex-col justify-between gap-4 rounded-2xl border border-[#E6E8EC] bg-white p-4"
+            >
+              <div className="space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#0027eb]">
+                      <Icon className="h-4 w-4" />
                     </div>
-
-                    <Badge
-                      size="sm"
-                      radius="full"
-                      variant={c.connected ? "success-light" : "secondary"}
-                    >
-                      {c.connected ? (
-                        <>
-                          <CheckCircle2 className="h-3 w-3" /> Forbundet
-                        </>
-                      ) : (
-                        <>
-                          <Circle className="h-3 w-3" /> Klar til nøgle
-                        </>
-                      )}
-                    </Badge>
+                    <h2 className="font-display text-sm font-bold text-[#111318]">
+                      {c.name}
+                    </h2>
                   </div>
 
-                  <p
-                    className="text-xs leading-relaxed"
-                    style={{ color: "var(--text-secondary)" }}
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                    style={
+                      c.connected
+                        ? { backgroundColor: "#ECFDF3", color: "#15803D" }
+                        : { backgroundColor: "#F2F4F7", color: "#667085" }
+                    }
                   >
-                    {c.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {c.envVars.map((env) => (
-                      <code
-                        key={env}
-                        className="rounded-md px-2 py-0.5 font-mono text-[11px]"
-                        style={{
-                          backgroundColor: "var(--bg-elevated)",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {env}
-                      </code>
-                    ))}
-                  </div>
-                </div>
-
-                <div
-                  className="flex flex-wrap items-center justify-between gap-2 border-t pt-3"
-                  style={{ borderColor: "var(--border-subtle)" }}
-                >
-                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                    {c.actionHint}
+                    {c.connected ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3" /> Forbundet
+                      </>
+                    ) : (
+                      <>
+                        <Circle className="h-3 w-3" /> Klar til nøgle
+                      </>
+                    )}
                   </span>
-
-                  {c.hasWakeTest && (
-                    <button
-                      type="button"
-                      onClick={handleTestInstaBoxWake}
-                      disabled={testingWake}
-                      className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
-                      style={{
-                        borderColor: "var(--border-strong)",
-                        color: "var(--text-primary)",
-                      }}
-                    >
-                      {testingWake ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Zap className="h-3 w-3" />
-                      )}
-                      Test Auto-Wake
-                    </button>
-                  )}
                 </div>
 
-                {c.hasWakeTest && wakeResult && (
-                  <p
-                    className="rounded-xl px-3 py-2 text-xs"
-                    style={{
-                      backgroundColor: "var(--bg-elevated)",
-                      color: "var(--text-secondary)",
-                    }}
+                <p className="text-xs leading-relaxed text-[#475467]">
+                  {c.description}
+                </p>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {c.envVars.map((env) => (
+                    <code
+                      key={env}
+                      className="rounded-md bg-[#F2F4F7] px-2 py-0.5 font-mono text-[11px] text-[#344054]"
+                    >
+                      {env}
+                    </code>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#F1F3F6] pt-3">
+                <span className="text-[11px] text-[#667085]">{c.actionHint}</span>
+
+                {c.hasWakeTest && (
+                  <button
+                    type="button"
+                    onClick={handleTestInstaBoxWake}
+                    disabled={testingWake}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#0027eb] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#001fc2]"
                   >
-                    {wakeResult}
-                  </p>
+                    {testingWake ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Zap className="h-3 w-3" />
+                    )}
+                    Test Auto-Wake
+                  </button>
                 )}
-              </FramePanel>
-            </Frame>
+              </div>
+
+              {c.hasWakeTest && wakeResult && (
+                <p className="rounded-xl bg-[#F8F9FB] px-3 py-2 text-xs font-medium text-[#111318]">
+                  {wakeResult}
+                </p>
+              )}
+            </div>
           );
         })}
       </div>
 
       {/* Mobile PWA & iPhone Share Sheet Guide */}
-      <Frame spacing="sm">
-        <FramePanel>
-          <div className="flex items-center gap-2.5">
-            <Smartphone className="h-5 w-5" style={{ color: "var(--accent-live)" }} />
-            <h2 className="font-display text-base font-semibold">
-              Installér på telefonen (PWA) & 1-kliks deling fra Instagram
-            </h2>
+      <div className="rounded-2xl border border-[#E6E8EC] bg-white p-5">
+        <div className="flex items-center gap-2.5">
+          <Smartphone className="h-5 w-5 text-[#0027eb]" />
+          <h2 className="font-display text-base font-bold text-[#111318]">
+            Installér Adtrack på telefonen (PWA) &amp; 1-kliks deling fra Instagram
+          </h2>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-2 rounded-xl bg-[#FAFBFD] p-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#111318]">
+              1. Hent som Web App (iPhone &amp; Android)
+            </h3>
+            <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-[#475467]">
+              <li>
+                Åbn din Vercel-URL i <strong>Safari (iPhone)</strong> eller{" "}
+                <strong>Chrome (Android)</strong>.
+              </li>
+              <li>
+                Tryk på <strong>Del-ikonet</strong> (iPhone) eller menuen (Android) → vælg{" "}
+                <strong>&quot;Føj til hjemmeskærm&quot;</strong>.
+              </li>
+              <li>
+                Nu får du dit blå <strong>Adtrack</strong>-ikon på hjemmeskærmen i fuld skærm uden
+                browser-bar.
+              </li>
+            </ol>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div
-              className="space-y-2 rounded-xl p-4"
-              style={{ backgroundColor: "var(--bg-elevated)" }}
-            >
-              <h3 className="text-xs font-semibold uppercase tracking-wider">
-                1. Hent som Web App (iPhone & Android)
+          <div className="space-y-2.5 rounded-xl bg-[#FAFBFD] p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#111318]">
+                2. iPhone Del-menu (Apple Genvej)
               </h3>
-              <ol
-                className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed"
-                style={{ color: "var(--text-secondary)" }}
+              <button
+                type="button"
+                onClick={() => copy("shortcut", shortcutPayload)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#0027eb]"
               >
-                <li>
-                  Åbn din Vercel-URL i <strong>Safari (iPhone)</strong> eller{" "}
-                  <strong>Chrome (Android)</strong>.
-                </li>
-                <li>
-                  Tryk på <strong>Del-ikonet</strong> (iPhone) eller menuen (Android) → vælg{" "}
-                  <strong>&quot;Føj til hjemmeskærm&quot;</strong>.
-                </li>
-                <li>
-                  Nu åbner <strong>AdVault</strong> i fuld skærm med eget ikon, bund-navigation og
-                  uden browser-bar.
-                </li>
-              </ol>
+                {copiedId === "shortcut" ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-[#16A34A]" /> Kopieret
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" /> Kopiér endpoint
+                  </>
+                )}
+              </button>
             </div>
-
-            <div
-              className="space-y-2.5 rounded-xl p-4"
-              style={{ backgroundColor: "var(--bg-elevated)" }}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-wider">
-                  2. iPhone Del-menu (Apple Genvej)
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => copy("shortcut", shortcutPayload)}
-                  className="inline-flex items-center gap-1 text-xs"
-                  style={{ color: "var(--accent-live)" }}
-                >
-                  {copiedId === "shortcut" ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" /> Kopieret
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" /> Kopiér endpoint
-                    </>
-                  )}
-                </button>
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                Opret én genvej i iPhone-appen <strong>Genveje</strong> aktiveret for{" "}
-                <em>&quot;Vis i delingsark&quot;</em> med handlingen{" "}
-                <em>&quot;Hent indhold af URL&quot;</em>:
-              </p>
-              <pre
-                className="overflow-x-auto rounded-lg border p-2.5 font-mono text-[11px]"
-                style={{
-                  backgroundColor: "var(--bg-surface)",
-                  borderColor: "var(--border-subtle)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {shortcutPayload}
-              </pre>
-              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                På Android virker deling fra Instagram automatisk via PWA Share Target.
-              </p>
-            </div>
+            <p className="text-xs leading-relaxed text-[#475467]">
+              Opret én genvej i iPhone-appen <strong>Genveje</strong> aktiveret for{" "}
+              <em>&quot;Vis i delingsark&quot;</em> med handlingen{" "}
+              <em>&quot;Hent indhold af URL&quot;</em>:
+            </p>
+            <pre className="overflow-x-auto rounded-lg border border-[#E6E8EC] bg-white p-2.5 font-mono text-[11px] text-[#344054]">
+              {shortcutPayload}
+            </pre>
+            <p className="text-[11px] text-[#667085]">
+              På Android virker deling fra Instagram automatisk via PWA Share Target.
+            </p>
           </div>
-        </FramePanel>
-      </Frame>
+        </div>
+      </div>
     </div>
   );
 }

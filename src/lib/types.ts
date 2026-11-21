@@ -9,6 +9,17 @@ export interface ScriptBreakdown {
   cta: string;
 }
 
+export interface CountryShare {
+  code: string;
+  flag: string;
+  pct: number;
+}
+
+export interface TrafficPoint {
+  label: string;
+  visits: number;
+}
+
 export interface Brand {
   id: string;
   name: string;
@@ -20,9 +31,23 @@ export interface Brand {
   meta_ad_library_url?: string;
   category: string;
   is_shopify: boolean;
+  shopify_theme?: string;
+  founded_date?: string;
+  origin_country?: string;
+  currency?: string;
+  products_count?: number;
   is_tracked: boolean;
   active_ads_count: number;
   estimated_monthly_reach: number;
+  monthly_visits: number;
+  traffic_growth_pct: number;
+  traffic_history: TrafficPoint[];
+  ads_history: number[];
+  visitor_countries: CountryShare[];
+  trustpilot_score?: number;
+  trustpilot_reviews?: number;
+  ig_followers?: number;
+  pixels?: string[];
   last_synced_at: string;
 }
 
@@ -41,6 +66,7 @@ export interface Ad {
   brand_handle: string;
   brand_avatar_initials: string;
   brand_avatar_color: string;
+  brand_live_ads?: number;
   source_type: SourceType;
   source_url: string;
   external_ad_id?: string;
@@ -56,6 +82,9 @@ export interface Ad {
   is_active: boolean;
   started_running_at: string;
   eu_reach?: number;
+  estimated_spend?: number;
+  daily_spend?: number;
+  duplicated_count?: number;
   platforms: string[];
   status: AdStatus;
   ai_hook_verbal?: string;
@@ -75,6 +104,7 @@ export interface ConnectorStatus {
   supabase: boolean;
   scrapeCreators: boolean;
   apify: boolean;
+  similarweb: boolean;
   instabox: boolean;
   groq: boolean;
   gemini: boolean;

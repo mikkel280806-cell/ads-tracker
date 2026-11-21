@@ -26,6 +26,7 @@ export function getConnectorStatus(): ConnectorStatus {
     supabase,
     scrapeCreators: Boolean(process.env.SCRAPECREATORS_API_KEY),
     apify: Boolean(process.env.APIFY_API_TOKEN),
+    similarweb: Boolean(process.env.SIMILARWEB_API_KEY || process.env.RAPIDAPI_KEY),
     instabox: Boolean(process.env.INSTABOX_API_KEY && process.env.INSTABOX_MACHINE_ID),
     groq: Boolean(process.env.GROQ_API_KEY),
     gemini: Boolean(process.env.GEMINI_API_KEY),

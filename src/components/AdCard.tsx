@@ -2,26 +2,29 @@
 
 import React, { useState } from "react";
 import {
-  ArrowUpRight,
   Bookmark,
-  Flame,
+  Calendar,
+  ChevronDown,
+  Copy as CopyIcon,
+  DollarSign,
+  Eye,
   Heart,
-  Image as ImageIcon,
+  MoreHorizontal,
   Play,
   Sparkles,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import { formatDuration, formatReach, getActiveDays } from "@/lib/url-parser";
-import { Badge } from "@/components/reui/badge";
-import { Frame, FramePanel } from "@/components/reui/frame";
 
 interface AdCardProps {
   ad: Ad;
   boards: Board[];
+  rank?: number;
   compact?: boolean;
   onOpen: (ad: Ad) => void;
   onToggleFavorite: (adId: string) => void;
   onToggleBoard: (adId: string, boardId: string) => void;
+  onOpenBrand?: (brandId: string) => void;
 }
 
 function getDomain(url?: string): string {
@@ -33,20 +36,39 @@ function getDomain(url?: string): string {
   }
 }
 
+function formatDateShort(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatMoney(amount?: number): string {
+  if (!amount) return "—";
+  if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
+  return `$${amount}`;
+}
+
 export function AdCard({
   ad,
   boards,
+  rank,
   compact = false,
   onOpen,
   onToggleFavorite,
   onToggleBoard,
+  onOpenBrand,
 }: AdCardProps) {
   const [boardMenuOpen, setBoardMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const activeDays = getActiveDays(ad.started_running_at);
-  const isWinner = ad.is_active && activeDays >= 30;
   const domain = getDomain(ad.landing_page_url);
+  const isSaved = ad.is_favorite || ad.board_ids.length > 0;
   const isVideoFile =
     ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
 
@@ -59,349 +81,292 @@ export function AdCard({
 
   return (
     <article
-      className="group mb-4 break-inside-avoid"
+      className="group relative mb-4 break-inside-avoid rounded-2xl border border-[#E6E8EC] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:border-[#0027eb]/35 hover:shadow-[0_6px_20px_rgba(0,39,235,0.07)]"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
         setBoardMenuOpen(false);
       }}
     >
-      <Frame
-        dense
-        className="transition-all duration-200 hover:border-foreground/20"
-        style={{ boxShadow: "var(--shadow-card)" }}
-      >
-        {/* TOP BAR: Authentic Foreplay / Meta Ad Header */}
-        <div
-          className="flex items-center justify-between gap-2 px-3 py-2.5"
-          style={{ backgroundColor: "var(--bg-surface)" }}
-        >
+      {rank !== undefined && (
+        <div className="border-b border-[#F1F3F6] py-1 text-center font-mono-num text-[11px] font-semibold text-[#667085]">
+          #{rank}
+        </div>
+      )}
+
+      {/* 1. TRENDTRACK TOP EU + SPEND + DAILY TELEMETRY BAR */}
+      <div className="flex items-center justify-between gap-1.5 border-b border-[#F1F3F6] px-3 py-2">
+        <span className="inline-flex h-5 items-center rounded-full bg-[#EEF2FF] px-2 text-[10px] font-semibold text-[#0027eb]">
+          {ad.source_type === "instagram" ? "IG" : "EU"}
+        </span>
+
+        <div className="flex items-center gap-1 overflow-hidden">
+          <span className="inline-flex items-center gap-1 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#1D2432]">
+            <Eye className="h-2.5 w-2.5 text-[#667085]" />
+            {formatReach(ad.eu_reach)}
+          </span>
+          {!compact && ad.estimated_spend ? (
+            <span className="inline-flex items-center gap-0.5 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#1D2432]">
+              <DollarSign className="h-2.5 w-2.5 text-[#667085]" />
+              {formatMoney(ad.estimated_spend).replace("$", "")}
+            </span>
+          ) : null}
+          {!compact && ad.daily_spend ? (
+            <span className="inline-flex items-center gap-0.5 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#1D2432]">
+              <Calendar className="h-2.5 w-2.5 text-[#667085]" />
+              ${ad.daily_spend}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* 2. BRAND HEADER + LIVE ADS + DAYS + DUPLICATED */}
+      <div className="px-3 pb-2 pt-2.5">
+        <div className="flex items-start justify-between gap-2">
           <button
             type="button"
-            onClick={() => onOpen(ad)}
+            onClick={() => (onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad))}
             className="flex min-w-0 items-center gap-2 text-left"
           >
             <span
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ring-1 ring-white/15"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
               style={{ backgroundColor: ad.brand_avatar_color }}
             >
               {ad.brand_avatar_initials}
             </span>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <p
-                  className="truncate text-xs font-semibold leading-tight"
-                  style={{ color: "var(--text-primary)" }}
-                >
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] font-bold text-[#0027eb]">
+                  {ad.source_type === "instagram" ? "◎" : "∞"}
+                </span>
+                <p className="truncate text-[13px] font-semibold leading-tight text-[#111318] hover:text-[#0027eb]">
                   {ad.brand_name}
                 </p>
-                <Badge
-                  size="xs"
-                  radius="full"
-                  variant={
-                    ad.source_type === "meta_ad_library"
-                      ? "info-light"
-                      : ad.source_type === "instagram"
-                        ? "destructive-light"
-                        : "secondary"
-                  }
-                >
-                  {ad.source_type === "meta_ad_library"
-                    ? "Meta"
-                    : ad.source_type === "instagram"
-                      ? "IG"
-                      : "Upload"}
-                </Badge>
               </div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{
-                    backgroundColor: ad.is_active ? "var(--accent-live)" : "#6B7280",
-                  }}
-                />
-                <span
-                  className="font-mono-num font-medium"
-                  style={{
-                    color: ad.is_active ? "var(--accent-live)" : "var(--text-muted)",
-                  }}
-                >
-                  {ad.is_active ? `Aktiv · ${activeDays}d` : "Pauset"}
-                </span>
-              </div>
+              <p className="mt-0.5 truncate font-mono-num text-[11px] text-[#667085]">
+                {ad.brand_live_ads || 1} Live Ads · {formatReach(ad.eu_reach)}
+              </p>
             </div>
           </button>
 
-          {/* Quick Favorite & Save to Board */}
-          <div
-            className="relative flex shrink-0 items-center gap-0.5"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={() => onOpen(ad)}
+            aria-label="Åbn annonce-detaljer"
+            className="rounded-lg p-1 text-[#8A909E] transition-colors hover:bg-[#F3F4F6] hover:text-[#111318]"
           >
-            <button
-              type="button"
-              aria-label={ad.is_favorite ? "Fjern fra favoritter" : "Tilføj til favoritter"}
-              onClick={() => onToggleFavorite(ad.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-muted"
-              style={{
-                color: ad.is_favorite ? "#FB7185" : "var(--text-muted)",
-              }}
-            >
-              <Heart
-                className="h-3.5 w-3.5"
-                fill={ad.is_favorite ? "currentColor" : "none"}
-              />
-            </button>
-
-            <button
-              type="button"
-              aria-label="Gem til board"
-              onClick={() => setBoardMenuOpen((v) => !v)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-muted"
-              style={{
-                color: ad.board_ids.length > 0 ? "var(--accent-live)" : "var(--text-muted)",
-              }}
-            >
-              <Bookmark
-                className="h-3.5 w-3.5"
-                fill={ad.board_ids.length > 0 ? "currentColor" : "none"}
-              />
-            </button>
-
-            {boardMenuOpen && (
-              <div
-                className="absolute right-0 top-9 z-30 w-52 rounded-xl border p-1.5 shadow-2xl"
-                style={{
-                  backgroundColor: "var(--bg-surface)",
-                  borderColor: "var(--border-strong)",
-                }}
-              >
-                <p
-                  className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  Gem til board
-                </p>
-                {boards.map((board) => {
-                  const selected = ad.board_ids.includes(board.id);
-                  return (
-                    <button
-                      key={board.id}
-                      type="button"
-                      onClick={() => onToggleBoard(ad.id, board.id)}
-                      className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      <span className="flex items-center gap-2 truncate">
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{ backgroundColor: board.accent_color }}
-                        />
-                        <span className="truncate">{board.name}</span>
-                      </span>
-                      {selected && (
-                        <span
-                          className="text-[11px] font-semibold"
-                          style={{ color: "var(--accent-live)" }}
-                        >
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* PRIMARY AD COPY PREVIEW (Foreplay signature — scannable above media) */}
+        {/* Active days + Duplicated badge */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: ad.is_active ? "#16A34A" : "#9CA3AF" }}
+              />
+              <span className={ad.is_active ? "text-[#16A34A]" : "text-[#6B7280]"}>
+                {ad.is_active ? `${activeDays} days` : "Inactive"}
+              </span>
+            </div>
+            {!compact && (
+              <p className="truncate text-[10px] text-[#8A909E]">
+                {formatDateShort(ad.started_running_at)} – {ad.is_active ? "Today" : "Ended"}
+              </p>
+            )}
+          </div>
+
+          {ad.duplicated_count && ad.duplicated_count > 1 ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#ECFDF3] px-1.5 py-0.5 text-[10px] font-semibold text-[#15803D]">
+              <CopyIcon className="h-2.5 w-2.5" />
+              {ad.duplicated_count} Duplicated
+            </span>
+          ) : null}
+        </div>
+
+        {/* Primary Ad Copy */}
         {!compact && ad.primary_text && (
           <button
             type="button"
             onClick={() => onOpen(ad)}
-            className="w-full px-3 pb-2.5 text-left"
-            style={{ backgroundColor: "var(--bg-surface)" }}
+            className="mt-2 block w-full text-left"
           >
-            <p
-              className="line-clamp-2 text-[12px] leading-[1.45]"
-              style={{ color: "var(--text-secondary)" }}
-            >
+            <p className="line-clamp-2 text-[12px] leading-[1.45] text-[#344054]">
               {ad.primary_text}
             </p>
+            <span className="text-[11px] font-medium text-[#0027eb]">
+              Se AI hook &amp; script
+            </span>
           </button>
         )}
+      </div>
 
-        {/* FULL-BLEED CREATIVE MEDIA */}
-        <FramePanel className="!rounded-none !border-x-0 !p-0">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => onOpen(ad)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onOpen(ad);
-              }
-            }}
-            className={`relative w-full cursor-pointer overflow-hidden bg-black/40 ${aspectClass}`}
-          >
-            {isVideoFile && isHovered ? (
-              <video
-                src={ad.media_url}
-                poster={ad.thumbnail_url}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={ad.thumbnail_url || ad.media_url}
-                alt={`${ad.brand_name} — ${ad.headline}`}
-                loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-              />
-            )}
+      {/* 3. FULL-BLEED CREATIVE MEDIA + CENTER PLAY BUTTON */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpen(ad)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen(ad);
+          }
+        }}
+        className={`relative w-full cursor-pointer overflow-hidden bg-[#F3F4F6] ${aspectClass}`}
+      >
+        {isVideoFile && isHovered ? (
+          <video
+            src={ad.media_url}
+            poster={ad.thumbnail_url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={ad.thumbnail_url || ad.media_url}
+            alt={`${ad.brand_name} — ${ad.headline}`}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02]"
+          />
+        )}
 
-            {/* Soft vignette for floating pills */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/45 to-transparent" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-            {/* Top-left: Winner signal pill */}
-            {isWinner && (
-              <div className="absolute left-2.5 top-2.5">
-                <span
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur-md"
-                  style={{
-                    backgroundColor: "rgba(10, 11, 13, 0.72)",
-                    color: "var(--accent-winner)",
-                    border: "1px solid rgba(245, 158, 11, 0.3)",
-                  }}
-                >
-                  <Flame className="h-3 w-3" />
-                  Vinder
-                </span>
-              </div>
-            )}
-
-            {/* Bottom overlay: Video duration / Static + EU Reach */}
-            <div className="pointer-events-none absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2">
-              <span
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-md"
-                style={{
-                  backgroundColor: "rgba(10, 11, 13, 0.75)",
-                  color: "#F4F5F6",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                }}
-              >
-                {ad.media_type === "video" ? (
-                  <>
-                    <Play className="h-2.5 w-2.5 fill-current" />
-                    <span className="font-mono-num">
-                      {ad.duration_seconds ? formatDuration(ad.duration_seconds) : "Video"}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="h-2.5 w-2.5" />
-                    <span>Static</span>
-                  </>
-                )}
-              </span>
-
-              {ad.eu_reach ? (
-                <span
-                  className="font-mono-num rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-md"
-                  style={{
-                    backgroundColor: "rgba(10, 11, 13, 0.75)",
-                    color: "#E5E7EB",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                  }}
-                >
-                  {formatReach(ad.eu_reach)} EU
-                </span>
-              ) : null}
-            </div>
+        {/* Signature TrendTrack Centered White Play Circle for Videos */}
+        {ad.media_type === "video" && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-[#111318] shadow-lg transition-transform duration-200 group-hover:scale-110">
+              <Play className="ml-0.5 h-5 w-5 fill-current" />
+            </span>
           </div>
-        </FramePanel>
+        )}
 
-        {/* META-STYLE HEADLINE + CTA BAR */}
-        <div
-          className="flex items-center justify-between gap-2.5 border-b px-3 py-2.5"
-          style={{
-            backgroundColor: "var(--bg-elevated)",
-            borderColor: "var(--border-subtle)",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => onOpen(ad)}
-            className="min-w-0 flex-1 text-left"
-          >
-            {domain && (
-              <p
-                className="truncate text-[10px] uppercase tracking-wider"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {domain}
-              </p>
-            )}
-            <p
-              className="truncate text-xs font-semibold leading-snug"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {ad.headline}
-            </p>
-          </button>
-
-          {!compact && ad.landing_page_url && (
-            <a
-              href={ad.landing_page_url}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors hover:bg-muted"
-              style={{
-                backgroundColor: "var(--bg-surface)",
-                borderColor: "var(--border-strong)",
-                color: "var(--text-primary)",
-              }}
-            >
-              <span>{ad.cta_text || "Se mere"}</span>
-              <ArrowUpRight className="h-3 w-3 opacity-60" />
-            </a>
+        {/* Duration / AI Hook subtle bottom pill */}
+        <div className="pointer-events-none absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1.5">
+          {ad.ai_angle ? (
+            <span className="inline-flex max-w-[70%] items-center gap-1 truncate rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+              <Sparkles className="h-2.5 w-2.5 shrink-0 text-[#93C5FD]" />
+              <span className="truncate">{ad.ai_angle}</span>
+            </span>
+          ) : (
+            <span />
           )}
-        </div>
 
-        {/* SMART AI METADATA FOOTER */}
+          {ad.duration_seconds ? (
+            <span className="rounded-md bg-black/70 px-1.5 py-0.5 font-mono-num text-[10px] font-medium text-white backdrop-blur-sm">
+              {formatDuration(ad.duration_seconds)}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* 4. META-STYLE DOMAIN + HEADLINE + CTA BAR */}
+      <div className="flex items-center justify-between gap-2 border-b border-[#F1F3F6] bg-[#FAFBFD] px-3 py-2.5">
         <button
           type="button"
           onClick={() => onOpen(ad)}
-          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/60"
-          style={{ backgroundColor: "var(--bg-surface)" }}
+          className="min-w-0 flex-1 text-left"
         >
-          <div className="flex min-w-0 items-center gap-1.5">
-            <Sparkles
-              className="h-3 w-3 shrink-0"
-              style={{ color: "var(--accent-live)" }}
-            />
-            <span
-              className="truncate text-[11px] font-medium"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {ad.ai_angle || "Ikke analyseret"}
-            </span>
-          </div>
-
-          {ad.ai_format && !compact && (
-            <Badge size="xs" variant="outline" className="shrink-0">
-              {ad.ai_format}
-            </Badge>
+          {domain && (
+            <p className="truncate text-[10px] text-[#667085]">{domain}</p>
           )}
+          <p className="truncate text-[12px] font-semibold text-[#111318]">
+            {ad.headline}
+          </p>
         </button>
-      </Frame>
+
+        {!compact && ad.landing_page_url && (
+          <a
+            href={ad.landing_page_url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 rounded-lg border border-[#E2E5EB] bg-[#F2F4F7] px-2.5 py-1 text-[11px] font-semibold text-[#1D2432] transition-colors hover:bg-[#E5E8EE]"
+          >
+            {ad.cta_text || "Shop now"}
+          </a>
+        )}
+      </div>
+
+      {/* 5. TRENDTRACK "SAVE TO FAVORITES" BOTTOM BAR + BOARD PICKER */}
+      <div className="relative p-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onToggleFavorite(ad.id)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+            style={
+              isSaved
+                ? {
+                    backgroundColor: "rgba(0, 39, 235, 0.08)",
+                    borderColor: "rgba(0, 39, 235, 0.25)",
+                    color: "#0027eb",
+                  }
+                : {
+                    backgroundColor: "#FFFFFF",
+                    borderColor: "#E6E8EC",
+                    color: "#344054",
+                  }
+            }
+          >
+            {ad.is_favorite ? (
+              <Heart className="h-3.5 w-3.5 fill-current" />
+            ) : (
+              <Bookmark className="h-3.5 w-3.5" fill={ad.board_ids.length > 0 ? "currentColor" : "none"} />
+            )}
+            <span>
+              {ad.board_ids.length > 0
+                ? `Gemt i ${ad.board_ids.length} board${ad.board_ids.length > 1 ? "s" : ""}`
+                : ad.is_favorite
+                  ? "Gemt i Favoritter"
+                  : "Save to Favorites"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            aria-label="Vælg board"
+            onClick={() => setBoardMenuOpen((v) => !v)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E6E8EC] bg-white text-[#475467] transition-colors hover:bg-[#F5F6F8]"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {boardMenuOpen && (
+          <div className="absolute bottom-12 right-2 z-30 w-56 rounded-xl border border-[#E2E5EB] bg-white p-1.5 shadow-xl">
+            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#667085]">
+              Gem i mappe / board
+            </p>
+            {boards.map((board) => {
+              const selected = ad.board_ids.includes(board.id);
+              return (
+                <button
+                  key={board.id}
+                  type="button"
+                  onClick={() => onToggleBoard(ad.id, board.id)}
+                  className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-[#111318] transition-colors hover:bg-[#F5F6F8]"
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: board.accent_color }}
+                    />
+                    <span className="truncate">{board.name}</span>
+                  </span>
+                  {selected && (
+                    <span className="text-[11px] font-bold text-[#0027eb]">✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </article>
   );
 }
