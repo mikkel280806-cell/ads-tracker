@@ -1,10 +1,10 @@
-// Minimal Service Worker for AdVault PWA installability
-const CACHE_NAME = "advault-shell-v1";
+// Minimal Service Worker for Adtrack PWA installability
+const CACHE_NAME = "adtrack-shell-v3";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(["/", "/icons/icon-192.png"]))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(["/icons/icon-192.png"]))
   );
 });
 
@@ -18,7 +18,6 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Always bypass cache for API routes and non-GET requests
   if (event.request.method !== "GET" || event.request.url.includes("/api/")) {
     return;
   }

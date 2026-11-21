@@ -62,7 +62,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${instrumentSans.variable} ${geist.variable} ${geistMono.variable} h-full`}
     >
-      <body className="min-h-full bg-[#05060B] text-[#0F172A] antialiased selection:bg-[#0027eb]/15 selection:text-[#0027eb]">
+      <body className="min-h-full overflow-x-hidden bg-[#F7F8FB] text-[#0F172A] antialiased selection:bg-[#0027eb]/15 selection:text-[#0027eb] lg:bg-[#05060B]">
         {children}
       </body>
     </html>

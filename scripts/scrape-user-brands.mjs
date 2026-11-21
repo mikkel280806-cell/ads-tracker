@@ -36,7 +36,7 @@ const NEW_BRANDS = [
   // Additional brands requested by user
   { domain: "bloon-paris.com", name: "Bloon Paris", companyName: "Bloon Paris", market: "EU", category: "Ergonomic Seating & Home" },
   { domain: "thenap.dk", name: "TheNap", companyName: "TheNap", market: "DK", category: "Sleep & Weighted Blankets" },
-  { domain: "mycomfort.dk", name: "MyComfort", companyName: "MyComfort", market: "DK", category: "Comfort & Ergonomics" },
+  { domain: "mycomfortshop.dk", name: "MyComfort", companyName: "MyComfort", market: "DK", category: "Ergonomics & Sleep" },
   { domain: "nordicshape.dk", name: "NordicShape", companyName: "NordicShape", market: "DK", category: "Shapewear & Apparel" },
   { domain: "nordicstretch.com", name: "Nordic Stretch", companyName: "Nordic Stretch", market: "DK", category: "Mobility & Recovery" },
 ];

@@ -31,9 +31,9 @@ type ExploreSubView = "ads" | "hooks" | "lp";
 type SortOption = "top" | "longest" | "duplicated" | "newest";
 
 const STORAGE_KEYS = {
-  ads: "adtrack_ads_v5",
-  brands: "adtrack_brands_v5",
-  boards: "adtrack_boards_v5",
+  ads: "adtrack_ads_v6",
+  brands: "adtrack_brands_v6",
+  boards: "adtrack_boards_v6",
 };
 
 interface AdVaultAppProps {
@@ -92,7 +92,9 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       try {
         const savedAds = localStorage.getItem(STORAGE_KEYS.ads);
         const savedBrands = localStorage.getItem(STORAGE_KEYS.brands);
-        const savedBoards = localStorage.getItem(STORAGE_KEYS.boards);
+        const savedBoards =
+          localStorage.getItem(STORAGE_KEYS.boards) ||
+          localStorage.getItem("adtrack_boards_v5");
 
         if (savedBrands) {
           const parsed: Brand[] = JSON.parse(savedBrands);
@@ -118,7 +120,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             const cleaned = parsed.filter(
               (a) =>
                 a.brand_id !== "brand-mycomfort-dk" &&
-                !(a.brand_id === "brand-thenap-dk" && !a.landing_page_url.includes("thenap"))
+                !(a.brand_id === "brand-thenap-dk" && !a.landing_page_url?.includes("thenap"))
             );
             const existingIds = new Set(cleaned.map((a) => a.id));
             const newSeedAds = SEED_ADS.filter((a) => !existingIds.has(a.id));
@@ -410,7 +412,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const usAdsCount = useMemo(() => ads.filter((a) => a.market !== "DK").length, [ads]);
 
   return (
-    <div className="flex min-h-dvh w-full bg-[#05060B]">
+    <div className="flex min-h-dvh w-full max-w-[100vw] overflow-x-hidden bg-[#F7F8FB] lg:bg-[#05060B]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — ONLY SHOPS, EXPLORE, AND FOLDERS
          ===================================================================== */}
@@ -643,8 +645,8 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           FLOATING ELEVATED WHITE MAIN WORKSPACE
          ===================================================================== */}
       <div className="flex min-w-0 flex-1 flex-col lg:p-2.5 lg:pl-0">
-        {/* MOBILE TOP BAR */}
-        <header className="pt-safe sticky top-0 z-30 flex items-center justify-between bg-[#05060B] px-4 py-3 text-white lg:hidden">
+        {/* NATIVE iOS FROSTED TOP BAR */}
+        <header className="pt-safe sticky top-0 z-30 flex items-center justify-between border-b border-[#E6E9F0]/90 bg-white/90 px-4 py-2.5 text-[#0F172A] backdrop-blur-xl lg:hidden">
           <button
             type="button"
             onClick={() => {
@@ -655,20 +657,24 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             className="flex items-center gap-2"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/logo.png" alt="Adtrack" className="h-7 w-7 rounded-lg" />
-            <span className="font-display text-[17px] font-bold tracking-[-0.03em]">
+            <img
+              src="/icons/logo.png"
+              alt="Adtrack"
+              className="h-7 w-7 rounded-[8px] shadow-[0_2px_8px_rgba(0,39,235,0.28)]"
+            />
+            <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-[#0F172A]">
               Adtrack
             </span>
           </button>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 font-mono-num text-[11px] font-semibold text-white/90">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-            🇩🇰 🇺🇸 {ads.length} ads
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-[#F7F8FB] px-2.5 py-1 font-mono-num text-[11px] font-semibold text-[#334155]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
+            {brands.length} shops · {ads.length} ads
           </span>
         </header>
 
-        {/* WHITE WORKSPACE CANVAS */}
-        <main className="flex-1 bg-white px-4 py-5 pb-28 text-[#0F172A] sm:px-6 lg:rounded-[22px] lg:px-7 lg:py-6 lg:pb-12">
+        {/* WORKSPACE CANVAS */}
+        <main className="flex-1 bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:rounded-[22px] lg:bg-white lg:px-7 lg:py-6 lg:pb-12">
           {/* Global Live Toast */}
           {toast && (
             <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-[#0027eb]/20 bg-[#EEF2FF] px-3.5 py-2 text-xs font-semibold text-[#0027eb]">
@@ -708,51 +714,52 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               VIEW 2: EXPLORE (Global Scraped Meta Ad Library + Hooks + LP)
              ================================================================= */}
           {view === "explore" && (
-            <div className="space-y-5">
+            <div className="space-y-4 lg:space-y-5">
               {/* Explore Header */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="adtrack-icon-badge flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
+                  <div className="adtrack-icon-badge hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white sm:flex">
                     <Compass className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h1 className="font-display text-[20px] font-bold leading-tight text-[#0F172A]">
+                    <div className="flex items-center gap-2">
+                      <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A] sm:text-[20px]">
                         Explore
                       </h1>
                       <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
-                        {visibleAds.length} Meta ads
+                        {visibleAds.length} ads
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[12.5px] text-[#64748B]">
+                    <p className="mt-0.5 hidden text-[12.5px] text-[#64748B] sm:block">
                       Live scrapet Meta Ad Library fra danske og amerikanske e-commerce brands — søg i ads, hooks, copy og landing pages
                     </p>
                   </div>
                 </div>
 
                 {/* Sub-mode switcher: Ads Feed | Hooks Library | Landing Pages */}
-                <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F5F7FA] p-1 text-xs font-semibold">
+                <div className="grid grid-cols-3 rounded-xl border border-[#E6E9F0] bg-[#EFEFF4] p-1 text-xs font-semibold sm:inline-flex">
                   {[
-                    { id: "ads" as const, label: "Meta Ads", count: visibleAds.length },
-                    { id: "hooks" as const, label: "Hooks & Copy", count: exploreHooks.length },
-                    { id: "lp" as const, label: "Landing Pages", count: exploreLandingPages.length },
+                    { id: "ads" as const, short: "Ads", label: "Meta Ads", count: visibleAds.length },
+                    { id: "hooks" as const, short: "Hooks", label: "Hooks & Copy", count: exploreHooks.length },
+                    { id: "lp" as const, short: "LP", label: "Landing Pages", count: exploreLandingPages.length },
                   ].map((m) => (
                     <button
                       key={m.id}
                       type="button"
                       onClick={() => setExploreSubView(m.id)}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+                      className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-all sm:px-3 ${
                         exploreSubView === m.id
                           ? "bg-white text-[#0F172A] shadow-xs"
                           : "text-[#64748B] hover:text-[#0F172A]"
                       }`}
                     >
-                      <span>{m.label}</span>
+                      <span className="sm:hidden">{m.short}</span>
+                      <span className="hidden sm:inline">{m.label}</span>
                       <span
                         className={`rounded px-1.5 py-px font-mono-num text-[10px] font-bold ${
                           exploreSubView === m.id
                             ? "bg-[#EEF2FF] text-[#0027eb]"
-                            : "bg-[#E9EDF4] text-[#64748B]"
+                            : "bg-black/[0.06] text-[#64748B]"
                         }`}
                       >
                         {m.count}
@@ -762,11 +769,11 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 </div>
               </div>
 
-              {/* Filters Toolbar */}
-              <div className="flex flex-col justify-between gap-3 rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-3 xl:flex-row xl:items-center">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {/* Search */}
-                  <div className="relative min-w-[220px] flex-1 sm:w-72 sm:flex-none">
+              {/* Filters Toolbar (Clean & Touch-Friendly on iPhone) */}
+              <div className="space-y-2.5 rounded-2xl border border-[#E6E9F0] bg-white p-3 xl:flex xl:items-center xl:justify-between xl:gap-3 xl:space-y-0 lg:bg-[#FAFBFD]">
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                  {/* Search (16px on mobile prevents iOS Safari auto-zoom) */}
+                  <div className="relative flex-1 sm:w-64 sm:flex-none">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
                     <input
                       id="explore-search-input"
@@ -776,17 +783,17 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                         setSearch(e.target.value);
                         setVisibleLimit(24);
                       }}
-                      placeholder="Søg i brands, hooks, ad copy, LP..."
-                      className="w-full rounded-xl border border-[#DCE1EC] bg-white py-2 pl-9 pr-3 text-xs text-[#0F172A] outline-none transition-colors focus:border-[#0027eb]"
+                      placeholder="Søg brands, hooks, copy, LP..."
+                      className="w-full rounded-xl border border-[#DCE1EC] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#0027eb] sm:text-xs"
                     />
                   </div>
 
-                  {/* Market Pills */}
-                  <div className="inline-flex rounded-xl border border-[#E2E6EF] bg-white p-0.5 text-xs font-semibold">
+                  {/* Single-line Market Pills */}
+                  <div className="grid grid-cols-3 rounded-xl border border-[#E2E6EF] bg-[#F5F7FA] p-0.5 text-xs font-semibold sm:inline-flex">
                     {[
-                      { id: "ALL" as const, label: `Alle (${ads.length})` },
-                      { id: "DK" as const, label: `🇩🇰 DK (${dkAdsCount})` },
-                      { id: "US" as const, label: `🇺🇸 US (${usAdsCount})` },
+                      { id: "ALL" as const, label: `Alle`, count: ads.length },
+                      { id: "DK" as const, label: `🇩🇰 DK`, count: dkAdsCount },
+                      { id: "US" as const, label: `🇺🇸 US`, count: usAdsCount },
                     ].map((m) => (
                       <button
                         key={m.id}
@@ -795,21 +802,24 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                           setMarketFilter(m.id);
                           setVisibleLimit(24);
                         }}
-                        className={`rounded-lg px-2.5 py-1.5 transition-all ${
+                        className={`inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-all ${
                           marketFilter === m.id
                             ? "bg-[#0027eb] text-white shadow-xs"
                             : "text-[#475569] hover:text-[#0F172A]"
                         }`}
                       >
-                        {m.label}
+                        <span>{m.label}</span>
+                        <span className="font-mono-num text-[10px] opacity-80">
+                          {m.count}
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Format + Brand + Sort */}
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-1.5">
+                {/* Format + Brand + Sort (Horizontal scroll on iPhone, flex on desktop) */}
+                <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-0.5 text-xs">
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-2 sm:py-1.5">
                     <Film className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Format"
@@ -819,7 +829,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                           e.target.value as "all" | "video" | "image" | "carousel"
                         )
                       }
-                      className="cursor-pointer bg-transparent font-medium text-[#334155] outline-none"
+                      className="cursor-pointer bg-transparent text-[13px] font-medium text-[#334155] outline-none sm:text-xs"
                     >
                       <option value="all">Alle Formater</option>
                       <option value="video">Video</option>
@@ -828,31 +838,31 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                     </select>
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-1.5">
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-2 sm:py-1.5">
                     <Building2 className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Vælg shop"
                       value={brandFilter}
                       onChange={(e) => setBrandFilter(e.target.value)}
-                      className="cursor-pointer bg-transparent font-medium text-[#334155] outline-none"
+                      className="max-w-[140px] cursor-pointer truncate bg-transparent text-[13px] font-medium text-[#334155] outline-none sm:max-w-none sm:text-xs"
                     >
                       <option value="all">Alle Shops ({brands.length})</option>
                       {brands.map((b) => (
                         <option key={b.id} value={b.id}>
-                          {b.market === "DK" ? "🇩🇰 " : "🇺🇸 "}
+                          {b.market === "DK" ? "🇩🇰 " : b.country_code === "FR" ? "🇫🇷 " : "🇺🇸 "}
                           {b.name}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-1.5">
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-2 sm:py-1.5">
                     <Clock className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Sortér"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="cursor-pointer bg-transparent font-semibold text-[#0F172A] outline-none"
+                      className="cursor-pointer bg-transparent text-[13px] font-semibold text-[#0F172A] outline-none sm:text-xs"
                     >
                       <option value="top">Top Performing</option>
                       <option value="longest">Longest Active</option>
@@ -1061,9 +1071,9 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       </div>
 
       {/* =====================================================================
-          MOBILE BOTTOM NAVIGATION — ONLY SHOPS, EXPLORE, FOLDERS!
+          NATIVE iOS FROSTED BOTTOM TAB BAR — SHOPS, EXPLORE, FOLDERS
          ===================================================================== */}
-      <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-white/10 bg-[#05060B]/95 px-3 pt-2 backdrop-blur-xl lg:hidden">
+      <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-[#E6E9F0]/90 bg-white/92 px-3 pt-1.5 shadow-[0_-6px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl lg:hidden">
         {[
           { id: "shops" as ActiveView, label: "Shops", icon: Store },
           { id: "explore" as ActiveView, label: "Explore", icon: Compass },
@@ -1079,11 +1089,18 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 setView(item.id);
                 setSelectedShopId(null);
                 if (item.id !== "folders") setSelectedFolderId(null);
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="flex flex-col items-center gap-1 py-1.5 text-[11px] font-semibold transition-colors"
-              style={{ color: active ? "#6B8BFF" : "rgba(255,255,255,0.56)" }}
+              className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold transition-all"
+              style={{ color: active ? "#0027eb" : "#64748B" }}
             >
-              <Icon className="h-[19px] w-[19px]" />
+              <span
+                className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                  active ? "bg-[#EEF2FF]" : "bg-transparent"
+                }`}
+              >
+                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.3 : 1.9} />
+              </span>
               <span>{item.label}</span>
             </button>
           );

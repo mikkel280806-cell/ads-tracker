@@ -202,16 +202,16 @@ export function CollectionsView({
   // FOLDERS OVERVIEW GRID
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="adtrack-icon-badge flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="adtrack-icon-badge hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white sm:flex">
             <FolderKanban className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="font-display text-[20px] font-bold leading-tight text-[#0F172A]">
+            <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A] sm:text-[20px]">
               Folders
             </h1>
-            <p className="mt-0.5 text-[12.5px] text-[#64748B]">
+            <p className="mt-0.5 hidden text-[12.5px] text-[#64748B] sm:block">
               Organisér dine foretrukne danske og amerikanske shops, vindende ads og hooks i mapper
             </p>
           </div>
@@ -220,7 +220,7 @@ export function CollectionsView({
         <button
           type="button"
           onClick={() => setCreating((v) => !v)}
-          className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white transition-all"
+          className="adtrack-btn-primary inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-white transition-all sm:rounded-xl sm:px-4"
         >
           <Plus className="h-3.5 w-3.5" />
           New Folder
@@ -230,19 +230,19 @@ export function CollectionsView({
       {creating && (
         <form
           onSubmit={handleSubmit}
-          className="animate-sheet-up flex flex-wrap items-center gap-2 rounded-2xl border border-[#DCE3F5] bg-[#FAFBFD] p-3 sm:flex-nowrap"
+          className="animate-sheet-up flex items-center gap-2 rounded-2xl border border-[#DCE3F5] bg-white p-3"
         >
           <input
             type="text"
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Navn på din nye folder (fx DK Activewear, Q4 Winning Hooks)..."
-            className="min-w-0 flex-1 rounded-xl border border-[#DCE1EC] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb]"
+            placeholder="Navn på ny folder (fx DK Winners)..."
+            className="min-w-0 flex-1 rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3.5 py-2 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-sm"
           />
           <button
             type="submit"
-            className="adtrack-btn-primary rounded-xl px-4 py-2 text-xs font-semibold text-white"
+            className="adtrack-btn-primary shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold text-white sm:py-2"
           >
             Opret Folder
           </button>

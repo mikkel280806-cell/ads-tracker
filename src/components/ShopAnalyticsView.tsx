@@ -205,6 +205,8 @@ function InteractiveAreaChart({
               key={`${c.label}-${idx}`}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
+              onClick={() => setHoveredIdx(idx)}
+              onTouchStart={() => setHoveredIdx(idx)}
               className="cursor-pointer"
             >
               {/* Invisible generous hit target */}
@@ -693,13 +695,13 @@ export function ShopAnalyticsView({
           </div>
         </div>
 
-        {/* METADATA STRIP (Exact Trendtrack horizontal strip!) */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[#EDF0F6] bg-[#FAFBFD] px-3.5 py-2 text-[12px] text-[#475569]">
+        {/* METADATA STRIP (Single swipeable strip on iPhone, wrapped on desktop) */}
+        <div className="no-scrollbar flex flex-nowrap items-center gap-x-4 gap-y-2 overflow-x-auto rounded-xl border border-[#EDF0F6] bg-white px-3.5 py-2 text-[12px] text-[#475569] sm:flex-wrap lg:bg-[#FAFBFD]">
           <a
             href={brand.website_url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 font-semibold text-[#0F172A] hover:text-[#0027eb]"
+            className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-[#0F172A] hover:text-[#0027eb]"
           >
             <Globe className="h-3.5 w-3.5 text-[#0027eb]" />
             {domain}
@@ -707,37 +709,37 @@ export function ShopAnalyticsView({
           </a>
 
           {brand.myshopify_domain && (
-            <span className="inline-flex items-center gap-1.5 font-mono-num text-[11.5px] text-[#64748B]">
+            <span className="inline-flex shrink-0 items-center gap-1.5 font-mono-num text-[11.5px] text-[#64748B]">
               <ShopifyBagIcon className="h-3.5 w-3.5" />
               {brand.myshopify_domain}
             </span>
           )}
 
           {brand.founded_date && (
-            <span className="inline-flex items-center gap-1.5 text-[#475569]">
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-[#475569]">
               <Calendar className="h-3.5 w-3.5 text-[#94A3B8]" />
               {formatMonthYear(brand.founded_date)}
             </span>
           )}
 
-          <span className="inline-flex items-center gap-1 font-medium text-[#0F172A]">
+          <span className="inline-flex shrink-0 items-center gap-1 font-medium text-[#0F172A]">
             <span>{brand.country_code || brand.market}</span>
             <span>{marketFlag}</span>
           </span>
 
           {brand.language && (
-            <span className="inline-flex items-center gap-1 text-[#475569]">
+            <span className="inline-flex shrink-0 items-center gap-1 text-[#475569]">
               {brand.language}
             </span>
           )}
 
           {brand.currency && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155] ring-1 ring-[#E6E9F0]">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#F7F8FB] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155] ring-1 ring-[#E6E9F0]">
               {brand.currency}
             </span>
           )}
 
-          <span className="inline-flex items-center gap-1 text-[#475569]">
+          <span className="inline-flex shrink-0 items-center gap-1 text-[#475569]">
             <Tag className="h-3.5 w-3.5 text-[#94A3B8]" />
             {brand.category}
             {brand.sub_categories && brand.sub_categories.length > 0
@@ -746,7 +748,7 @@ export function ShopAnalyticsView({
           </span>
 
           {brand.shopify_theme && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#0027eb]">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#0027eb]">
               {brand.shopify_theme}
             </span>
           )}
@@ -758,32 +760,35 @@ export function ShopAnalyticsView({
           </div>
         )}
 
-        {/* PRIMARY SHOP TABS (Shop Analytics | Meta Ads | Products) */}
-        <div className="flex items-center gap-1 pt-1">
+        {/* PRIMARY SHOP TABS (Clean iOS 3-col bar on mobile, inline on desktop) */}
+        <div className="grid grid-cols-3 gap-1 rounded-xl border border-[#E6E9F0] bg-[#EFEFF4] p-1 sm:flex sm:w-fit sm:items-center sm:border-0 sm:bg-transparent sm:p-0 sm:pt-1">
           {[
             {
               id: "analytics" as MainTab,
+              short: "Analytics",
               label: "Shop Analytics",
-              icon: <LineChart className="h-4 w-4" />,
+              icon: <LineChart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />,
               badge: null,
             },
             {
               id: "meta_ads" as MainTab,
+              short: "Ads",
               label: "Meta Ads",
-              icon: <MetaInfinityIcon className="h-4 w-4" />,
+              icon: <MetaInfinityIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />,
               badge: (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF3] px-2 py-0.5 font-mono-num text-[11px] font-bold text-[#15803D]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF3] px-1.5 py-0.5 font-mono-num text-[10px] font-bold text-[#15803D] sm:px-2 sm:text-[11px]">
+                  <span className="hidden h-1.5 w-1.5 rounded-full bg-[#16A34A] sm:inline-block" />
                   {(brand.active_ads_count ?? brandAds.length).toLocaleString("en-US")}
                 </span>
               ),
             },
             {
               id: "products" as MainTab,
+              short: "Prod.",
               label: "Products",
-              icon: <Package className="h-4 w-4" />,
+              icon: <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />,
               badge: (
-                <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#475569]">
+                <span className="rounded-full bg-black/[0.06] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#475569] sm:bg-[#F1F5F9] sm:px-2 sm:text-[11px]">
                   {brand.products_count ?? topProducts.length}
                 </span>
               ),
@@ -795,14 +800,15 @@ export function ShopAnalyticsView({
                 key={tabItem.id}
                 type="button"
                 onClick={() => setMainTab(tabItem.id)}
-                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 font-display text-[13px] font-semibold transition-all ${
+                className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-2 font-display text-[12px] font-semibold transition-all sm:rounded-xl sm:px-3.5 sm:text-[13px] ${
                   active
-                    ? "bg-[#EEF2FF] text-[#0027eb] shadow-xs ring-1 ring-[#0027eb]/15"
-                    : "text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+                    ? "bg-white text-[#0027eb] shadow-xs sm:bg-[#EEF2FF] sm:ring-1 sm:ring-[#0027eb]/15"
+                    : "text-[#64748B] hover:text-[#0F172A] sm:hover:bg-[#F3F5F9]"
                 }`}
               >
                 {tabItem.icon}
-                {tabItem.label}
+                <span className="sm:hidden">{tabItem.short}</span>
+                <span className="hidden sm:inline">{tabItem.label}</span>
                 {tabItem.badge}
               </button>
             );

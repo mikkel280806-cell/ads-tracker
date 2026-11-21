@@ -132,8 +132,13 @@ export function AdDetailSheet({
         className="animate-sheet-up flex h-[93dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl border border-[#E2E6EF] bg-white text-[#0F172A] shadow-2xl lg:h-[86vh] lg:flex-row lg:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Native iOS Sheet Drag Handle */}
+        <div className="flex justify-center pt-2 lg:hidden">
+          <span className="h-1 w-10 rounded-full bg-[#CBD5E1]" />
+        </div>
+
         {/* Mobile Header */}
-        <div className="flex items-center justify-between border-b border-[#E6E9F0] px-4 py-3 lg:hidden">
+        <div className="flex items-center justify-between border-b border-[#E6E9F0] px-4 py-2.5 lg:hidden">
           <button
             type="button"
             onClick={() => {
@@ -142,34 +147,48 @@ export function AdDetailSheet({
                 onClose();
               }
             }}
-            className="flex items-center gap-2.5 text-left"
+            className="flex min-w-0 items-center gap-2.5 text-left"
           >
             {ad.brand_logo_url ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={ad.brand_logo_url}
                 alt={ad.brand_name}
-                className="h-8 w-8 rounded-full border border-[#E6E9F0] bg-white object-contain p-0.5"
+                className="h-8 w-8 shrink-0 rounded-full border border-[#E6E9F0] bg-white object-contain p-0.5"
               />
             ) : (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0027eb] text-xs font-bold text-white">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0027eb] text-xs font-bold text-white">
                 {ad.brand_avatar_initials}
               </span>
             )}
-            <div>
-              <p className="font-display text-xs font-bold leading-tight">
+            <div className="min-w-0">
+              <p className="truncate font-display text-[13.5px] font-bold leading-tight text-[#0F172A]">
                 {ad.brand_name}
               </p>
-              <p className="text-[11px] text-[#64748B]">Åbn shop-analyse →</p>
+              <p className="text-[11px] font-medium text-[#0027eb]">Åbn shop-analyse →</p>
             </div>
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-[#64748B]"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {ad.source_url && (
+              <a
+                href={ad.source_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-[#FAFBFD] px-2.5 py-1.5 text-[11px] font-semibold text-[#334155]"
+              >
+                <MetaInfinityIcon className="h-3.5 w-3.5" />
+                Meta
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Luk"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9] text-[#475569]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* LEFT COLUMN: Creative Preview + Telemetry */}

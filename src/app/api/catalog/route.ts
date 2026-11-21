@@ -98,11 +98,18 @@ export async function GET() {
     let ads = (adsRes.data || []).map((r) => r.payload as Ad);
     let folders = (foldersRes.data || []) as Board[];
 
-    // Incrementally sync missing OR meta_page_id-corrected catalog brands/ads into Supabase
+    // Incrementally sync missing OR meta_page_id-corrected OR stale-ad catalog brands/ads into Supabase
     const existingById = new Map(brands.map((b) => [b.id, b]));
+    const staleTheNapAds = ads.some(
+      (a) =>
+        a.brand_id === "brand-thenap-dk" &&
+        (!a.landing_page_url?.includes("thenap") ||
+          a.landing_page_url.includes("sscnapoli"))
+    );
     const brandsToUpsert = SEED_BRANDS.filter((seedBrand) => {
       const cur = existingById.get(seedBrand.id);
       if (!cur) return true;
+      if (seedBrand.id === "brand-thenap-dk" && staleTheNapAds) return true;
       return Boolean(seedBrand.meta_page_id && cur.meta_page_id !== seedBrand.meta_page_id);
     });
 
