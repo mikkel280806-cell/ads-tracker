@@ -3,14 +3,9 @@
 import React, { useState } from "react";
 import {
   Bookmark,
-  Calendar,
   ChevronDown,
-  Copy as CopyIcon,
-  DollarSign,
-  Eye,
-  Heart,
-  MoreHorizontal,
   Play,
+  PlusSquare,
   Sparkles,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
@@ -19,7 +14,6 @@ import { formatDuration, formatReach, getActiveDays } from "@/lib/url-parser";
 interface AdCardProps {
   ad: Ad;
   boards: Board[];
-  rank?: number;
   compact?: boolean;
   onOpen: (ad: Ad) => void;
   onToggleFavorite: (adId: string) => void;
@@ -27,36 +21,9 @@ interface AdCardProps {
   onOpenBrand?: (brandId: string) => void;
 }
 
-function getDomain(url?: string): string {
-  if (!url) return "";
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
-
-function formatDateShort(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatMoney(amount?: number): string {
-  if (!amount) return "—";
-  if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
-  return `$${amount}`;
-}
-
 export function AdCard({
   ad,
   boards,
-  rank,
   compact = false,
   onOpen,
   onToggleFavorite,
@@ -67,8 +34,8 @@ export function AdCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const activeDays = getActiveDays(ad.started_running_at);
-  const domain = getDomain(ad.landing_page_url);
   const isSaved = ad.is_favorite || ad.board_ids.length > 0;
+  const hasLongCopy = (ad.primary_text?.length || 0) > 105;
   const isVideoFile =
     ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
 
@@ -76,286 +43,196 @@ export function AdCard({
     ad.aspect_ratio === "1:1"
       ? "aspect-square"
       : ad.aspect_ratio === "9:16"
-        ? "aspect-[9/14]"
+        ? "aspect-[9/15]"
         : "aspect-[3/4]";
 
   return (
     <article
-      className="group relative mb-4 break-inside-avoid rounded-2xl border border-[#E6E8EC] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:border-[#0027eb]/35 hover:shadow-[0_6px_20px_rgba(0,39,235,0.07)]"
+      className="group relative mb-4 break-inside-avoid rounded-[18px] border border-[#ECEEF2] bg-white transition-all duration-200 hover:border-[#D7DCE5]"
+      style={{ boxShadow: isHovered ? "var(--shadow-card-hover)" : "var(--shadow-card)" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
         setBoardMenuOpen(false);
       }}
     >
-      {rank !== undefined && (
-        <div className="border-b border-[#F1F3F6] py-1 text-center font-mono-num text-[11px] font-semibold text-[#667085]">
-          #{rank}
-        </div>
-      )}
-
-      {/* 1. TRENDTRACK TOP EU + SPEND + DAILY TELEMETRY BAR */}
-      <div className="flex items-center justify-between gap-1.5 border-b border-[#F1F3F6] px-3 py-2">
-        <span className="inline-flex h-5 items-center rounded-full bg-[#EEF2FF] px-2 text-[10px] font-semibold text-[#0027eb]">
-          {ad.source_type === "instagram" ? "IG" : "EU"}
-        </span>
-
-        <div className="flex items-center gap-1 overflow-hidden">
-          <span className="inline-flex items-center gap-1 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#1D2432]">
-            <Eye className="h-2.5 w-2.5 text-[#667085]" />
-            {formatReach(ad.eu_reach)}
-          </span>
-          {!compact && ad.estimated_spend ? (
-            <span className="inline-flex items-center gap-0.5 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#1D2432]">
-              <DollarSign className="h-2.5 w-2.5 text-[#667085]" />
-              {formatMoney(ad.estimated_spend).replace("$", "")}
-            </span>
-          ) : null}
-          {!compact && ad.daily_spend ? (
-            <span className="inline-flex items-center gap-0.5 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#1D2432]">
-              <Calendar className="h-2.5 w-2.5 text-[#667085]" />
-              ${ad.daily_spend}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      {/* 2. BRAND HEADER + LIVE ADS + DAYS + DUPLICATED */}
-      <div className="px-3 pb-2 pt-2.5">
-        <div className="flex items-start justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => (onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad))}
-            className="flex min-w-0 items-center gap-2 text-left"
-          >
+      {/* 1. CLEAN BRAND HEADER + ACTIVE DAYS PILL (Konvert Explore Signature) */}
+      <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
+        <button
+          type="button"
+          onClick={() => (onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad))}
+          className="flex min-w-0 items-center gap-2 text-left"
+        >
+          {ad.brand_logo_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={ad.brand_logo_url}
+              alt={ad.brand_name}
+              className="h-7 w-7 shrink-0 rounded-full border border-[#EAECF0] bg-white object-cover"
+            />
+          ) : (
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-              style={{ backgroundColor: ad.brand_avatar_color }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+              style={{ backgroundColor: ad.brand_avatar_color || "#0027eb" }}
             >
               {ad.brand_avatar_initials}
             </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] font-bold text-[#0027eb]">
-                  {ad.source_type === "instagram" ? "◎" : "∞"}
-                </span>
-                <p className="truncate text-[13px] font-semibold leading-tight text-[#111318] hover:text-[#0027eb]">
-                  {ad.brand_name}
-                </p>
-              </div>
-              <p className="mt-0.5 truncate font-mono-num text-[11px] text-[#667085]">
-                {ad.brand_live_ads || 1} Live Ads · {formatReach(ad.eu_reach)}
-              </p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onOpen(ad)}
-            aria-label="Åbn annonce-detaljer"
-            className="rounded-lg p-1 text-[#8A909E] transition-colors hover:bg-[#F3F4F6] hover:text-[#111318]"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Active days + Duplicated badge */}
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: ad.is_active ? "#16A34A" : "#9CA3AF" }}
-              />
-              <span className={ad.is_active ? "text-[#16A34A]" : "text-[#6B7280]"}>
-                {ad.is_active ? `${activeDays} days` : "Inactive"}
-              </span>
-            </div>
-            {!compact && (
-              <p className="truncate text-[10px] text-[#8A909E]">
-                {formatDateShort(ad.started_running_at)} – {ad.is_active ? "Today" : "Ended"}
-              </p>
-            )}
-          </div>
-
-          {ad.duplicated_count && ad.duplicated_count > 1 ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#ECFDF3] px-1.5 py-0.5 text-[10px] font-semibold text-[#15803D]">
-              <CopyIcon className="h-2.5 w-2.5" />
-              {ad.duplicated_count} Duplicated
-            </span>
-          ) : null}
-        </div>
-
-        {/* Primary Ad Copy */}
-        {!compact && ad.primary_text && (
-          <button
-            type="button"
-            onClick={() => onOpen(ad)}
-            className="mt-2 block w-full text-left"
-          >
-            <p className="line-clamp-2 text-[12px] leading-[1.45] text-[#344054]">
-              {ad.primary_text}
-            </p>
-            <span className="text-[11px] font-medium text-[#0027eb]">
-              Se AI hook &amp; script
-            </span>
-          </button>
-        )}
-      </div>
-
-      {/* 3. FULL-BLEED CREATIVE MEDIA + CENTER PLAY BUTTON */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => onOpen(ad)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onOpen(ad);
-          }
-        }}
-        className={`relative w-full cursor-pointer overflow-hidden bg-[#F3F4F6] ${aspectClass}`}
-      >
-        {isVideoFile && isHovered ? (
-          <video
-            src={ad.media_url}
-            poster={ad.thumbnail_url}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="h-full w-full object-cover"
-          />
-        ) : ad.thumbnail_url || ad.media_url ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={ad.thumbnail_url || ad.media_url}
-            alt={`${ad.brand_name} — ${ad.headline}`}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02]"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#F8F9FB] p-6 text-center">
-            {ad.brand_logo_url ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={ad.brand_logo_url}
-                alt={ad.brand_name}
-                className="h-10 w-10 rounded-xl shadow-sm"
-              />
-            ) : null}
-            <p className="text-xs font-bold text-[#111318]">{ad.brand_name}</p>
-            <p className="max-w-[200px] text-[11px] leading-relaxed text-[#667085]">
-              Gemt link — tilføj ScrapeCreators for auto-video eller upload selv.
-            </p>
-          </div>
-        )}
-
-        {/* Signature TrendTrack Centered White Play Circle for Videos */}
-        {ad.media_type === "video" && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-[#111318] shadow-lg transition-transform duration-200 group-hover:scale-110">
-              <Play className="ml-0.5 h-5 w-5 fill-current" />
-            </span>
-          </div>
-        )}
-
-        {/* Duration / AI Hook subtle bottom pill */}
-        <div className="pointer-events-none absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1.5">
-          {ad.ai_angle ? (
-            <span className="inline-flex max-w-[70%] items-center gap-1 truncate rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-              <Sparkles className="h-2.5 w-2.5 shrink-0 text-[#93C5FD]" />
-              <span className="truncate">{ad.ai_angle}</span>
-            </span>
-          ) : (
-            <span />
           )}
+          <span className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[#101828] transition-colors group-hover:text-[#0027eb]">
+            {ad.brand_name}
+          </span>
+        </button>
 
-          {ad.duration_seconds ? (
-            <span className="rounded-md bg-black/70 px-1.5 py-0.5 font-mono-num text-[10px] font-medium text-white backdrop-blur-sm">
-              {formatDuration(ad.duration_seconds)}
-            </span>
-          ) : null}
-        </div>
+        {/* Crisp pill badge: ● 2 D */}
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#EAECF0] bg-white px-2.5 py-0.5 font-mono-num text-[11px] font-medium text-[#344054]">
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: ad.is_active ? "#16A34A" : "#98A2B3" }}
+          />
+          {activeDays} D
+        </span>
       </div>
 
-      {/* 4. META-STYLE DOMAIN + HEADLINE + CTA BAR */}
-      <div className="flex items-center justify-between gap-2 border-b border-[#F1F3F6] bg-[#FAFBFD] px-3 py-2.5">
+      {/* 2. AIRY AD COPY WITH FLOATING "See more" PILL */}
+      {!compact && ad.primary_text && (
         <button
           type="button"
           onClick={() => onOpen(ad)}
-          className="min-w-0 flex-1 text-left"
+          className="relative mb-2.5 block w-full px-3.5 text-left"
         >
-          {domain && (
-            <p className="truncate text-[10px] text-[#667085]">{domain}</p>
-          )}
-          <p className="truncate text-[12px] font-semibold text-[#111318]">
-            {ad.headline}
+          <p className="line-clamp-3 text-[12.5px] leading-[1.48] text-[#475467]">
+            {ad.primary_text}
           </p>
+          {hasLongCopy && (
+            <div className="pointer-events-none absolute inset-x-3.5 bottom-0 flex justify-center bg-gradient-to-t from-white via-white/90 to-transparent pt-3">
+              <span className="rounded-full border border-[#EAECF0] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#344054] shadow-[0_1px_2px_rgba(16,24,40,0.05)]">
+                See more
+              </span>
+            </div>
+          )}
         </button>
+      )}
 
-        {!compact && ad.landing_page_url && (
-          <a
-            href={ad.landing_page_url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="shrink-0 rounded-lg border border-[#E2E5EB] bg-[#F2F4F7] px-2.5 py-1 text-[11px] font-semibold text-[#1D2432] transition-colors hover:bg-[#E5E8EE]"
-          >
-            {ad.cta_text || "Shop now"}
-          </a>
-        )}
+      {/* 3. INSET ROUNDED CREATIVE MEDIA + FROSTED PLAY CIRCLE */}
+      <div className="px-2">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpen(ad)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(ad);
+            }
+          }}
+          className={`relative w-full cursor-pointer overflow-hidden rounded-[13px] bg-[#F4F5F7] ${aspectClass}`}
+        >
+          {isVideoFile && isHovered ? (
+            <video
+              src={ad.media_url}
+              poster={ad.thumbnail_url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : ad.thumbnail_url || ad.media_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={ad.thumbnail_url || ad.media_url}
+              alt={`${ad.brand_name} — ${ad.headline}`}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.025]"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-6 text-center">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF2FF] text-xs font-bold text-[#0027eb]">
+                {ad.brand_avatar_initials}
+              </span>
+              <p className="text-xs font-semibold text-[#101828]">{ad.brand_name}</p>
+              <p className="max-w-[180px] text-[11px] text-[#667085]">
+                Klik for at åbne linket eller uploade medie
+              </p>
+            </div>
+          )}
+
+          {/* Frosted Glass Translucent Play Button (Exact Konvert aesthetic) */}
+          {ad.media_type === "video" && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/40 bg-black/25 text-white backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-[#0027eb]/80">
+                <Play className="ml-0.5 h-4 w-4 fill-current" />
+              </span>
+            </div>
+          )}
+
+          {/* Clean Hover-Only Telemetry Chips (Keeps default view 100% clutter-free!) */}
+          <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-center justify-between gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <div className="flex items-center gap-1">
+              {ad.eu_reach ? (
+                <span className="rounded-full bg-black/65 px-2 py-0.5 font-mono-num text-[10px] font-medium text-white backdrop-blur-md">
+                  {formatReach(ad.eu_reach)} EU
+                </span>
+              ) : null}
+              {ad.duplicated_count && ad.duplicated_count > 1 ? (
+                <span className="rounded-full bg-black/65 px-2 py-0.5 font-mono-num text-[10px] font-medium text-white backdrop-blur-md">
+                  ×{ad.duplicated_count}
+                </span>
+              ) : null}
+              {ad.ai_angle ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#0027eb]/85 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-md">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  {ad.ai_angle}
+                </span>
+              ) : null}
+            </div>
+
+            {ad.duration_seconds ? (
+              <span className="rounded-full bg-black/65 px-2 py-0.5 font-mono-num text-[10px] font-medium text-white backdrop-blur-md">
+                {formatDuration(ad.duration_seconds)}
+              </span>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {/* 5. TRENDTRACK "SAVE TO FAVORITES" BOTTOM BAR + BOARD PICKER */}
-      <div className="relative p-2" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-1">
+      {/* 4. ULTRA-CLEAN "Save to collection" FOOTER (Konvert Explore Signature) */}
+      <div className="relative px-2 py-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between rounded-xl px-1.5 py-1 transition-colors hover:bg-[#F7F8FA]">
           <button
             type="button"
             onClick={() => onToggleFavorite(ad.id)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
-            style={
-              isSaved
-                ? {
-                    backgroundColor: "rgba(0, 39, 235, 0.08)",
-                    borderColor: "rgba(0, 39, 235, 0.25)",
-                    color: "#0027eb",
-                  }
-                : {
-                    backgroundColor: "#FFFFFF",
-                    borderColor: "#E6E8EC",
-                    color: "#344054",
-                  }
-            }
+            className="flex min-w-0 flex-1 items-center gap-2 text-left text-[12.5px] font-medium transition-colors"
+            style={{ color: isSaved ? "#0027eb" : "#344054" }}
           >
-            {ad.is_favorite ? (
-              <Heart className="h-3.5 w-3.5 fill-current" />
+            {isSaved ? (
+              <Bookmark className="h-4 w-4 shrink-0 fill-current text-[#0027eb]" />
             ) : (
-              <Bookmark className="h-3.5 w-3.5" fill={ad.board_ids.length > 0 ? "currentColor" : "none"} />
+              <PlusSquare className="h-4 w-4 shrink-0 text-[#667085]" />
             )}
-            <span>
+            <span className="truncate">
               {ad.board_ids.length > 0
-                ? `Gemt i ${ad.board_ids.length} board${ad.board_ids.length > 1 ? "s" : ""}`
+                ? `Saved in ${ad.board_ids.length} collection${ad.board_ids.length > 1 ? "s" : ""}`
                 : ad.is_favorite
-                  ? "Gemt i Favoritter"
-                  : "Save to Favorites"}
+                  ? "Saved"
+                  : "Save to collection"}
             </span>
           </button>
 
           <button
             type="button"
-            aria-label="Vælg board"
+            aria-label="Vælg collection"
             onClick={() => setBoardMenuOpen((v) => !v)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E6E8EC] bg-white text-[#475467] transition-colors hover:bg-[#F5F6F8]"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#667085] transition-colors hover:bg-[#ECEEF2] hover:text-[#101828]"
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {boardMenuOpen && (
-          <div className="absolute bottom-12 right-2 z-30 w-56 rounded-xl border border-[#E2E5EB] bg-white p-1.5 shadow-xl">
+          <div className="absolute bottom-11 right-2 z-30 w-56 rounded-xl border border-[#E6E8EC] bg-white p-1.5 shadow-xl">
             <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#667085]">
-              Gem i mappe / board
+              Gem i collection
             </p>
             {boards.map((board) => {
               const selected = ad.board_ids.includes(board.id);
@@ -364,7 +241,7 @@ export function AdCard({
                   key={board.id}
                   type="button"
                   onClick={() => onToggleBoard(ad.id, board.id)}
-                  className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-[#111318] transition-colors hover:bg-[#F5F6F8]"
+                  className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs font-medium text-[#101828] transition-colors hover:bg-[#F4F5F7]"
                 >
                   <span className="flex items-center gap-2 truncate">
                     <span

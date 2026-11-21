@@ -391,12 +391,11 @@ export function ShopAnalyticsView({
           </div>
         ) : (
           <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
-            {brandAds.map((ad, idx) => (
+            {brandAds.map((ad) => (
               <AdCard
                 key={ad.id}
                 ad={ad}
                 boards={boards}
-                rank={idx + 1}
                 onOpen={onOpenAd}
                 onToggleFavorite={onToggleFavorite}
                 onToggleBoard={onToggleBoard}

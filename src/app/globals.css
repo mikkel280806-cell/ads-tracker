@@ -2,32 +2,52 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================================
+   ADTRACK DESIGN SYSTEM
+   Brand Primary: Electric Cobalt (#0027eb)
+   Shell: Deep Obsidian Sidebar (#05060A) + Cobalt Ambient Glow + Crisp White Canvas
+   Typography: Plus Jakarta Sans (Display) · Inter (UI) · JetBrains Mono (Metrics)
+   ============================================================================ */
+
 :root {
+  /* Adtrack Brand Palette */
+  --brand-50: #eef2ff;
+  --brand-100: #dde5ff;
+  --brand-200: #c2d0ff;
+  --brand-400: #4d6bff;
+  --brand-500: #1a40ff;
+  --brand-600: #0027eb;
+  --brand-700: #001fc2;
+  --brand-800: #001899;
+  --brand-950: #060b2e;
+
   --brand: #0027eb;
   --brand-hover: #001fc2;
-  --brand-soft: rgba(0, 39, 235, 0.09);
+  --brand-soft: rgba(0, 39, 235, 0.08);
   --brand-border: rgba(0, 39, 235, 0.22);
 
-  /* Trendtrack iconic shell: Jet-black sidebar + crisp white workspace */
-  --sidebar-bg: #08090b;
-  --sidebar-surface: #15171c;
+  /* Obsidian Sidebar & Floating Canvas */
+  --sidebar-bg: #05060a;
+  --sidebar-surface: rgba(255, 255, 255, 0.08);
+  --sidebar-surface-active: rgba(255, 255, 255, 0.12);
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-text: #f3f4f6;
-  --sidebar-muted: #8a909e;
+  --sidebar-text: #f9fafb;
+  --sidebar-muted: rgba(255, 255, 255, 0.56);
 
+  /* Crisp Light Workspace */
   --background: #ffffff;
-  --foreground: #111318;
+  --foreground: #101828;
   --card: #ffffff;
-  --card-foreground: #111318;
-  --muted: #f5f6f8;
+  --card-foreground: #101828;
+  --muted: #f4f5f7;
   --muted-foreground: #667085;
   --primary: #0027eb;
   --primary-foreground: #ffffff;
-  --secondary: #f3f4f6;
+  --secondary: #f4f5f7;
   --secondary-foreground: #1d2432;
-  --border: #e6e8ec;
-  --input: #dcdfe5;
-  --ring: rgba(0, 39, 235, 0.25);
+  --border: #eaecf0;
+  --input: #e2e5eb;
+  --ring: rgba(0, 39, 235, 0.22);
 
   --destructive: #e11d48;
   --destructive-foreground: #9f1239;
@@ -37,10 +57,15 @@
   --info-foreground: #0027eb;
   --warning: #d97706;
   --warning-foreground: #92400e;
-  --invert: #111318;
+  --invert: #101828;
   --invert-foreground: #ffffff;
   --focus: #0027eb;
   --focus-foreground: #0027eb;
+
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.03);
+  --shadow-card-hover: 0 8px 24px rgba(0, 39, 235, 0.08), 0 2px 6px rgba(16, 24, 40, 0.04);
+
   color-scheme: light;
 }
 
@@ -83,6 +108,7 @@
 html,
 body {
   font-family: var(--font-sans);
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
@@ -90,6 +116,7 @@ body {
 
 .font-display {
   font-family: var(--font-display);
+  letter-spacing: -0.025em;
 }
 
 .font-mono-num {
@@ -97,6 +124,23 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Signature Adtrack Obsidian Sidebar with subtle Cobalt #0027eb Ambient Glow */
+.adtrack-sidebar {
+  background-color: #05060a;
+  background-image:
+    radial-gradient(125% 48% at 18% 100%, rgba(0, 39, 235, 0.52) 0%, rgba(0, 39, 235, 0.14) 44%, transparent 76%),
+    radial-gradient(70% 24% at 0% 0%, rgba(0, 39, 235, 0.12) 0%, transparent 70%);
+}
+
+/* Signature Adtrack Header Icon Badge (Dark Obsidian -> Electric Cobalt #0027eb) */
+.adtrack-icon-badge {
+  background: linear-gradient(145deg, #0b1029 0%, #001ca8 58%, #0027eb 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 4px 12px rgba(0, 39, 235, 0.24);
+}
+
+/* Safe area helpers for iOS PWA standalone mode */
 .pb-safe {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
@@ -115,7 +159,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #d8dce3;
   border-radius: 999px;
 }
 
@@ -130,7 +174,7 @@ body {
 @keyframes sheetUp {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;

@@ -100,13 +100,18 @@ export function ConnectorsView({ status }: ConnectorsViewProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-[#111318]">
-          Connectors &amp; Mobil PWA
-        </h1>
-        <p className="mt-1 text-sm text-[#667085]">
-          Status på Supabase, ScrapeCreators, SimilarWeb, InstaBox.sh auto-wake og opsætning på telefonen.
-        </p>
+      <div className="flex items-center gap-3.5">
+        <div className="adtrack-icon-badge flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white">
+          <Server className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="font-display text-[17px] font-bold leading-tight text-[#101828]">
+            Connectors &amp; Mobil PWA
+          </h1>
+          <p className="mt-0.5 text-[12.5px] text-[#667085]">
+            Live status på Supabase, ScrapeCreators, SimilarWeb, InstaBox.sh auto-wake og iPhone/Android PWA
+          </p>
+        </div>
       </div>
 
       {/* Mode Banner */}
