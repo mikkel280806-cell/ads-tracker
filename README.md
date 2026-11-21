@@ -1,14 +1,14 @@
-# Adtrack — Personlig Trendtrack & Foreplay Ads Tracker
+# Adtrack — E-commerce Ads Library & Brand Scout
 
-Din egen lynhurtige e-commerce creative intelligence-app i **#0027eb**, bygget med **Next.js (App Router) + Tailwind CSS + ReUI + Supabase + InstaBox.sh** — designet med kulsort sidebar, kridhvidt Trendtrack-workspace og fuld **mobil-app (PWA)** på iPhone og Android.
+Din personlige, knivskarpe e-commerce ads tracker bygget med **Next.js (App Router) + Tailwind CSS + Supabase + ScrapeCreators + InstaBox.sh** — designet i et fuldt **Adtrack `#0027eb`** brandsystem med dyb obsidian sidebar, cobalt ambient glow, flydende kridhvidt workspace og fuld **mobil-PWA**.
 
-## Funktioner
-- **Ads (Trendtrack + Foreplay Swipe File)**: Gem annoncer fra **Meta Ad Library** og **Instagram (Reels & Posts)** med 1 klik via Quick-Paste baren eller manuel upload. Hvert kort viser EU Reach, Est. Spend, Daily Spend, aktive dage, Duplicated-antal, hvid Play-knap, domæne + CTA og **"Save to Favorites"** med board-vælger.
-- **Shops & Shop Analytics (Trendtrack + SimilarWeb)**: Følg konkurrerende webshops i Trendtrack-tabel med **Monthly Visits area-grafer**, **Meta Ads grafer**, Shopify-tema, Trustpilot-score, Pixels, landefordeling (`Visitor Countries`) og live `/api/traffic` integration mod **SimilarWeb API** / **RapidAPI SimilarWeb**.
-- **Brandtracker**: Rangerede Top EU Ads (`#1`, `#2`, `#3`...) på tværs af fulgte konkurrenter.
-- **Permanent Medielagring**: Videoer og billeder downloades og lagres permanent i **Supabase Storage** (`ad-media` bucket), så ads aldrig udløber.
-- **InstaBox.sh Auto-Wake AI/Video-Worker**: Vækker automatisk din InstaBox VM fra 30 min. dvale via `INSTABOX_API_KEY` (`POST /v1/machines/{id}/wake` + `exec`), kører `ffmpeg` + lokal `faster-whisper` + officiel `agy acp`, plus 1-kliks **"Kopiér til Gemini"** og **UGC Creator Brief generator**.
-- **Mobil PWA ("Føj til hjemmeskærm")**: Eget blåt **Adtrack**-ikon, fuldskærm uden browser-bar, bund-navigation, 1/2-kolonners mobil-toggle, Android Share Target og iPhone Apple Genvej-opskrift.
+## Brand System
+- **Primærfarve:** Electric Cobalt `#0027eb` (med dyb obsidian `#05060A` shell & kridhvidt `#FFFFFF` workspace)
+- **Typografi:** `Plus Jakarta Sans` (display & overskrifter) · `Inter` (UI & brødtekst) · `JetBrains Mono` (tal, aktive dage & metrics)
 
-## Miljøvariabler
-Se [.env.example](./.env.example) for alle nøgler til **Supabase**, **ScrapeCreators/Apify**, **SimilarWeb/RapidAPI** og **InstaBox.sh**.
+## Moduler
+- **Explore**: Luftigt Masonry ad-feed med minimal brand-række, `● X D` aktiv-badge, copy med `See more`, inset afrundede video/billede-kreativer med frosted-glass Play-knap, hover-to-play og ren `Save to collection` bundlinje.
+- **Templates**: Rent 4-kolonners visuelt kreativ-galleri med `All Creatives / Saved` segmented toggle og `Digital Ads · Static Ads · Video & Reels` faner.
+- **Scout**: 1-felts automatisk brand-scouting — skriv blot et brandnavn eller en URL, så henter Adtrack live Shopify-produkter, tema, pixels, IG-følgertal, antal aktive Meta Ads og op til 16 rigtige spilbare Meta-ads via **ScrapeCreators**.
+- **My Collections**: Asymmetriske 3-billeders bento-collage kort til hooks, statics og kampagner.
+- **InstaBox.sh AI Worker & Mobil PWA**: Auto-wake af din InstaBox VM (`ffmpeg` + lokal Whisper + `agy acp`) + fuldskærms iPhone/Android PWA.
