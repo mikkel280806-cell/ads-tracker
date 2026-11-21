@@ -34,7 +34,8 @@ export interface CompanyAdsResponse {
 }
 
 export async function searchCompanyMetaPage(
-  query: string
+  query: string,
+  hints?: { igUsername?: string; fbAlias?: string; domainSlug?: string }
 ): Promise<MetaCompanyMatch | null> {
   const apiKey = getApiKey();
   if (!apiKey || !query.trim()) return null;
@@ -60,10 +61,29 @@ export async function searchCompanyMetaPage(
       (item) => !(item as { page_is_deleted?: boolean }).page_is_deleted
     );
     const pool = active.length > 0 ? active : list;
-    pool.sort(
-      (a, b) =>
-        (b.ig_followers || b.likes || 0) - (a.ig_followers || a.likes || 0)
-    );
+
+    const igTarget = hints?.igUsername?.toLowerCase().replace(/^@/, "");
+    const fbTarget = hints?.fbAlias?.toLowerCase();
+    const slugTarget = hints?.domainSlug?.toLowerCase();
+
+    const scoreMatch = (item: MetaCompanyMatch): number => {
+      let score = 0;
+      const ig = (item.ig_username || "").toLowerCase();
+      const alias = (item.page_alias || "").toLowerCase();
+      const name = (item.name || "").toLowerCase();
+
+      if (igTarget && ig && ig === igTarget) score += 1_000_000_000;
+      if (fbTarget && alias && alias === fbTarget) score += 900_000_000;
+      if (slugTarget && (ig.includes(slugTarget) || alias.includes(slugTarget))) {
+        score += 500_000_000;
+      }
+      if (slugTarget && name.replace(/[^a-z0-9]/g, "").includes(slugTarget)) {
+        score += 100_000_000;
+      }
+      return score + (item.ig_followers || item.likes || 0);
+    };
+
+    pool.sort((a, b) => scoreMatch(b) - scoreMatch(a));
     return pool[0] || null;
   } catch (err) {
     console.error("ScrapeCreators searchCompanyMetaPage failed:", err);

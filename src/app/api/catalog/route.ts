@@ -98,28 +98,54 @@ export async function GET() {
     let ads = (adsRes.data || []).map((r) => r.payload as Ad);
     let folders = (foldersRes.data || []) as Board[];
 
-    // Incrementally sync any newly scraped catalog brands/ads not yet in Supabase
-    const existingBrandIds = new Set(brands.map((b) => b.id));
-    const missingBrands = SEED_BRANDS.filter((b) => !existingBrandIds.has(b.id));
+    // Incrementally sync missing OR meta_page_id-corrected catalog brands/ads into Supabase
+    const existingById = new Map(brands.map((b) => [b.id, b]));
+    const brandsToUpsert = SEED_BRANDS.filter((seedBrand) => {
+      const cur = existingById.get(seedBrand.id);
+      if (!cur) return true;
+      return Boolean(seedBrand.meta_page_id && cur.meta_page_id !== seedBrand.meta_page_id);
+    });
 
-    if (missingBrands.length > 0) {
-      const missingBrandIdSet = new Set(missingBrands.map((b) => b.id));
-      const missingAds = SEED_ADS.filter((a) => missingBrandIdSet.has(a.brand_id));
+    // Clean up old stale WordPress mycomfort.dk row if present
+    if (existingById.has("brand-mycomfort-dk")) {
+      await supabase.from("adtrack_brands").delete().eq("id", "brand-mycomfort-dk");
+      brands = brands.filter((b) => b.id !== "brand-mycomfort-dk");
+      ads = ads.filter((a) => a.brand_id !== "brand-mycomfort-dk");
+    }
+
+    if (brandsToUpsert.length > 0) {
+      const upsertIds = new Set(brandsToUpsert.map((b) => b.id));
+      const updatedAds = SEED_ADS.filter((a) => upsertIds.has(a.brand_id));
+
+      // Preserve any user folder_ids on existing brands being refreshed
+      const mergedUpsertBrands = brandsToUpsert.map((sb) => ({
+        ...sb,
+        folder_ids: existingById.get(sb.id)?.folder_ids || sb.folder_ids || [],
+      }));
 
       await supabase
         .from("adtrack_brands")
-        .upsert(missingBrands.map(toBrandRow), { onConflict: "id" });
+        .upsert(mergedUpsertBrands.map(toBrandRow), { onConflict: "id" });
 
-      for (let i = 0; i < missingAds.length; i += 100) {
+      for (const id of upsertIds) {
+        if (existingById.has(id)) {
+          await supabase.from("adtrack_ads").delete().eq("brand_id", id);
+        }
+      }
+
+      for (let i = 0; i < updatedAds.length; i += 100) {
         await supabase
           .from("adtrack_ads")
-          .upsert(missingAds.slice(i, i + 100).map(toAdRow), {
+          .upsert(updatedAds.slice(i, i + 100).map(toAdRow), {
             onConflict: "id",
           });
       }
 
-      brands = [...missingBrands, ...brands];
-      ads = [...missingAds, ...ads];
+      brands = [
+        ...mergedUpsertBrands,
+        ...brands.filter((b) => !upsertIds.has(b.id)),
+      ];
+      ads = [...updatedAds, ...ads.filter((a) => !upsertIds.has(a.brand_id))];
     }
 
     if (folders.length === 0 && SEED_BOARDS.length > 0) {

@@ -97,17 +97,32 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         if (savedBrands) {
           const parsed: Brand[] = JSON.parse(savedBrands);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const existingIds = new Set(parsed.map((b) => b.id));
+            const seedById = new Map(SEED_BRANDS.map((b) => [b.id, b]));
+            const refreshed = parsed
+              .filter((b) => b.id !== "brand-mycomfort-dk")
+              .map((b) => {
+                const sb = seedById.get(b.id);
+                if (sb && sb.meta_page_id && sb.meta_page_id !== b.meta_page_id) {
+                  return { ...sb, folder_ids: b.folder_ids || [] };
+                }
+                return b;
+              });
+            const existingIds = new Set(refreshed.map((b) => b.id));
             const newSeedBrands = SEED_BRANDS.filter((b) => !existingIds.has(b.id));
-            setBrands([...newSeedBrands, ...parsed]);
+            setBrands([...newSeedBrands, ...refreshed]);
           }
         }
         if (savedAds) {
           const parsed: Ad[] = JSON.parse(savedAds);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const existingIds = new Set(parsed.map((a) => a.id));
+            const cleaned = parsed.filter(
+              (a) =>
+                a.brand_id !== "brand-mycomfort-dk" &&
+                !(a.brand_id === "brand-thenap-dk" && !a.landing_page_url.includes("thenap"))
+            );
+            const existingIds = new Set(cleaned.map((a) => a.id));
             const newSeedAds = SEED_ADS.filter((a) => !existingIds.has(a.id));
-            setAds([...newSeedAds, ...parsed]);
+            setAds([...newSeedAds, ...cleaned]);
           }
         }
         if (savedBoards) {

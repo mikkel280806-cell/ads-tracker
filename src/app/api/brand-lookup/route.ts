@@ -282,11 +282,28 @@ export async function POST(request: NextRequest) {
     let metaPageId = companyAdsResult.pageId;
     let fbLikes = companyAdsResult.pageLikes;
 
-    if (shouldFetchAds && companyAdsResult.ads.length === 0) {
+    const domainRoot = bareDomain.split(".")[0].toLowerCase();
+    const adsMatchDomain =
+      companyAdsResult.ads.length > 0 &&
+      companyAdsResult.ads.some((a) => {
+        try {
+          const h = new URL(a.landing_page_url).hostname.toLowerCase();
+          return h.includes(domainRoot);
+        } catch {
+          return false;
+        }
+      });
+
+    if (shouldFetchAds && (companyAdsResult.ads.length === 0 || (resolved && !adsMatchDomain))) {
+      const fbAlias =
+        fbMatch?.[1] && !["sharer", "tr", "dialog", "plugins"].includes(fbMatch[1].toLowerCase())
+          ? fbMatch[1]
+          : undefined;
       const metaMatch = await searchCompanyMetaPage(
-        brandName || bareDomain.split(".")[0]
+        brandName || domainRoot,
+        { igUsername: detectedIgUser, fbAlias, domainSlug: domainRoot }
       );
-      if (metaMatch?.page_id) {
+      if (metaMatch?.page_id && metaMatch.page_id !== metaPageId) {
         metaPageId = metaMatch.page_id;
         igFollowers = metaMatch.ig_followers;
         fbLikes = metaMatch.likes || fbLikes;
