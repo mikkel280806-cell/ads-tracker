@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+:root,
+[data-theme="dark"] {
+  --bg-canvas: #0a0b0d;
+  --bg-surface: #111317;
+  --bg-elevated: #171a20;
+  --bg-hover: #1e222a;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text-primary: #f4f5f6;
+  --text-secondary: #a1a7b3;
+  --text-muted: #6c7382;
+  --btn-primary-bg: #f4f5f6;
+  --btn-primary-fg: #0a0b0d;
+  --btn-primary-hover: #ffffff;
+  --accent-live: #10b981;
+  --accent-live-soft: rgba(16, 185, 129, 0.14);
+  --accent-winner: #f59e0b;
+  --accent-winner-soft: rgba(245, 158, 11, 0.14);
+  --accent-meta: #38bdf8;
+  --accent-meta-soft: rgba(56, 189, 248, 0.14);
+  --accent-ig: #fb7185;
+  --accent-ig-soft: rgba(251, 113, 133, 0.14);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg-canvas: #f5f4f0;
+  --bg-surface: #ffffff;
+  --bg-elevated: #eeece6;
+  --bg-hover: #e7e4dc;
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.15);
+  --text-primary: #111317;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --btn-primary-bg: #111317;
+  --btn-primary-fg: #ffffff;
+  --btn-primary-hover: #1f242c;
+  --accent-live: #059669;
+  --accent-live-soft: rgba(5, 150, 105, 0.12);
+  --accent-winner: #d97706;
+  --accent-winner-soft: rgba(217, 119, 6, 0.12);
+  --accent-meta: #0284c7;
+  --accent-meta-soft: rgba(2, 132, 199, 0.12);
+  --accent-ig: #e11d48;
+  --accent-ig-soft: rgba(225, 29, 72, 0.11);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px rgba(15, 23, 42, 0.06);
+  color-scheme: light;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Safe area helpers for iOS PWA standalone mode */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Tactile scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+/* Hide scrollbar for horizontal filter chip strip on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth slide-up sheet animation */
+@keyframes sheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheetUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
