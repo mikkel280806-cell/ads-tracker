@@ -20,7 +20,7 @@ interface ShopsTableViewProps {
   ads: Ad[];
   onOpenShop: (brandId: string) => void;
   onOpenAd: (ad: Ad) => void;
-  onAddBrand: (brand: Brand) => void;
+  onAddBrand: (brand: Brand, discoveredAds?: Ad[]) => void;
   onDeleteBrand: (brandId: string) => void;
 }
 
@@ -53,7 +53,7 @@ export function ShopsTableView({
       if (!res.ok || !data.ok || !data.brand) {
         throw new Error(data.error || "Kunne ikke finde brandet.");
       }
-      onAddBrand(data.brand);
+      onAddBrand(data.brand, Array.isArray(data.ads) ? data.ads : []);
       setLookupInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Opslag fejlede.");
@@ -326,20 +326,31 @@ export function ShopsTableView({
                     )}
                   </div>
 
-                  {/* 4. Real Traffic / Saved Ads (no fake numbers) */}
+                  {/* 4. Real Live Meta Ads / IG / Traffic */}
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[#667085]">Visits:</span>
+                      <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
                       <span className="font-mono-num font-bold text-[#111318]">
-                        {brand.monthly_visits ? formatReach(brand.monthly_visits) : "—"}
+                        {brand.active_ads_count ?? brandAds.length}
                       </span>
+                      <span className="text-[#667085]">live ads</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[#667085]">Gemte ads:</span>
-                      <span className="font-mono-num font-bold text-[#0027eb]">
-                        {brandAds.length}
-                      </span>
-                    </div>
+                    {brand.ig_followers ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#667085]">IG:</span>
+                        <span className="font-mono-num font-semibold text-[#111318]">
+                          {formatReach(brand.ig_followers)}
+                        </span>
+                      </div>
+                    ) : null}
+                    {brand.monthly_visits ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#667085]">Visits:</span>
+                        <span className="font-mono-num font-semibold text-[#0027eb]">
+                          {formatReach(brand.monthly_visits)}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* 5. Actions */}

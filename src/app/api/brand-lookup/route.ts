@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Brand, ProductPreview } from "@/lib/types";
+import type { Ad, Brand, ProductPreview } from "@/lib/types";
+import { fetchCompanyActiveAds, searchCompanyMetaPage } from "@/lib/scrapecreators";
 
 const BROWSER_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
@@ -50,15 +51,10 @@ async function fetchWithTimeout(url: string, timeoutMs = 7000): Promise<Response
   }
 }
 
-/**
- * Resolves either a raw URL ("https://loopearplugs.com"), a domain ("gymshark.com"),
- * or a plain brand name ("loop earplugs", "gymshark", "shaped") to a live URL.
- */
 async function resolveBrandUrl(input: string): Promise<{ url: string; html: string } | null> {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
-  // Looks like a domain or URL already
   if (trimmed.includes(".") && !trimmed.includes(" ")) {
     const candidate = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
     const res = await fetchWithTimeout(candidate, 8000);
@@ -75,7 +71,6 @@ async function resolveBrandUrl(input: string): Promise<{ url: string; html: stri
     return null;
   }
 
-  // Plain brand name: try common e-commerce TLDs in parallel (.com, .dk, .eu, .co, .se, .no)
   const slug = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
   const hyphenSlug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const candidates = Array.from(
@@ -107,7 +102,11 @@ async function resolveBrandUrl(input: string): Promise<{ url: string; html: stri
 function detectPixelsAndTech(html: string): string[] {
   const found: string[] = [];
   const lower = html.toLowerCase();
-  if (lower.includes("fbevents.js") || lower.includes("fbq(") || lower.includes("facebook-domain-verification")) {
+  if (
+    lower.includes("fbevents.js") ||
+    lower.includes("fbq(") ||
+    lower.includes("facebook-domain-verification")
+  ) {
     found.push("Meta Pixel");
   }
   if (lower.includes("googletagmanager.com") || lower.includes("gtag(")) {
@@ -139,8 +138,10 @@ function resolveAbsoluteUrl(base: string, maybeRelative?: string): string | unde
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { query?: string };
+    const body = (await request.json()) as { query?: string; fetchAds?: boolean };
     const query = body.query?.trim() || "";
+    const shouldFetchAds = body.fetchAds !== false;
+
     if (!query) {
       return NextResponse.json(
         { ok: false, error: "Skriv et brandnavn eller en website-URL." },
@@ -148,67 +149,85 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resolved = await resolveBrandUrl(query);
-    if (!resolved) {
+    // Run website resolution + Meta Company search in parallel
+    const [resolved, metaCompanyInitial] = await Promise.all([
+      resolveBrandUrl(query),
+      searchCompanyMetaPage(query.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0].split(".")[0]),
+    ]);
+
+    if (!resolved && !metaCompanyInitial) {
       return NextResponse.json(
         {
           ok: false,
-          error: `Kunne ikke finde en aktiv webshop for "${query}". Prøv med hele domænet (fx brand.dk eller brand.com).`,
+          error: `Kunne ikke finde en aktiv webshop eller Meta-annoncør for "${query}". Prøv med hele domænet (fx brand.dk eller brand.com).`,
         },
         { status: 404 }
       );
     }
 
-    const { url: finalUrl, html } = resolved;
+    const finalUrl = resolved?.url || `https://${query.replace(/^https?:\/\//, "").split("/")[0]}`;
+    const html = resolved?.html || "";
     const parsedUrl = new URL(finalUrl);
     const origin = parsedUrl.origin;
     const bareDomain = parsedUrl.hostname.replace(/^www\./, "");
 
-    // 1. Extract Brand Name, Description, Cover Image & Social Handles from REAL HTML
-    const ogSiteName = extractMeta(html, "og:site_name");
-    const rawTitle = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim();
+    const ogSiteName = html ? extractMeta(html, "og:site_name") : undefined;
+    const rawTitle = html ? html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() : undefined;
     const cleanedTitle = rawTitle
       ? decodeEntities(rawTitle).split(/[|\-–—·]/)[0].trim()
       : undefined;
-    const brandName = ogSiteName || cleanedTitle || bareDomain.split(".")[0];
 
-    const description =
-      extractMeta(html, "og:description") || extractMeta(html, "description");
-    const storefrontImage = resolveAbsoluteUrl(
-      origin,
-      extractMeta(html, "og:image") || extractMeta(html, "twitter:image")
-    );
+    const brandName = ogSiteName || metaCompanyInitial?.name || cleanedTitle || bareDomain.split(".")[0];
+    const description = html
+      ? extractMeta(html, "og:description") || extractMeta(html, "description")
+      : undefined;
+    const storefrontImage = html
+      ? resolveAbsoluteUrl(
+          origin,
+          extractMeta(html, "og:image") || extractMeta(html, "twitter:image")
+        )
+      : undefined;
 
-    const logoUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(bareDomain)}&sz=128`;
-
-    // Social handles from homepage links
     const igMatch = html.match(/https?:\/\/(?:www\.)?instagram\.com\/([a-zA-Z0-9._]{2,30})\/?/i);
     const fbMatch = html.match(/https?:\/\/(?:www\.)?facebook\.com\/([a-zA-Z0-9._-]{2,50})\/?/i);
-    const igHandle =
-      igMatch?.[1] && !["p", "reel", "reels", "explore", "share"].includes(igMatch[1].toLowerCase())
-        ? `@${igMatch[1]}`
-        : `@${bareDomain.split(".")[0]}`;
-    const igUrl =
-      igMatch?.[1] && !["p", "reel", "reels", "explore", "share"].includes(igMatch[1].toLowerCase())
-        ? `https://www.instagram.com/${igMatch[1]}/`
-        : undefined;
+
+    const detectedIgUser =
+      metaCompanyInitial?.ig_username ||
+      (igMatch?.[1] && !["p", "reel", "reels", "explore", "share"].includes(igMatch[1].toLowerCase())
+        ? igMatch[1]
+        : undefined);
+
+    const igHandle = detectedIgUser ? `@${detectedIgUser}` : `@${bareDomain.split(".")[0]}`;
+    const igUrl = detectedIgUser ? `https://www.instagram.com/${detectedIgUser}/` : undefined;
     const fbUrl =
       fbMatch?.[1] && !["sharer", "tr", "dialog", "plugins"].includes(fbMatch[1].toLowerCase())
         ? `https://www.facebook.com/${fbMatch[1]}/`
-        : undefined;
+        : metaCompanyInitial?.page_alias
+          ? `https://www.facebook.com/${metaCompanyInitial.page_alias}/`
+          : undefined;
 
-    // 2. Detect REAL Shopify store, Theme, Currency & Pixels
-    const isShopify =
-      /cdn\.shopify\.com|Shopify\.shop|shopify-section/i.test(html);
+    const isShopify = /cdn\.shopify\.com|Shopify\.shop|shopify-section/i.test(html);
     const themeMatch = html.match(/Shopify\.theme\s*=\s*\{[^}]*"name"\s*:\s*"([^"]+)"/i);
     const currencyMatch =
       html.match(/"active"\s*:\s*"([A-Z]{3})"/i) ||
       html.match(/Shopify\.currency\s*=\s*\{[^}]*"active"\s*:\s*"([A-Z]{3})"/i);
     const detectedCurrency = currencyMatch?.[1] || (bareDomain.endsWith(".dk") ? "DKK" : "EUR");
-    const pixels = detectPixelsAndTech(html);
+    const pixels = html ? detectPixelsAndTech(html) : [];
 
-    // 3. Fetch REAL Shopify Products from /products.json (in parallel with optional traffic/ads)
-    const [productsResult, trafficResult, metaAdsResult] = await Promise.all([
+    const brandId = `brand-${bareDomain.replace(/[^a-z0-9]+/g, "-")}`;
+    const initials = brandName
+      .split(/\s+/)
+      .map((w: string) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+    const logoUrl =
+      metaCompanyInitial?.image_uri ||
+      `https://www.google.com/s2/favicons?domain=${encodeURIComponent(bareDomain)}&sz=128`;
+
+    // Fetch real Shopify products + real Meta Ad Library company ads + optional SimilarWeb traffic in parallel!
+    const [productsResult, companyAdsResult, trafficResult] = await Promise.all([
       (async (): Promise<{ count?: number; products: ProductPreview[] }> => {
         if (!isShopify) return { products: [] };
         const res = await fetchWithTimeout(`${origin}/products.json?limit=250`, 6000);
@@ -236,14 +255,29 @@ export async function POST(request: NextRequest) {
         }
       })(),
 
-      // Optional real SimilarWeb / RapidAPI traffic if key is configured
+      (async (): Promise<{ totalActiveAds?: number; ads: Ad[] }> => {
+        if (!shouldFetchAds || !metaCompanyInitial?.page_id) return { ads: [] };
+        return fetchCompanyActiveAds(
+          metaCompanyInitial.page_id,
+          brandId,
+          {
+            name: brandName,
+            handle: igHandle,
+            initials: initials || "BR",
+            color: "#0027eb",
+            logoUrl,
+          },
+          16
+        );
+      })(),
+
       (async () => {
-        const swKey = process.env.SIMILARWEB_API_KEY;
-        const rapidKey = process.env.RAPIDAPI_KEY;
-        if (!swKey && !rapidKey) return null;
+        if (!process.env.SIMILARWEB_API_KEY && !process.env.RAPIDAPI_KEY) return null;
         try {
-          const url = `${request.nextUrl.origin}/api/traffic?domain=${encodeURIComponent(bareDomain)}`;
-          const res = await fetchWithTimeout(url, 6000);
+          const res = await fetchWithTimeout(
+            `${request.nextUrl.origin}/api/traffic?domain=${encodeURIComponent(bareDomain)}`,
+            6000
+          );
           if (res && res.ok) {
             const d = await res.json();
             if (d.ok) return d;
@@ -253,34 +287,7 @@ export async function POST(request: NextRequest) {
         }
         return null;
       })(),
-
-      // Optional real Meta Ad Library search via ScrapeCreators if configured
-      (async () => {
-        const scKey = process.env.SCRAPECREATORS_API_KEY;
-        if (!scKey) return null;
-        try {
-          const res = await fetchWithTimeout(
-            `https://api.scrapecreators.com/v1/facebook/adLibrary/search/ads?query=${encodeURIComponent(bareDomain)}`,
-            8000
-          );
-          if (res && res.ok) {
-            const d = await res.json();
-            const count = Array.isArray(d?.searchResults) ? d.searchResults.length : undefined;
-            return { active_ads_count: count };
-          }
-        } catch {
-          // ignore
-        }
-        return null;
-      })(),
     ]);
-
-    const initials = brandName
-      .split(/\s+/)
-      .map((w: string) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
 
     const originCountry = bareDomain.endsWith(".dk")
       ? "🇩🇰 DK"
@@ -294,20 +301,28 @@ export async function POST(request: NextRequest) {
               ? "🇬🇧 UK"
               : "🌍 Global";
 
+    const metaLibraryUrl = metaCompanyInitial?.page_id
+      ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${metaCompanyInitial.page_id}`
+      : `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=${encodeURIComponent(brandName)}`;
+
     const brand: Brand = {
-      id: `brand-${bareDomain.replace(/[^a-z0-9]+/g, "-")}`,
+      id: brandId,
       name: brandName,
       handle: igHandle,
       avatar_initials: initials || "BR",
       avatar_color: "#0027eb",
       logo_url: logoUrl,
-      storefront_image_url: storefrontImage || productsResult.products[0]?.image_url,
+      storefront_image_url:
+        storefrontImage ||
+        productsResult.products[0]?.image_url ||
+        companyAdsResult.ads[0]?.thumbnail_url,
       description,
       website_url: origin,
       instagram_url: igUrl,
       facebook_url: fbUrl,
-      meta_ad_library_url: `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=${encodeURIComponent(brandName)}`,
-      category: isShopify ? "Shopify E-commerce" : "E-commerce",
+      meta_page_id: metaCompanyInitial?.page_id,
+      meta_ad_library_url: metaLibraryUrl,
+      category: metaCompanyInitial?.category || (isShopify ? "Shopify E-commerce" : "E-commerce"),
       is_shopify: isShopify,
       shopify_theme: themeMatch?.[1],
       origin_country: originCountry,
@@ -315,7 +330,8 @@ export async function POST(request: NextRequest) {
       products_count: productsResult.count,
       top_products: productsResult.products,
       is_tracked: true,
-      active_ads_count: metaAdsResult?.active_ads_count,
+      active_ads_count: companyAdsResult.totalActiveAds,
+      ig_followers: metaCompanyInitial?.ig_followers,
       monthly_visits: trafficResult?.monthly_visits,
       traffic_growth_pct: trafficResult?.traffic_growth_pct,
       traffic_history: trafficResult?.traffic_history,
@@ -326,12 +342,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       brand,
+      ads: companyAdsResult.ads,
       discovered: {
         isShopify,
         productsFound: productsResult.products.length,
         pixelsFound: pixels.length,
-        hasLiveTraffic: Boolean(trafficResult),
-        hasLiveMetaAds: Boolean(metaAdsResult),
+        metaPageId: metaCompanyInitial?.page_id || null,
+        activeAdsCount: companyAdsResult.totalActiveAds || 0,
+        adsImported: companyAdsResult.ads.length,
       },
     });
   } catch (err) {

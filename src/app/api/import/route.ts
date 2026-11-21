@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { parseAdLink } from "@/lib/url-parser";
+import {
+  fetchInstagramPost,
+  fetchSingleMetaAd,
+  mapScrapeCreatorsAd,
+} from "@/lib/scrapecreators";
 import type { Ad, MediaType } from "@/lib/types";
 
 interface ImportBody {
@@ -43,139 +48,6 @@ function extractMeta(html: string, key: string): string | undefined {
     if (m?.[1]) return decodeEntities(m[1].trim());
   }
   return undefined;
-}
-
-/**
- * Tries ScrapeCreators first if configured, otherwise attempts real public OpenGraph
- * metadata extraction so we NEVER invent fake placeholder content.
- */
-async function fetchRealLinkMetadata(
-  rawUrl: string,
-  sourceType: string,
-  externalId?: string
-) {
-  const apiKey = process.env.SCRAPECREATORS_API_KEY;
-
-  // 1. Live ScrapeCreators API (full Meta Ad Library & Instagram video + EU reach)
-  if (apiKey) {
-    try {
-      if (sourceType === "meta_ad_library" && externalId) {
-        const res = await fetch(
-          `https://api.scrapecreators.com/v1/facebook/adLibrary/ad?id=${encodeURIComponent(externalId)}`,
-          { headers: { "x-api-key": apiKey }, cache: "no-store" }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const snapshot = data?.snapshot || data?.ad?.snapshot || data;
-          const videoUrl = snapshot?.videos?.[0]?.video_hd_url || snapshot?.videos?.[0]?.video_sd_url;
-          const imageUrl =
-            snapshot?.images?.[0]?.original_image_url ||
-            snapshot?.videos?.[0]?.video_preview_image_url;
-
-          return {
-            scrapedLive: true,
-            brand_name: snapshot?.page_name || data?.page_name || "Meta Annoncør",
-            brand_handle: snapshot?.page_profile_uri
-              ? `@${snapshot.page_profile_uri.split("/").filter(Boolean).pop()}`
-              : "@meta",
-            media_type: (videoUrl ? "video" : "image") as MediaType,
-            remote_media_url: videoUrl || imageUrl || "",
-            remote_thumb_url: imageUrl || "",
-            primary_text: snapshot?.body?.text || "",
-            headline: snapshot?.title || snapshot?.cards?.[0]?.title || "",
-            cta_text: snapshot?.cta_text || "Shop now",
-            landing_page_url: snapshot?.link_url || rawUrl,
-            eu_reach: data?.eu_total_reach || data?.reach_estimate || undefined,
-            started_running_at: data?.start_date
-              ? new Date(data.start_date * 1000).toISOString()
-              : new Date().toISOString(),
-            is_active: data?.is_active ?? true,
-          };
-        }
-      }
-
-      if (sourceType === "instagram") {
-        const res = await fetch(
-          `https://api.scrapecreators.com/v1/instagram/post?url=${encodeURIComponent(rawUrl)}`,
-          { headers: { "x-api-key": apiKey }, cache: "no-store" }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const item = data?.data || data;
-          const videoUrl = item?.video_url;
-          const imageUrl = item?.display_url || item?.thumbnail_src;
-
-          return {
-            scrapedLive: true,
-            brand_name: item?.owner?.full_name || item?.owner?.username || "Instagram",
-            brand_handle: item?.owner?.username ? `@${item.owner.username}` : "@instagram",
-            media_type: (videoUrl ? "video" : "image") as MediaType,
-            remote_media_url: videoUrl || imageUrl || "",
-            remote_thumb_url: imageUrl || "",
-            primary_text: item?.edge_media_to_caption?.edges?.[0]?.node?.text || item?.caption || "",
-            headline: item?.title || "Instagram Reel",
-            cta_text: "Se på Instagram",
-            landing_page_url: rawUrl,
-            eu_reach: undefined,
-            started_running_at: item?.taken_at_timestamp
-              ? new Date(item.taken_at_timestamp * 1000).toISOString()
-              : new Date().toISOString(),
-            is_active: true,
-          };
-        }
-      }
-    } catch (err) {
-      console.error("ScrapeCreators fetch failed:", err);
-    }
-  }
-
-  // 2. Public OpenGraph / Meta tag extraction (works live for webshops, landing pages & public embeds)
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6500);
-    const res = await fetch(rawUrl, {
-      headers: { "User-Agent": BROWSER_UA, Accept: "text/html,*/*" },
-      redirect: "follow",
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    clearTimeout(timer);
-
-    if (res.ok) {
-      const html = await res.text();
-      const ogTitle =
-        extractMeta(html, "og:title") ||
-        html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim();
-      const ogDesc =
-        extractMeta(html, "og:description") || extractMeta(html, "description");
-      const ogImage = extractMeta(html, "og:image") || extractMeta(html, "twitter:image");
-      const ogVideo = extractMeta(html, "og:video") || extractMeta(html, "og:video:secure_url");
-      const ogSite = extractMeta(html, "og:site_name");
-
-      if (ogTitle || ogImage || ogDesc) {
-        const host = new URL(res.url || rawUrl).hostname.replace(/^www\./, "");
-        return {
-          scrapedLive: Boolean(ogImage || ogVideo),
-          brand_name: ogSite || host.split(".")[0],
-          brand_handle: `@${host.split(".")[0]}`,
-          media_type: (ogVideo ? "video" : "image") as MediaType,
-          remote_media_url: ogVideo || ogImage || "",
-          remote_thumb_url: ogImage || "",
-          primary_text: ogDesc || "",
-          headline: ogTitle || host,
-          cta_text: "Åbn link",
-          landing_page_url: res.url || rawUrl,
-          eu_reach: undefined,
-          started_running_at: new Date().toISOString(),
-          is_active: true,
-        };
-      }
-    }
-  } catch {
-    // Public page blocked or timed out — handled cleanly below
-  }
-
-  return null;
 }
 
 async function persistMediaToSupabase(
@@ -257,28 +129,6 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
       };
 
-      const supabase = getSupabaseServerClient();
-      if (supabase) {
-        await supabase.from("ads").insert({
-          id: ad.id,
-          source_type: ad.source_type,
-          source_url: ad.source_url,
-          media_type: ad.media_type,
-          media_storage_url: ad.media_url,
-          thumbnail_storage_url: ad.thumbnail_url,
-          primary_text: ad.primary_text,
-          headline: ad.headline,
-          cta_text: ad.cta_text,
-          landing_page_url: ad.landing_page_url,
-          is_active: ad.is_active,
-          started_running_at: ad.started_running_at,
-          status: ad.status,
-          ai_angle: ad.ai_angle,
-          ai_format: ad.ai_format,
-          user_notes: ad.user_notes,
-        });
-      }
-
       createdAds.push(ad);
       return NextResponse.json({ ok: true, ads: createdAds });
     }
@@ -299,110 +149,160 @@ export async function POST(request: NextRequest) {
       const parsed = parseAdLink(raw);
       if (!parsed.isValid) continue;
 
-      const id = crypto.randomUUID();
-      const scraped = await fetchRealLinkMetadata(
-        parsed.rawUrl,
-        parsed.sourceType,
-        parsed.externalId
-      );
+      let ad: Ad | null = null;
 
-      let permanentMedia = scraped?.remote_media_url || "";
-      let permanentThumb = scraped?.remote_thumb_url || "";
-
-      if (scraped?.remote_media_url) {
-        const stored = await persistMediaToSupabase(scraped.remote_media_url, id, "media");
-        if (stored) permanentMedia = stored;
+      // A) Real Meta Ad Library ad via ScrapeCreators
+      if (parsed.sourceType === "meta_ad_library" && parsed.externalId) {
+        const rawAd = await fetchSingleMetaAd(parsed.externalId);
+        if (rawAd) {
+          const name: string = rawAd?.snapshot?.page_name || rawAd?.page_name || "Meta Brand";
+          const initials = name
+            .split(/\s+/)
+            .map((w: string) => w[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+          ad = mapScrapeCreatorsAd(rawAd, `brand-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, {
+            name,
+            handle: `@${name.toLowerCase().replace(/[^a-z0-9]+/g, "")}`,
+            initials: initials || "MB",
+            color: "#0027eb",
+          });
+          ad.board_ids = boardIds;
+        }
       }
-      if (scraped?.remote_thumb_url) {
-        const storedThumb = await persistMediaToSupabase(scraped.remote_thumb_url, id, "thumb");
-        if (storedThumb) permanentThumb = storedThumb;
+
+      // B) Real Instagram Reel/Post via ScrapeCreators
+      if (!ad && parsed.sourceType === "instagram") {
+        const item = await fetchInstagramPost(parsed.rawUrl);
+        if (item) {
+          const username = item?.owner?.username || parsed.handleGuess || "instagram";
+          const fullName = item?.owner?.full_name || username;
+          const videoUrl = item?.video_url || "";
+          const thumbUrl = item?.display_url || item?.thumbnail_src || "";
+          const caption =
+            item?.edge_media_to_caption?.edges?.[0]?.node?.text || item?.caption || "";
+          const initials = fullName
+            .split(/\s+/)
+            .map((w: string) => w[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+
+          ad = {
+            id: `ig-${item?.shortcode || parsed.externalId || crypto.randomUUID()}`,
+            brand_id: `brand-${username.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            brand_name: fullName,
+            brand_handle: `@${username}`,
+            brand_avatar_initials: initials || "IG",
+            brand_avatar_color: "#E11D48",
+            brand_logo_url: item?.owner?.profile_pic_url,
+            source_type: "instagram",
+            source_url: parsed.rawUrl,
+            external_ad_id: item?.shortcode || parsed.externalId,
+            media_type: videoUrl ? "video" : "image",
+            media_url: videoUrl || thumbUrl,
+            thumbnail_url: thumbUrl || videoUrl,
+            aspect_ratio: videoUrl ? "9:16" : "3:4",
+            duration_seconds: item?.video_duration ? Math.round(item.video_duration) : undefined,
+            primary_text: caption,
+            headline: caption ? caption.slice(0, 68) : `@${username} Reel`,
+            cta_text: "Åbn på IG",
+            landing_page_url: parsed.rawUrl,
+            is_active: true,
+            started_running_at: item?.taken_at_timestamp
+              ? new Date(item.taken_at_timestamp * 1000).toISOString()
+              : new Date().toISOString(),
+            eu_reach: item?.video_view_count || item?.video_play_count || undefined,
+            platforms: ["Instagram"],
+            status: "ready",
+            ai_format: videoUrl ? "Instagram Reel" : "Instagram Post",
+            tags: ["instagram"],
+            board_ids: boardIds,
+            user_notes: "",
+            is_favorite: false,
+            created_at: new Date().toISOString(),
+          };
+        }
       }
 
-      const host = new URL(parsed.rawUrl).hostname.replace(/^www\./, "");
-      const guessedName: string =
-        scraped?.brand_name ||
-        (parsed.handleGuess
-          ? parsed.handleGuess.charAt(0).toUpperCase() + parsed.handleGuess.slice(1)
-          : parsed.sourceType === "meta_ad_library"
-            ? `Meta Ad #${(parsed.externalId || id).slice(0, 8)}`
-            : parsed.sourceType === "instagram"
-              ? `Instagram ${parsed.externalId ? `#${parsed.externalId.slice(0, 8)}` : "Reel"}`
-              : host);
+      // C) OpenGraph fallback for landing pages / webshops / unconfigured key
+      if (!ad) {
+        const id = crypto.randomUUID();
+        const host = new URL(parsed.rawUrl).hostname.replace(/^www\./, "");
+        let ogTitle = "";
+        let ogDesc = "";
+        let ogImage = "";
+        let ogSite = "";
 
-      const initials = guessedName
-        .split(/\s+/)
-        .map((w: string) => w[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 6000);
+          const res = await fetch(parsed.rawUrl, {
+            headers: { "User-Agent": BROWSER_UA },
+            redirect: "follow",
+            signal: controller.signal,
+            cache: "no-store",
+          });
+          clearTimeout(timer);
+          if (res.ok) {
+            const html = await res.text();
+            ogTitle = extractMeta(html, "og:title") || "";
+            ogDesc = extractMeta(html, "og:description") || "";
+            ogImage = extractMeta(html, "og:image") || "";
+            ogSite = extractMeta(html, "og:site_name") || "";
+          }
+        } catch {
+          // ignore
+        }
 
-      const ad: Ad = {
-        id,
-        brand_id: `brand-${guessedName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-        brand_name: guessedName,
-        brand_handle:
-          scraped?.brand_handle ||
-          (parsed.handleGuess ? `@${parsed.handleGuess}` : `@${host.split(".")[0]}`),
-        brand_avatar_initials: initials || "AD",
-        brand_avatar_color: parsed.sourceType === "instagram" ? "#E11D48" : "#0027eb",
-        brand_logo_url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`,
-        source_type: parsed.sourceType,
-        source_url: parsed.rawUrl,
-        external_ad_id: parsed.externalId,
-        media_type: scraped?.media_type || (parsed.sourceType === "manual" ? "image" : "video"),
-        media_url: permanentMedia,
-        thumbnail_url: permanentThumb || permanentMedia,
-        aspect_ratio: permanentMedia ? "3:4" : "1:1",
-        primary_text:
-          scraped?.primary_text ||
-          (parsed.sourceType === "meta_ad_library" || parsed.sourceType === "instagram"
-            ? "Link gemt. Tilføj SCRAPECREATORS_API_KEY i Connectors for automatisk download af HD-video, annoncetekst og EU-reach fra Meta/Instagram."
-            : ""),
-        headline:
-          scraped?.headline ||
-          (parsed.sourceType === "meta_ad_library"
-            ? `Meta Ad Library ${parsed.externalId ? `#${parsed.externalId}` : ""}`.trim()
-            : parsed.sourceType === "instagram"
-              ? `Instagram ${parsed.externalId || "Post"}`
-              : host),
-        cta_text: scraped?.cta_text || "Åbn original",
-        landing_page_url: scraped?.landing_page_url || parsed.rawUrl,
-        is_active: scraped?.is_active ?? true,
-        started_running_at: scraped?.started_running_at || new Date().toISOString(),
-        eu_reach: scraped?.eu_reach,
-        platforms: parsed.sourceType === "instagram" ? ["Instagram"] : ["Facebook", "Instagram"],
-        status: process.env.INSTABOX_API_KEY && permanentMedia ? "pending_ai" : "ready",
-        ai_angle: undefined,
-        ai_format: parsed.sourceType === "instagram" ? "Instagram" : parsed.sourceType === "meta_ad_library" ? "Meta Ad" : "Web",
-        tags: [parsed.sourceType === "meta_ad_library" ? "meta" : parsed.sourceType],
-        board_ids: boardIds,
-        user_notes: "",
-        is_favorite: false,
-        created_at: new Date().toISOString(),
-      };
+        const guessedName = ogSite || parsed.handleGuess || host;
+        const initials = guessedName
+          .split(/\s+/)
+          .map((w: string) => w[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
 
-      const supabase = getSupabaseServerClient();
-      if (supabase) {
-        await supabase.from("ads").insert({
-          id: ad.id,
-          source_type: ad.source_type,
-          source_url: ad.source_url,
-          external_ad_id: ad.external_ad_id,
-          media_type: ad.media_type,
-          media_storage_url: ad.media_url,
-          thumbnail_storage_url: ad.thumbnail_url,
-          primary_text: ad.primary_text,
-          headline: ad.headline,
-          cta_text: ad.cta_text,
-          landing_page_url: ad.landing_page_url,
-          is_active: ad.is_active,
-          started_running_at: ad.started_running_at,
-          eu_reach: ad.eu_reach,
-          platforms: ad.platforms,
-          status: ad.status,
-          ai_format: ad.ai_format,
-          user_notes: ad.user_notes,
-        });
+        ad = {
+          id,
+          brand_id: `brand-${guessedName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+          brand_name: guessedName,
+          brand_handle: `@${host.split(".")[0]}`,
+          brand_avatar_initials: initials || "AD",
+          brand_avatar_color: "#0027eb",
+          brand_logo_url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`,
+          source_type: parsed.sourceType,
+          source_url: parsed.rawUrl,
+          external_ad_id: parsed.externalId,
+          media_type: parsed.sourceType === "manual" ? "image" : "video",
+          media_url: ogImage,
+          thumbnail_url: ogImage,
+          aspect_ratio: "3:4",
+          primary_text: ogDesc,
+          headline: ogTitle || host,
+          cta_text: "Åbn link",
+          landing_page_url: parsed.rawUrl,
+          is_active: true,
+          started_running_at: new Date().toISOString(),
+          platforms: parsed.sourceType === "instagram" ? ["Instagram"] : ["Facebook", "Instagram"],
+          status: "ready",
+          tags: [parsed.sourceType],
+          board_ids: boardIds,
+          user_notes: "",
+          is_favorite: false,
+          created_at: new Date().toISOString(),
+        };
+      }
+
+      // Persist media permanently to Supabase Storage when Supabase is configured
+      if (ad.media_url && ad.media_url.startsWith("http")) {
+        const stored = await persistMediaToSupabase(ad.media_url, ad.id, "media");
+        if (stored) ad.media_url = stored;
+      }
+      if (ad.thumbnail_url && ad.thumbnail_url.startsWith("http") && ad.thumbnail_url !== ad.media_url) {
+        const storedThumb = await persistMediaToSupabase(ad.thumbnail_url, ad.id, "thumb");
+        if (storedThumb) ad.thumbnail_url = storedThumb;
       }
 
       createdAds.push(ad);

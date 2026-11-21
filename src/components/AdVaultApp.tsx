@@ -628,9 +628,16 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               ads={ads}
               onOpenShop={(brandId) => setSelectedShopId(brandId)}
               onOpenAd={(ad) => setActiveAdId(ad.id)}
-              onAddBrand={(brand) =>
-                setBrands((prev) => [brand, ...prev.filter((b) => b.id !== brand.id)])
-              }
+              onAddBrand={(brand, discoveredAds = []) => {
+                setBrands((prev) => [brand, ...prev.filter((b) => b.id !== brand.id)]);
+                if (discoveredAds.length > 0) {
+                  setAds((prev) => {
+                    const existingIds = new Set(prev.map((a) => a.id));
+                    const fresh = discoveredAds.filter((a) => !existingIds.has(a.id));
+                    return [...fresh, ...prev];
+                  });
+                }
+              }}
               onDeleteBrand={handleDeleteBrand}
             />
           )}

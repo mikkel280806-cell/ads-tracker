@@ -265,26 +265,23 @@ export function ShopAnalyticsView({
       {/* Real KPI Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-[#EAECEF] bg-white p-4">
-          <p className="text-xs font-medium text-[#667085]">Monthly Visits (SimilarWeb)</p>
-          <div className="mt-2 flex items-center gap-2">
-            <Users className="h-5 w-5 text-[#0027eb]" />
-            <span className="font-mono-num text-2xl font-bold text-[#111318]">
-              {brand.monthly_visits ? formatReach(brand.monthly_visits) : "Ikke synket"}
+          <p className="text-xs font-medium text-[#667085]">Live Meta Ads &amp; IG</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 font-mono-num text-2xl font-bold text-[#111318]">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#16A34A]" />
+              {brand.active_ads_count ?? brandAds.length}
             </span>
-            {typeof brand.traffic_growth_pct === "number" && (
-              <span
-                className="rounded-md px-2 py-0.5 font-mono-num text-xs font-semibold"
-                style={
-                  brand.traffic_growth_pct >= 0
-                    ? { backgroundColor: "#ECFDF3", color: "#15803D" }
-                    : { backgroundColor: "#FFF1F2", color: "#E11D48" }
-                }
-              >
-                {brand.traffic_growth_pct >= 0
-                  ? `+${brand.traffic_growth_pct}%`
-                  : `${brand.traffic_growth_pct}%`}
+            {brand.ig_followers ? (
+              <span className="rounded-md bg-[#FFF1F2] px-2 py-0.5 font-mono-num text-xs font-bold text-[#E11D48]">
+                IG {formatReach(brand.ig_followers)}
               </span>
-            )}
+            ) : null}
+            {brand.monthly_visits ? (
+              <span className="rounded-md bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-xs font-bold text-[#0027eb]">
+                <Users className="mr-1 inline h-3 w-3" />
+                {formatReach(brand.monthly_visits)}/md
+              </span>
+            ) : null}
           </div>
         </div>
 
