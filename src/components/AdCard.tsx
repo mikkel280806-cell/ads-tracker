@@ -226,7 +226,7 @@ export function AdCard({
             playsInline
             className="h-full w-full object-cover"
           />
-        ) : (
+        ) : ad.thumbnail_url || ad.media_url ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={ad.thumbnail_url || ad.media_url}
@@ -234,6 +234,21 @@ export function AdCard({
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02]"
           />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#F8F9FB] p-6 text-center">
+            {ad.brand_logo_url ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={ad.brand_logo_url}
+                alt={ad.brand_name}
+                className="h-10 w-10 rounded-xl shadow-sm"
+              />
+            ) : null}
+            <p className="text-xs font-bold text-[#111318]">{ad.brand_name}</p>
+            <p className="max-w-[200px] text-[11px] leading-relaxed text-[#667085]">
+              Gemt link — tilføj ScrapeCreators for auto-video eller upload selv.
+            </p>
+          </div>
         )}
 
         {/* Signature TrendTrack Centered White Play Circle for Videos */}

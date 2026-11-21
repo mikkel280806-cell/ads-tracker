@@ -37,9 +37,9 @@ type ActiveView = "ads" | "shops" | "brandtracker" | "favorites" | "boards" | "c
 type SortOption = "newest" | "longest" | "reach" | "spend";
 
 const STORAGE_KEYS = {
-  ads: "adtrack_ads_v3",
-  brands: "adtrack_brands_v3",
-  boards: "adtrack_boards_v3",
+  ads: "adtrack_ads_v4",
+  brands: "adtrack_brands_v4",
+  boards: "adtrack_boards_v4",
 };
 
 interface AdVaultAppProps {
@@ -53,7 +53,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const [connectorStatus, setConnectorStatus] = useState<ConnectorStatus>(initialStatus);
   const [hydrated, setHydrated] = useState(false);
 
-  const [view, setView] = useState<ActiveView>("ads");
+  const [view, setView] = useState<ActiveView>("shops");
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [mobileCols, setMobileCols] = useState<1 | 2>(1);
@@ -169,6 +169,11 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     setAds((prev) => prev.filter((a) => a.id !== adId));
   };
 
+  const handleDeleteBrand = (brandId: string) => {
+    setBrands((prev) => prev.filter((b) => b.id !== brandId));
+    if (selectedShopId === brandId) setSelectedShopId(null);
+  };
+
   const handleImportedAds = (newAds: Ad[]) => {
     setAds((prev) => [...newAds, ...prev]);
     setBrands((prev) => {
@@ -183,26 +188,14 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             handle: ad.brand_handle,
             avatar_initials: ad.brand_avatar_initials,
             avatar_color: ad.brand_avatar_color,
-            website_url: ad.landing_page_url || "https://example.com",
+            logo_url: ad.brand_logo_url,
+            website_url: ad.landing_page_url || ad.source_url || "",
             meta_ad_library_url:
               ad.source_type === "meta_ad_library" ? ad.source_url : undefined,
             category: "Importeret",
             is_shopify: false,
             is_tracked: true,
-            active_ads_count: 1,
-            estimated_monthly_reach: ad.eu_reach || 0,
-            monthly_visits: 25000,
-            traffic_growth_pct: 12,
-            traffic_history: [
-              { label: "jun", visits: 15000 },
-              { label: "jul", visits: 18000 },
-              { label: "aug", visits: 20000 },
-              { label: "sep", visits: 21000 },
-              { label: "okt", visits: 23000 },
-              { label: "nov", visits: 25000 },
-            ],
-            ads_history: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            visitor_countries: [{ code: "DK", flag: "🇩🇰", pct: 100 }],
+            estimated_monthly_reach: ad.eu_reach,
             last_synced_at: new Date().toISOString(),
           });
         }
@@ -635,7 +628,10 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               ads={ads}
               onOpenShop={(brandId) => setSelectedShopId(brandId)}
               onOpenAd={(ad) => setActiveAdId(ad.id)}
-              onAddBrand={(brand) => setBrands((prev) => [brand, ...prev])}
+              onAddBrand={(brand) =>
+                setBrands((prev) => [brand, ...prev.filter((b) => b.id !== brand.id)])
+              }
+              onDeleteBrand={handleDeleteBrand}
             />
           )}
 
