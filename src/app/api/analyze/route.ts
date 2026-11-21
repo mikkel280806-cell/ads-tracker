@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.INSTABOX_API_KEY;
     const machineId = process.env.INSTABOX_MACHINE_ID;
     const workerCmd =
-      process.env.INSTABOX_WORKER_CMD || "/home/user/advault-worker/analyze-ad.sh";
+      process.env.INSTABOX_WORKER_CMD || "/data/advault-worker/analyze-ad.sh";
 
     if (!apiKey || !machineId) {
       return NextResponse.json({
@@ -50,12 +50,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const wakeData = await wakeRes.json().catch(() => ({}));
+
     if (body.testWakeOnly) {
       return NextResponse.json({
         ok: true,
         configured: true,
         provider: "instabox",
-        message: "InstaBox.sh er vågen og klar!",
+        machineName: wakeData?.name || machineId,
+        state: wakeData?.state || "running",
+        message: `InstaBox "${wakeData?.name || machineId}" er vågen og klar (${wakeData?.spec?.vcpus || 4} vCPU / ${Math.round((wakeData?.spec?.memMiB || 8192) / 1024)} GB RAM)!`,
       });
     }
 
@@ -73,8 +77,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers,
         body: JSON.stringify({
-          command: [workerCmd, body.adId],
-          background: true,
+          argv: [workerCmd, body.adId],
         }),
       }
     );

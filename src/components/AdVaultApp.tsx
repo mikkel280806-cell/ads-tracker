@@ -43,6 +43,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const [ads, setAds] = useState<Ad[]>(SEED_ADS);
   const [brands, setBrands] = useState<Brand[]>(SEED_BRANDS);
   const [boards, setBoards] = useState<Board[]>(SEED_BOARDS);
+  const [connectorStatus, setConnectorStatus] = useState<ConnectorStatus>(initialStatus);
   const [hydrated, setHydrated] = useState(false);
 
   const [view, setView] = useState<ActiveView>("swipe");
@@ -72,6 +73,13 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
     }
 
     let cancelled = false;
+    fetch("/api/status", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setConnectorStatus(data);
+      })
+      .catch(() => {});
+
     Promise.resolve().then(() => {
       if (cancelled) return;
       try {
@@ -538,12 +546,12 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               className="h-2 w-2 rounded-full"
               style={{
                 backgroundColor:
-                  initialStatus.mode === "live"
+                  connectorStatus.mode === "live"
                     ? "var(--accent-live)"
                     : "var(--accent-winner)",
               }}
             />
-            {initialStatus.mode === "live" ? "Supabase Live" : "Lokal Mode"}
+            {connectorStatus.mode === "live" ? "Supabase Live" : "Lokal Mode"}
           </button>
 
           <button
@@ -612,7 +620,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             />
           )}
 
-          {view === "connectors" && <ConnectorsView status={initialStatus} />}
+          {view === "connectors" && <ConnectorsView status={connectorStatus} />}
 
           {view === "boards" && (
             <div className="space-y-5">
