@@ -1,14 +1,9 @@
-# Adtrack — E-commerce Ads Library & Brand Scout
+# Adtrack — E-commerce Shops & Meta Ad Library Intelligence
 
-Din personlige, knivskarpe e-commerce ads tracker bygget med **Next.js (App Router) + Tailwind CSS + Supabase + ScrapeCreators + InstaBox.sh** — designet i et fuldt **Adtrack `#0027eb`** brandsystem med dyb obsidian sidebar, cobalt ambient glow, flydende kridhvidt workspace og fuld **mobil-PWA**.
+Trendtrack-inspireret e-commerce shops & Meta Ads intelligence PWA bygget 100% serverless med **Next.js 16 (App Router) + Tailwind CSS v4 + Supabase + rene REST API'er** (ingen VMs eller lokale workers).
 
-## Brand System
-- **Primærfarve:** Electric Cobalt `#0027eb` (med dyb obsidian `#05060A` shell & kridhvidt `#FFFFFF` workspace)
-- **Typografi:** `Plus Jakarta Sans` (display & overskrifter) · `Inter` (UI & brødtekst) · `JetBrains Mono` (tal, aktive dage & metrics)
-
-## Moduler
-- **Explore**: Luftigt Masonry ad-feed med minimal brand-række, `● X D` aktiv-badge, copy med `See more`, inset afrundede video/billede-kreativer med frosted-glass Play-knap, hover-to-play og ren `Save to collection` bundlinje.
-- **Templates**: Rent 4-kolonners visuelt kreativ-galleri med `All Creatives / Saved` segmented toggle og `Digital Ads · Static Ads · Video & Reels` faner.
-- **Scout**: 1-felts automatisk brand-scouting — skriv blot et brandnavn eller en URL, så henter Adtrack live Shopify-produkter, tema, pixels, IG-følgertal, antal aktive Meta Ads og op til 16 rigtige spilbare Meta-ads via **ScrapeCreators**.
-- **My Collections**: Asymmetriske 3-billeders bento-collage kort til hooks, statics og kampagner.
-- **InstaBox.sh AI Worker & Mobil PWA**: Auto-wake af din InstaBox VM (`ffmpeg` + lokal Whisper + `agy acp`) + fuldskærms iPhone/Android PWA.
+## Stack (100% Serverless APIs)
+- **Shops & Meta Ad Library**: Live scraping via **ScrapeCreators API** + 5-lags Shopify Pixel/App-detektion (Web Pixels JSON, `asyncLoad`, Trekkie CAPI, HTML-signaturer & Elevar S2S) + `/api/tech-logo` logo-fetcher.
+- **Database & Storage**: **Supabase Postgres** (`adtrack_brands`, `adtrack_ads`, `adtrack_folders`) + `ad-media` storage bucket.
+- **AI Ad Teardown & Video Transcription**: Direkte serverless REST API i `/api/analyze` med **Gemini API** (multimodal vision + copy), **OpenAI API** eller **Groq API** (`whisper-large-v3-turbo` til video-lyd).
+- **UI & Mobil PWA**: Instrument Sans + Geist + Geist Mono, Electric Cobalt `#0027eb`, KISS UI med Lucide-ikoner og flydende iOS 26 **Liquid Glass** mobil-menubar (`Shops` · `Explore` · `Folders`).

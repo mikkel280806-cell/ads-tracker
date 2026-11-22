@@ -48,7 +48,7 @@ export function AdDetailSheet({
   const [notesOpen, setNotesOpen] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
 
-  // Live Gemini via official `agy acp`
+  // Live serverless AI analysis via /api/analyze (Gemini / OpenAI / Groq API)
   const [analyzing, setAnalyzing] = useState(false);
   const [asking, setAsking] = useState(false);
   const [question, setQuestion] = useState("");
@@ -85,7 +85,7 @@ export function AdDetailSheet({
     }
   };
 
-  const runGeminiTeardown = async () => {
+  const runAiTeardown = async () => {
     setAnalyzing(true);
     setStatusMessage(null);
     setStatusError(false);
@@ -99,9 +99,7 @@ export function AdDetailSheet({
 
       if (!data.ok) {
         setStatusError(true);
-        setStatusMessage(
-          data.message || "Kunne ikke køre Gemini via agy acp."
-        );
+        setStatusMessage(data.message || "Kunne ikke køre AI-analyse.");
         return;
       }
 
@@ -124,7 +122,7 @@ export function AdDetailSheet({
     }
   };
 
-  const handleAskGemini = async (e: React.FormEvent) => {
+  const handleAskAi = async (e: React.FormEvent) => {
     e.preventDefault();
     const q = question.trim();
     if (!q || asking) return;
@@ -140,7 +138,7 @@ export function AdDetailSheet({
       const data = await res.json();
       if (!data.ok) {
         setStatusError(true);
-        setStatusMessage(data.message || "agy acp kunne ikke svare.");
+        setStatusMessage(data.message || "AI kunne ikke svare.");
         return;
       }
       if (data.answer) {
@@ -458,17 +456,14 @@ export function AdDetailSheet({
               )}
             </section>
 
-            {/* 2. GEMINI AI ANALYSIS (VIA OFFICIAL AGY ACP SUBSCRIPTION) */}
+            {/* 2. SERVERLESS AI ANALYSIS (Gemini / OpenAI / Groq API) */}
             <section className="rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-[#0027eb]" />
                   <h3 className="font-display text-[13.5px] font-semibold text-[#0F172A]">
-                    Gemini Analyse
+                    AI Analyse
                   </h3>
-                  <span className="rounded-md bg-[#EEF2FF] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#0027eb]">
-                    agy acp
-                  </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -492,7 +487,7 @@ export function AdDetailSheet({
 
                   <button
                     type="button"
-                    onClick={runGeminiTeardown}
+                    onClick={runAiTeardown}
                     disabled={analyzing}
                     className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-55"
                   >
@@ -507,7 +502,7 @@ export function AdDetailSheet({
                       ? "Analyserer..."
                       : hasTeardown
                         ? "Opdatér"
-                        : "Analysér med Gemini"}
+                        : "Analysér annonce"}
                   </button>
                 </div>
               </div>
@@ -606,22 +601,22 @@ export function AdDetailSheet({
                 </div>
               )}
 
-              {/* Interactive Follow-Up Ask Bar (single-user interactive agy acp) */}
+              {/* Interactive Follow-Up Ask Bar */}
               <form
-                onSubmit={handleAskGemini}
+                onSubmit={handleAskAi}
                 className="mt-3 flex items-center gap-2"
               >
                 <input
                   type="text"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Spørg Gemini om annoncen (fx omskriv hook til dit brand)..."
+                  placeholder="Spørg AI om annoncen (fx omskriv hook til dit brand)..."
                   className="min-w-0 flex-1 rounded-xl border border-[#E2E6EF] bg-white px-3 py-2 text-[16px] text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#0027eb] sm:text-xs"
                 />
                 <button
                   type="submit"
                   disabled={asking || !question.trim()}
-                  aria-label="Send spørgsmål til Gemini"
+                  aria-label="Send spørgsmål til AI"
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#E2E6EF] bg-white text-[#0027eb] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] disabled:opacity-40"
                 >
                   {asking ? (
@@ -636,7 +631,7 @@ export function AdDetailSheet({
                 <div className="mt-3 rounded-xl border border-[#DCE3F5] bg-white p-3 text-[12.5px] leading-relaxed text-[#1E293B]">
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-[#0027eb]">
-                      Gemini svar
+                      AI svar
                     </span>
                     <button
                       type="button"

@@ -159,9 +159,9 @@ export interface ConnectorStatus {
   scrapeCreators: boolean;
   apify: boolean;
   similarweb: boolean;
-  instabox: boolean;
   groq: boolean;
   gemini: boolean;
+  openai: boolean;
   passcodeLock: boolean;
   mode: "live" | "demo";
 }

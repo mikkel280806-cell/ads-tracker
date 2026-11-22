@@ -1,58 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawn } from "node:child_process";
 import type { Ad } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 /**
- * Interactive single-user Gemini analysis powered by the official `agy acp` binary.
+ * Pure Serverless AI Ad Analysis API (Trendtrack-style, 100% Vercel-native — no VM needed).
  *
- * Execution order:
- *  1. InstaBox.sh VM (when INSTABOX_API_KEY + INSTABOX_MACHINE_ID are configured — works on Vercel & iPhone):
- *     - Wakes VM (`POST /v1/machines/{id}/wake`)
- *     - Runs `worker/analyze-ad.mjs --json <base64>` via `exec`, which invokes `agy acp` using your
- *       native `agy acp --login` Google AI Pro/Ultra subscription
- *     - Returns the structured Gemini teardown (or interactive answer) directly in the HTTP response
- *  2. Local `agy acp` fallback (when running Next.js locally with `agy` installed on PATH)
+ * Supported API providers (in priority order):
+ *  1. GEMINI_API_KEY  -> Google Gemini 2.5 Flash (multimodal: sees ad creative + reads copy/transcript)
+ *  2. OPENAI_API_KEY  -> OpenAI gpt-4o-mini (multimodal vision + copy)
+ *  3. GROQ_API_KEY    -> Groq Llama 3.3 70B (+ automatic Whisper large-v3-turbo video transcription!)
  */
 
 interface AnalyzeRequest {
   ad?: Ad;
-  adId?: string;
   question?: string;
-  testWakeOnly?: boolean;
 }
 
-function buildTeardownPrompt(ad: Partial<Ad>): string {
+function buildTeardownPrompt(ad: Partial<Ad>, transcript?: string): string {
   return [
-    "You are an elite e-commerce performance creative strategist. Analyze this Meta ad and reply ONLY with valid JSON (no markdown fences) with these exact keys:",
+    "You are an elite DTC e-commerce performance creative strategist. Analyze this Meta ad (including the attached creative visual if provided) and reply ONLY with valid JSON (no markdown fences) matching this exact schema:",
     '{"ai_hook_verbal": string, "ai_hook_visual": string, "ai_angle": string, "ai_format": string, "ai_why_it_works": string[], "ai_script_breakdown": {"hook": string, "body": string, "social_proof": string, "cta": string}, "suggested_tags": string[]}',
-    "Keep every field concise, concrete, and immediately usable (1-2 crisp sentences max; 3 concise strings in ai_why_it_works).",
+    "Keep every field concrete, specific, and concise (1-2 crisp sentences max; 3 concise bullet strings in ai_why_it_works). Write in the language of the ad (Danish for DK ads, English for US/EU ads).",
     "",
     `Brand: ${ad.brand_name || "Unknown"} (${ad.market || "US"})`,
     `Format: ${ad.display_format || ad.media_type || "image"}`,
     `Headline: ${ad.headline || ""}`,
     `Extracted Hook: ${ad.extracted_hook || ""}`,
-    `Primary Copy: ${ad.primary_text || ""}`,
+    `Primary Copy: ${(ad.primary_text || "").slice(0, 2200)}`,
     `CTA: ${ad.cta_text || ""}`,
     `Landing Page: ${ad.landing_page_url || ""}`,
-    ad.ai_transcript ? `Transcript: ${ad.ai_transcript}` : "",
+    transcript ? `Video Transcript: ${transcript.slice(0, 2500)}` : "",
   ]
     .filter(Boolean)
     .join("\n");
 }
 
-function buildQuestionPrompt(ad: Partial<Ad>, question: string): string {
+function buildQuestionPrompt(
+  ad: Partial<Ad>,
+  question: string,
+  transcript?: string
+): string {
   return [
-    "You are a concise, elite DTC performance creative strategist. Answer the user's question directly in clean, punchy bullet points (max 140 words).",
+    "You are a concise, elite DTC performance creative strategist. Answer the user's question directly in clean, punchy bullet points (max 150 words, match the language of the user's question).",
     "",
-    `Brand: ${ad.brand_name || "Unknown"}`,
+    `Brand: ${ad.brand_name || "Unknown"} (${ad.market || "US"})`,
     `Format: ${ad.display_format || ad.media_type || "image"}`,
     `Headline: ${ad.headline || ""}`,
     `Opening Hook: ${ad.extracted_hook || ""}`,
-    `Primary Copy: ${ad.primary_text || ""}`,
+    `Primary Copy: ${(ad.primary_text || "").slice(0, 2200)}`,
     `CTA: ${ad.cta_text || ""}`,
     `Landing Page: ${ad.landing_page_url || ""}`,
-    ad.ai_transcript ? `Transcript: ${ad.ai_transcript}` : "",
+    transcript ? `Video Transcript: ${transcript.slice(0, 2500)}` : "",
     "",
     `User question: ${question.trim()}`,
   ]
@@ -60,138 +58,223 @@ function buildQuestionPrompt(ad: Partial<Ad>, question: string): string {
     .join("\n");
 }
 
-/**
- * Runs a single human-initiated prompt via local official `agy acp` stdio JSON-RPC 2.0.
- */
-async function runLocalAgyAcp(promptText: string): Promise<string> {
-  const bin = process.env.AGY_ACP_BIN || "agy";
-  const args = (process.env.AGY_ACP_ARGS || "acp").split(" ").filter(Boolean);
-
-  return new Promise((resolve, reject) => {
-    const child = spawn(/*turbopackIgnore: true*/ bin, args, {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    let stdoutBuf = "";
-    let stderrBuf = "";
-    let collected = "";
-    let nextId = 1;
-    let newSessionReq: number | null = null;
-    let promptReq: number | null = null;
-
-    const send = (method: string, params: Record<string, unknown> = {}) => {
-      const id = nextId++;
-      child.stdin.write(
-        JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n"
-      );
-      return id;
+async function fetchImageAsBase64(
+  url?: string
+): Promise<{ mimeType: string; data: string } | null> {
+  if (!url || !url.startsWith("http")) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") || "image/jpeg";
+    if (!ct.startsWith("image/")) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength === 0 || buf.byteLength > 4_000_000) return null;
+    return {
+      mimeType: ct.split(";")[0],
+      data: buf.toString("base64"),
     };
-
-    const initId = send("initialize", {
-      protocolVersion: 1,
-      clientInfo: { name: "adtrack-web", version: "2.0.0" },
-    });
-
-    const timeout = setTimeout(() => {
-      child.kill("SIGTERM");
-      reject(new Error("agy acp timed out after 75s"));
-    }, 75_000);
-
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderrBuf += chunk.toString("utf8");
-    });
-
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdoutBuf += chunk.toString("utf8");
-      const lines = stdoutBuf.split("\n");
-      stdoutBuf = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        let msg: {
-          id?: number;
-          method?: string;
-          result?: { sessionId?: string };
-          params?: { update?: { sessionUpdate?: string; content?: { text?: string } } };
-          error?: { message?: string };
-        };
-        try {
-          msg = JSON.parse(line);
-        } catch {
-          continue;
-        }
-
-        if (msg.id === initId && msg.result) {
-          newSessionReq = send("session/new", {
-            cwd: process.cwd(),
-            mcpServers: [],
-          });
-        } else if (msg.id === newSessionReq && msg.result?.sessionId) {
-          promptReq = send("session/prompt", {
-            sessionId: msg.result.sessionId,
-            prompt: [{ type: "text", text: promptText }],
-          });
-        } else if (msg.method === "session/update") {
-          const upd = msg.params?.update;
-          if (upd?.sessionUpdate === "agent_message_chunk" && upd.content?.text) {
-            collected += upd.content.text;
-          }
-        } else if (msg.id === promptReq) {
-          clearTimeout(timeout);
-          child.kill("SIGTERM");
-          if (msg.error) {
-            reject(new Error(msg.error.message || "agy acp prompt error"));
-          } else {
-            resolve(collected.trim());
-          }
-        } else if (msg.error) {
-          clearTimeout(timeout);
-          child.kill("SIGTERM");
-          reject(new Error(msg.error.message || "agy acp error"));
-        }
-      }
-    });
-
-    child.on("error", (err) => {
-      clearTimeout(timeout);
-      reject(err);
-    });
-
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (collected.trim()) {
-        resolve(collected.trim());
-      } else if (code !== 0) {
-        reject(
-          new Error(
-            stderrBuf.trim() ||
-              `agy acp exited with code ${code}. Run "agy acp --login" once.`
-          )
-        );
-      }
-    });
-  });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-function extractMarkedJson(stdout: string): Record<string, unknown> | null {
-  const m = stdout.match(
-    /__ADTRACK_JSON_START__([\s\S]*?)__ADTRACK_JSON_END__/
-  );
-  if (m?.[1]) {
+/**
+ * Optional serverless video transcription via Groq Whisper API (whisper-large-v3-turbo).
+ */
+async function transcribeVideoWithGroq(
+  videoUrl?: string
+): Promise<string | null> {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey || !videoUrl || !/\.(mp4|webm|mov)(\?|$)/i.test(videoUrl)) {
+    return null;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 14_000);
+  try {
+    const mediaRes = await fetch(videoUrl, { signal: controller.signal });
+    if (!mediaRes.ok) return null;
+    const contentLen = Number(mediaRes.headers.get("content-length") || 0);
+    if (contentLen > 22_000_000) return null;
+
+    const arrayBuf = await mediaRes.arrayBuffer();
+    if (arrayBuf.byteLength === 0 || arrayBuf.byteLength > 22_000_000) {
+      return null;
+    }
+
+    const form = new FormData();
+    form.append(
+      "file",
+      new Blob([arrayBuf], { type: "video/mp4" }),
+      "ad-creative.mp4"
+    );
+    form.append("model", "whisper-large-v3-turbo");
+    form.append("response_format", "json");
+
+    const whisperRes = await fetch(
+      "https://api.groq.com/openai/v1/audio/transcriptions",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${groqKey}` },
+        body: form,
+        signal: controller.signal,
+      }
+    );
+    if (!whisperRes.ok) return null;
+    const data = (await whisperRes.json()) as { text?: string };
+    return data.text?.trim() || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function callGeminiApi(
+  prompt: string,
+  image: { mimeType: string; data: string } | null,
+  expectJson: boolean
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY!;
+  const models = [
+    process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    "gemini-2.0-flash",
+  ];
+
+  const parts: Array<Record<string, unknown>> = [{ text: prompt }];
+  if (image) {
+    parts.push({
+      inline_data: {
+        mime_type: image.mimeType,
+        data: image.data,
+      },
+    });
+  }
+
+  let lastErr = "Gemini API request failed";
+  for (const model of models) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+        model
+      )}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: {
+            temperature: 0.35,
+            ...(expectJson ? { responseMimeType: "application/json" } : {}),
+          },
+        }),
+      }
+    );
+
+    if (res.ok) {
+      const json = (await res.json()) as {
+        candidates?: Array<{
+          content?: { parts?: Array<{ text?: string }> };
+        }>;
+      };
+      const text =
+        json.candidates?.[0]?.content?.parts
+          ?.map((p) => p.text || "")
+          .join("")
+          .trim() || "";
+      if (text) return text;
+    } else {
+      const errText = await res.text().catch(() => "");
+      lastErr = `Gemini (${model}) HTTP ${res.status}: ${errText.slice(0, 160)}`;
+      if (res.status === 401 || res.status === 403) break;
+    }
+  }
+
+  throw new Error(lastErr);
+}
+
+async function callOpenAiApi(
+  prompt: string,
+  imageUrl?: string,
+  expectJson?: boolean
+): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY!;
+  const content: Array<Record<string, unknown>> = [
+    { type: "text", text: prompt },
+  ];
+  if (imageUrl && imageUrl.startsWith("http")) {
+    content.push({ type: "image_url", image_url: { url: imageUrl } });
+  }
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      temperature: 0.35,
+      ...(expectJson ? { response_format: { type: "json_object" } } : {}),
+      messages: [{ role: "user", content }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`OpenAI HTTP ${res.status}: ${errText.slice(0, 160)}`);
+  }
+
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return json.choices?.[0]?.message?.content?.trim() || "";
+}
+
+async function callGroqLlmApi(
+  prompt: string,
+  expectJson?: boolean
+): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY!;
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.35,
+      ...(expectJson ? { response_format: { type: "json_object" } } : {}),
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Groq HTTP ${res.status}: ${errText.slice(0, 160)}`);
+  }
+
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return json.choices?.[0]?.message?.content?.trim() || "";
+}
+
+function parseJsonObject(raw: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (!m?.[0]) return null;
     try {
-      return JSON.parse(m[1]);
+      return JSON.parse(m[0]);
     } catch {
       return null;
     }
   }
-  const fallback = stdout.match(/\{[\s\S]*\}/);
-  if (fallback?.[0]) {
-    try {
-      return JSON.parse(fallback[0]);
-    } catch {
-      return null;
-    }
-  }
-  return null;
 }
 
 async function persistAnalysisToSupabase(
@@ -214,288 +297,118 @@ async function persistAnalysisToSupabase(
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as AnalyzeRequest;
-    const apiKey = process.env.INSTABOX_API_KEY;
-    const machineId = process.env.INSTABOX_MACHINE_ID;
-    const workerCmd =
-      process.env.INSTABOX_WORKER_CMD || "/data/advault-worker/analyze-ad.sh";
-
-    // Optional InstaBox wake check
-    if (body.testWakeOnly) {
-      if (!apiKey || !machineId) {
-        return NextResponse.json({
-          ok: false,
-          configured: false,
-          provider: "none",
-          message:
-            "InstaBox er ikke forbundet endnu. Tilføj INSTABOX_API_KEY & INSTABOX_MACHINE_ID eller kør lokalt med agy acp.",
-        });
-      }
-      const wakeRes = await fetch(
-        `https://api.instabox.sh/v1/machines/${encodeURIComponent(machineId)}/wake`,
-        {
-          method: "POST",
-          headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
-        }
-      );
-      if (!wakeRes.ok) {
-        return NextResponse.json(
-          {
-            ok: false,
-            configured: true,
-            provider: "instabox",
-            message: `Kunne ikke vække InstaBox (${wakeRes.status}).`,
-          },
-          { status: 502 }
-        );
-      }
-      const wakeData = await wakeRes.json().catch(() => ({}));
-      return NextResponse.json({
-        ok: true,
-        configured: true,
-        provider: "agy-acp-instabox",
-        message: `InstaBox "${wakeData?.name || machineId}" er vågen og klar til agy acp.`,
-      });
-    }
-
     const ad = body.ad;
-    const adId = ad?.id || body.adId;
     const question = body.question?.trim() || "";
 
-    if (!ad && !adId) {
+    if (!ad) {
       return NextResponse.json(
         { ok: false, message: "Mangler annonce-data til analyse." },
         { status: 400 }
       );
     }
 
-    // -------------------------------------------------------------------------
-    // PATH 1: InstaBox.sh Cloud VM running official `agy acp` (works on Vercel & iPhone)
-    // -------------------------------------------------------------------------
-    if (apiKey && machineId && process.env.PREFER_LOCAL_ACP !== "true") {
-      const headers = {
-        "X-API-Key": apiKey,
-        "Content-Type": "application/json",
-      };
+    const hasGemini = Boolean(process.env.GEMINI_API_KEY);
+    const hasOpenAi = Boolean(process.env.OPENAI_API_KEY);
+    const hasGroq = Boolean(process.env.GROQ_API_KEY);
 
-      const wakeRes = await fetch(
-        `https://api.instabox.sh/v1/machines/${encodeURIComponent(machineId)}/wake`,
-        { method: "POST", headers }
-      );
-
-      if (!wakeRes.ok) {
-        const detail = await wakeRes.text().catch(() => "");
-        return NextResponse.json(
-          {
-            ok: false,
-            configured: true,
-            provider: "agy-acp-instabox",
-            message: `Kunne ikke vække InstaBox (${wakeRes.status}). ${detail.slice(0, 140)}`,
-          },
-          { status: 502 }
-        );
-      }
-
-      // Pass compact ad payload + optional user question as base64 so worker doesn't depend on legacy table names
-      const compactPayload = ad
-        ? {
-            ad: {
-              id: ad.id,
-              brand_name: ad.brand_name,
-              market: ad.market,
-              media_type: ad.media_type,
-              display_format: ad.display_format,
-              media_url: ad.media_url,
-              headline: ad.headline,
-              extracted_hook: ad.extracted_hook,
-              hook_category: ad.hook_category,
-              primary_text: (ad.primary_text || "").slice(0, 1800),
-              cta_text: ad.cta_text,
-              landing_page_url: ad.landing_page_url,
-              ai_transcript: ad.ai_transcript,
-            },
-            question,
-          }
-        : null;
-
-      const workerScriptMjs = workerCmd.endsWith(".sh")
-        ? workerCmd.replace(/\.sh$/, ".mjs")
-        : workerCmd;
-
-      const argv = compactPayload
-        ? [
-            "node",
-            workerScriptMjs,
-            "--json",
-            Buffer.from(JSON.stringify(compactPayload), "utf8").toString(
-              "base64"
-            ),
-          ]
-        : [workerCmd, adId!];
-
-      const execRes = await fetch(
-        `https://api.instabox.sh/v1/machines/${encodeURIComponent(machineId)}/exec`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ argv }),
-        }
-      );
-
-      if (!execRes.ok) {
-        const detail = await execRes.text().catch(() => "");
-        return NextResponse.json(
-          {
-            ok: false,
-            configured: true,
-            provider: "agy-acp-instabox",
-            message: `agy acp på InstaBox svarede med fejl (${execRes.status}). Sikr at worker/analyze-ad.mjs er opdateret og logget ind med "agy acp --login". ${detail.slice(0, 120)}`,
-          },
-          { status: 502 }
-        );
-      }
-
-      const execData = (await execRes.json().catch(() => ({}))) as {
-        stdout?: string;
-        stderr?: string;
-        output?: string;
-        exitCode?: number;
-        exit_code?: number;
-      };
-
-      const stdout = execData.stdout || execData.output || "";
-      const stderr = execData.stderr || "";
-      const exitCode = execData.exitCode ?? execData.exit_code ?? 0;
-
-      const parsed = extractMarkedJson(stdout);
-      if (parsed) {
-        if (parsed.mode === "answer" && typeof parsed.answer === "string") {
-          return NextResponse.json({
-            ok: true,
-            configured: true,
-            provider: "agy-acp-instabox",
-            mode: "answer",
-            answer: parsed.answer,
-          });
-        }
-
-        if (ad) {
-          await persistAnalysisToSupabase(ad, parsed as Partial<Ad>);
-        }
-
-        return NextResponse.json({
-          ok: true,
-          configured: true,
-          provider: "agy-acp-instabox",
-          mode: "teardown",
-          analysis: parsed,
-        });
-      }
-
-      if (exitCode !== 0) {
-        return NextResponse.json(
-          {
-            ok: false,
-            configured: true,
-            provider: "agy-acp-instabox",
-            message:
-              stderr.trim().slice(0, 220) ||
-              `agy acp fejlede (exit ${exitCode}). Kør "agy acp --login" på din InstaBox og prøv igen.`,
-          },
-          { status: 502 }
-        );
-      }
-
+    if (!hasGemini && !hasOpenAi && !hasGroq) {
       return NextResponse.json({
-        ok: true,
-        configured: true,
-        provider: "agy-acp-instabox",
-        mode: "queued",
+        ok: false,
+        configured: false,
+        provider: "none",
         message:
-          "InstaBox er vækket og analyserer annoncen med dit Gemini-abonnement (agy acp).",
+          "Tilføj GEMINI_API_KEY (gratis via Google AI Studio), OPENAI_API_KEY eller GROQ_API_KEY i Vercel Environment Variables.",
       });
     }
 
-    // -------------------------------------------------------------------------
-    // PATH 2: Local official `agy acp` binary (works when running locally)
-    // -------------------------------------------------------------------------
-    if (ad) {
-      try {
-        const prompt = question
-          ? buildQuestionPrompt(ad, question)
-          : buildTeardownPrompt(ad);
-        const raw = await runLocalAgyAcp(prompt);
+    const imageUrl = ad.thumbnail_url || ad.fallback_image_url || "";
 
-        if (question) {
-          return NextResponse.json({
-            ok: true,
-            configured: true,
-            provider: "agy-acp-local",
-            mode: "answer",
-            answer: raw,
-          });
-        }
+    // Run optional Groq Whisper transcription + creative image download in parallel
+    const [transcript, imageData] = await Promise.all([
+      ad.ai_transcript
+        ? Promise.resolve(ad.ai_transcript)
+        : ad.media_type === "video"
+          ? transcribeVideoWithGroq(ad.media_url)
+          : Promise.resolve(null),
+      hasGemini ? fetchImageAsBase64(imageUrl) : Promise.resolve(null),
+    ]);
 
-        const parsed = extractMarkedJson(raw);
-        if (!parsed) {
-          return NextResponse.json({
-            ok: true,
-            configured: true,
-            provider: "agy-acp-local",
-            mode: "answer",
-            answer: raw,
-          });
-        }
+    const expectJson = !question;
+    const prompt = question
+      ? buildQuestionPrompt(ad, question, transcript || undefined)
+      : buildTeardownPrompt(ad, transcript || undefined);
 
-        const analysis: Partial<Ad> = {
-          ai_hook_verbal:
-            (parsed.ai_hook_verbal as string) || ad.extracted_hook || "",
-          ai_hook_visual: (parsed.ai_hook_visual as string) || "",
-          ai_angle: (parsed.ai_angle as string) || ad.hook_category || "",
-          ai_format:
-            (parsed.ai_format as string) || ad.display_format || ad.media_type,
-          ai_why_it_works: Array.isArray(parsed.ai_why_it_works)
-            ? (parsed.ai_why_it_works as string[]).slice(0, 4)
-            : [],
-          ai_script_breakdown:
-            parsed.ai_script_breakdown as Ad["ai_script_breakdown"],
-          ai_provider: "gemini-agy-acp",
-          ai_analyzed_at: new Date().toISOString(),
-        };
+    let raw = "";
+    let provider = "gemini-api";
 
-        await persistAnalysisToSupabase(ad, analysis);
-
-        return NextResponse.json({
-          ok: true,
-          configured: true,
-          provider: "agy-acp-local",
-          mode: "teardown",
-          analysis,
-        });
-      } catch (localErr) {
-        const msg =
-          localErr instanceof Error ? localErr.message : String(localErr);
-        const notInstalled = /ENOENT|not found/i.test(msg);
-        return NextResponse.json({
-          ok: false,
-          configured: false,
-          provider: "none",
-          message: notInstalled
-            ? "Tilslut InstaBox (INSTABOX_API_KEY + INSTABOX_MACHINE_ID) i Vercel, eller installér & log ind med 'agy acp --login' lokalt for at køre direkte på dit Gemini-abonnement."
-            : `agy acp fejl: ${msg}`,
-        });
-      }
+    if (hasGemini) {
+      raw = await callGeminiApi(prompt, imageData, expectJson);
+      provider = "gemini-api";
+    } else if (hasOpenAi) {
+      raw = await callOpenAiApi(prompt, imageUrl, expectJson);
+      provider = "openai-api";
+    } else {
+      raw = await callGroqLlmApi(prompt, expectJson);
+      provider = "groq-api";
     }
 
+    if (question) {
+      return NextResponse.json({
+        ok: true,
+        configured: true,
+        provider,
+        mode: "answer",
+        answer: raw,
+      });
+    }
+
+    const parsed = parseJsonObject(raw);
+    if (!parsed) {
+      return NextResponse.json({
+        ok: true,
+        configured: true,
+        provider,
+        mode: "answer",
+        answer: raw,
+      });
+    }
+
+    const analysis: Partial<Ad> = {
+      ai_transcript: transcript || ad.ai_transcript || undefined,
+      ai_hook_verbal:
+        (parsed.ai_hook_verbal as string) || ad.extracted_hook || "",
+      ai_hook_visual: (parsed.ai_hook_visual as string) || "",
+      ai_angle: (parsed.ai_angle as string) || ad.hook_category || "",
+      ai_format:
+        (parsed.ai_format as string) || ad.display_format || ad.media_type,
+      ai_why_it_works: Array.isArray(parsed.ai_why_it_works)
+        ? (parsed.ai_why_it_works as string[]).slice(0, 4)
+        : [],
+      ai_script_breakdown:
+        parsed.ai_script_breakdown as Ad["ai_script_breakdown"],
+      ai_provider: provider,
+      ai_analyzed_at: new Date().toISOString(),
+    };
+
+    await persistAnalysisToSupabase(ad, analysis);
+
     return NextResponse.json({
-      ok: false,
-      configured: false,
-      provider: "none",
-      message: "Konfigurér InstaBox eller kør lokalt med agy acp --login.",
+      ok: true,
+      configured: true,
+      provider,
+      mode: "teardown",
+      analysis,
     });
   } catch (err) {
     console.error("/api/analyze error:", err);
     return NextResponse.json(
-      { ok: false, message: "Uventet fejl ved Gemini agy acp-analyse." },
+      {
+        ok: false,
+        message:
+          err instanceof Error
+            ? err.message
+            : "Uventet fejl ved AI-analyse.",
+      },
       { status: 500 }
     );
   }
