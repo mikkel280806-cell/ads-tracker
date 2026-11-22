@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ArrowUpRight,
   Bookmark,
@@ -9,21 +9,28 @@ import {
   ChevronUp,
   Clock,
   Copy,
+  Download,
   ExternalLink,
   Film,
+  Flame,
+  Gauge,
   Globe,
   Image as ImageIcon,
   Layers,
   Loader2,
-  RefreshCw,
-  Send,
-  Sparkles,
+  Search,
+  ShieldCheck,
   StickyNote,
   Store,
+  Tag,
+  TrendingUp,
   X,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
-import { buildGeminiPrompt, getActiveDays } from "@/lib/url-parser";
+import {
+  analyzeAdLocally,
+  type LiveLandingPageAudit,
+} from "@/lib/ad-analyzer";
 
 interface AdDetailSheetProps {
   ad: Ad | null;
@@ -44,21 +51,26 @@ export function AdDetailSheet({
 }: AdDetailSheetProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyExpanded, setCopyExpanded] = useState(false);
-  const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
 
-  // Live serverless AI analysis via /api/analyze (Gemini / OpenAI / Groq API)
-  const [analyzing, setAnalyzing] = useState(false);
-  const [asking, setAsking] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [qaReply, setQaReply] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [statusError, setStatusError] = useState(false);
+  // Zero-cost Live Landing Page Inspector state (keyed by ad.id)
+  const [inspectingLp, setInspectingLp] = useState(false);
+  const [lpAuditByAdId, setLpAuditByAdId] = useState<
+    Record<string, LiveLandingPageAudit>
+  >({});
+  const [lpErrorByAdId, setLpErrorByAdId] = useState<Record<string, string>>({});
 
-  if (!ad) return null;
+  const localAnalysis = useMemo(
+    () => (ad ? analyzeAdLocally(ad) : null),
+    [ad]
+  );
 
-  const activeDays = getActiveDays(ad.started_running_at);
+  if (!ad || !localAnalysis) return null;
+
+  const lpAudit = lpAuditByAdId[ad.id] || null;
+  const lpError = lpErrorByAdId[ad.id] || null;
+
   const isVideoFile =
     !mediaFailed &&
     ad.media_type === "video" &&
@@ -68,12 +80,7 @@ export function AdDetailSheet({
     ? ad.fallback_image_url || ""
     : ad.thumbnail_url || ad.fallback_image_url || ad.media_url || "";
 
-  const hasTeardown = Boolean(
-    ad.ai_hook_verbal ||
-      ad.ai_hook_visual ||
-      ad.ai_script_breakdown ||
-      (ad.ai_why_it_works && ad.ai_why_it_works.length > 0)
-  );
+  const downloadUrl = isVideoFile ? ad.media_url : displayImage;
 
   const copyText = async (key: string, text: string) => {
     try {
@@ -85,93 +92,45 @@ export function AdDetailSheet({
     }
   };
 
-  const runAiTeardown = async () => {
-    setAnalyzing(true);
-    setStatusMessage(null);
-    setStatusError(false);
+  const handleInspectLandingPage = async () => {
+    if (!ad.landing_page_url || inspectingLp) return;
+    setInspectingLp(true);
+    setLpErrorByAdId((prev) => {
+      const next = { ...prev };
+      delete next[ad.id];
+      return next;
+    });
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ad }),
+        body: JSON.stringify({ url: ad.landing_page_url }),
       });
       const data = await res.json();
-
-      if (!data.ok) {
-        setStatusError(true);
-        setStatusMessage(data.message || "Kunne ikke køre AI-analyse.");
+      if (!data.ok || !data.audit) {
+        setLpErrorByAdId((prev) => ({
+          ...prev,
+          [ad.id]: data.message || "Kunne ikke inspicere landing page.",
+        }));
         return;
       }
-
-      if (data.mode === "teardown" && data.analysis) {
-        onUpdateAd(ad.id, {
-          status: "ready",
-          ...data.analysis,
-        });
-        setStatusMessage(null);
-      } else if (data.mode === "answer" && data.answer) {
-        setQaReply(data.answer);
-      } else if (data.message) {
-        setStatusMessage(data.message);
-      }
+      setLpAuditByAdId((prev) => ({ ...prev, [ad.id]: data.audit }));
     } catch {
-      setStatusError(true);
-      setStatusMessage("Netværksfejl ved opkald til /api/analyze.");
+      setLpErrorByAdId((prev) => ({
+        ...prev,
+        [ad.id]: "Netværksfejl ved inspektion af landing page.",
+      }));
     } finally {
-      setAnalyzing(false);
+      setInspectingLp(false);
     }
   };
 
-  const handleAskAi = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = question.trim();
-    if (!q || asking) return;
-    setAsking(true);
-    setStatusMessage(null);
-    setStatusError(false);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ad, question: q }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setStatusError(true);
-        setStatusMessage(data.message || "AI kunne ikke svare.");
-        return;
-      }
-      if (data.answer) {
-        setQaReply(data.answer);
-        setQuestion("");
-      } else if (data.message) {
-        setStatusMessage(data.message);
-      }
-    } catch {
-      setStatusError(true);
-      setStatusMessage("Netværksfejl ved opkald til /api/analyze.");
-    } finally {
-      setAsking(false);
-    }
-  };
-
-  const formatBreakdownForCopy = () => {
-    const sb = ad.ai_script_breakdown;
-    return [
-      `${ad.brand_name} — Gemini Creative Breakdown`,
-      ad.ai_angle ? `Angle: ${ad.ai_angle}` : "",
-      ad.ai_hook_verbal ? `Verbal Hook: ${ad.ai_hook_verbal}` : "",
-      ad.ai_hook_visual ? `Visual Hook: ${ad.ai_hook_visual}` : "",
-      ad.ai_why_it_works?.length
-        ? `\nWhy it works:\n${ad.ai_why_it_works.map((w) => `- ${w}`).join("\n")}`
-        : "",
-      sb
-        ? `\nScript:\n- Hook: ${sb.hook}\n- Body: ${sb.body}\n- Proof: ${sb.social_proof}\n- CTA: ${sb.cta}`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-  };
+  const tierBadgeClass =
+    localAnalysis.scalingTier === "Scaling Winner"
+      ? "bg-[#ECFDF3] text-[#15803D]"
+      : localAnalysis.scalingTier === "Proven"
+        ? "bg-[#EEF2FF] text-[#0027eb]"
+        : "bg-[#F1F5F9] text-[#475569]";
 
   return (
     <div
@@ -191,7 +150,7 @@ export function AdDetailSheet({
             LEFT COLUMN: PURE CREATIVE STAGE
            =================================================================== */}
         <div className="flex shrink-0 flex-col bg-[#F5F7FA] lg:w-[44%] lg:border-r lg:border-[#ECEFF5]">
-          {/* Mobile Compact Top Bar */}
+          {/* Mobile Compact Header */}
           <div className="flex items-center justify-between gap-2 bg-white px-4 pb-3 pt-1 lg:hidden">
             <button
               type="button"
@@ -220,7 +179,7 @@ export function AdDetailSheet({
                   {ad.brand_name}
                 </p>
                 <p className="text-[11px] text-[#64748B]">
-                  {activeDays}d live · {ad.market}
+                  {localAnalysis.activeDays}d live · {ad.market}
                 </p>
               </div>
             </button>
@@ -266,12 +225,12 @@ export function AdDetailSheet({
             )}
           </div>
 
-          {/* Minimal Bottom Telemetry Strip */}
+          {/* Minimal Bottom Telemetry & Media Actions */}
           <div className="flex items-center justify-between gap-2 border-t border-[#ECEFF5] bg-white/90 px-4 py-3 text-xs text-[#475569]">
             <div className="flex items-center gap-3 font-mono-num">
               <span className="inline-flex items-center gap-1.5 font-semibold text-[#0F172A]">
                 <Clock className="h-3.5 w-3.5 text-[#16A34A]" />
-                {activeDays}d
+                {localAnalysis.activeDays}d
               </span>
               {ad.duplicated_count && ad.duplicated_count > 1 && (
                 <span className="inline-flex items-center gap-1 font-semibold text-[#0F172A]">
@@ -289,22 +248,36 @@ export function AdDetailSheet({
               </span>
             </div>
 
-            {ad.source_url && (
-              <a
-                href={ad.source_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11.5px] font-medium text-[#475569] transition-colors hover:bg-[#F1F5F9] hover:text-[#0027eb]"
-              >
-                Meta Library
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
+            <div className="flex items-center gap-1">
+              {downloadUrl && (
+                <a
+                  href={downloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  title="Åbn / download medie"
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11.5px] font-medium text-[#475569] transition-colors hover:bg-[#F1F5F9] hover:text-[#0027eb]"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </a>
+              )}
+              {ad.source_url && (
+                <a
+                  href={ad.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11.5px] font-medium text-[#475569] transition-colors hover:bg-[#F1F5F9] hover:text-[#0027eb]"
+                >
+                  Meta Library
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
 
         {/* ===================================================================
-            RIGHT COLUMN: SINGLE CALM READING FLOW (KISS — ZERO HIDDEN TABS)
+            RIGHT COLUMN: TRENDTRACK-STYLE DETERMINISTIC AD VIEWER (0 AI KEYS)
            =================================================================== */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
           {/* Desktop Minimal Header */}
@@ -332,12 +305,24 @@ export function AdDetailSheet({
                 </span>
               )}
               <div className="min-w-0">
-                <p className="truncate font-display text-[15px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#0027eb]">
-                  {ad.brand_name}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-display text-[15px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#0027eb]">
+                    {ad.brand_name}
+                  </p>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${tierBadgeClass}`}
+                  >
+                    {localAnalysis.scalingTier === "Scaling Winner" ? (
+                      <Flame className="h-3 w-3" />
+                    ) : (
+                      <TrendingUp className="h-3 w-3" />
+                    )}
+                    {localAnalysis.scalingTier}
+                  </span>
+                </div>
                 <p className="flex items-center gap-1 text-xs text-[#64748B]">
                   <Store className="h-3 w-3" />
-                  Åbn shop-analyse
+                  Åbn shop-analyse · {localAnalysis.scalingReason}
                 </p>
               </div>
             </button>
@@ -354,22 +339,26 @@ export function AdDetailSheet({
 
           {/* Single Calm Scroll Area */}
           <div className="pb-safe flex-1 space-y-5 overflow-y-auto px-4 py-4 lg:px-6 lg:py-5">
-            {/* 1. OPENING HOOK + AD COPY + LANDING PAGE */}
+            {/* 1. OPENING HOOK + INSTANT SIGNALS */}
             <section className="space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#64748B]">
-                    {ad.hook_category || "Opening Hook"}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#64748B]">
+                      {localAnalysis.hookCategory}
+                    </span>
+                    <span className="text-[#CBD5E1]">·</span>
+                    <span className="font-mono-num text-[11px] text-[#64748B]">
+                      {localAnalysis.copyStyle} ({localAnalysis.wordCount} ord)
+                    </span>
+                  </div>
                   <h2 className="mt-1 font-display text-[16px] font-semibold leading-snug text-[#0F172A]">
-                    &ldquo;{ad.extracted_hook || ad.headline}&rdquo;
+                    &ldquo;{localAnalysis.hook}&rdquo;
                   </h2>
                 </div>
                 <button
                   type="button"
-                  onClick={() =>
-                    copyText("hook", ad.extracted_hook || ad.headline || "")
-                  }
+                  onClick={() => copyText("hook", localAnalysis.hook)}
                   title="Kopiér hook"
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E6E9F0] text-[#64748B] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
                 >
@@ -380,6 +369,31 @@ export function AdDetailSheet({
                   )}
                 </button>
               </div>
+
+              {/* Instant Detected Signals (Offers, Social Proof, Funnel) — 0ms, 0 API keys */}
+              {(localAnalysis.offers.length > 0 ||
+                localAnalysis.socialProof.length > 0) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {localAnalysis.offers.map((offer) => (
+                    <span
+                      key={offer}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#DCE3F5] bg-[#F5F8FF] px-2.5 py-0.5 text-[11px] font-medium text-[#0027eb]"
+                    >
+                      <Tag className="h-3 w-3" />
+                      {offer}
+                    </span>
+                  ))}
+                  {localAnalysis.socialProof.map((proof) => (
+                    <span
+                      key={proof}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#DCFCE7] bg-[#F0FDF4] px-2.5 py-0.5 text-[11px] font-medium text-[#15803D]"
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+                      {proof}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Collapsible Primary Copy */}
               {ad.primary_text && (
@@ -431,246 +445,108 @@ export function AdDetailSheet({
                   </div>
                 </div>
               )}
-
-              {/* Compact Landing Page & CTA Row */}
-              {ad.landing_page_url && (
-                <a
-                  href={ad.landing_page_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[#ECEFF5] px-3.5 py-2.5 transition-colors hover:border-[#0027eb]/40 hover:bg-[#FAFBFD]"
-                >
-                  <span className="flex min-w-0 items-center gap-2 text-xs">
-                    <Globe className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
-                    <span className="truncate font-mono-num text-[#334155]">
-                      {ad.landing_page_path && ad.landing_page_path !== "/"
-                        ? ad.landing_page_path
-                        : ad.landing_page_url.replace(/^https?:\/\/(www\.)?/, "")}
-                    </span>
-                  </span>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#0027eb]">
-                    {ad.cta_text || "Shop now"}
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </span>
-                </a>
-              )}
             </section>
 
-            {/* 2. SERVERLESS AI ANALYSIS (Gemini / OpenAI / Groq API) */}
-            <section className="rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-[#0027eb]" />
-                  <h3 className="font-display text-[13.5px] font-semibold text-[#0F172A]">
-                    AI Analyse
-                  </h3>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {hasTeardown && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        copyText("breakdown", formatBreakdownForCopy())
-                      }
-                      title="Kopiér analyse"
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#475569] hover:text-[#0027eb]"
-                    >
-                      {copiedKey === "breakdown" ? (
-                        <Check className="h-3.5 w-3.5 text-[#16A34A]" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                      Kopiér
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={runAiTeardown}
-                    disabled={analyzing}
-                    className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-55"
-                  >
-                    {analyzing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : hasTeardown ? (
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    ) : (
-                      <Sparkles className="h-3.5 w-3.5" />
-                    )}
-                    {analyzing
-                      ? "Analyserer..."
-                      : hasTeardown
-                        ? "Opdatér"
-                        : "Analysér annonce"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Structured Teardown Result */}
-              {hasTeardown && (
-                <div className="mt-3.5 space-y-3 border-t border-[#E6E9F0] pt-3.5 text-[12.5px]">
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {ad.ai_hook_verbal && (
-                      <div className="rounded-xl border border-[#ECEFF5] bg-white p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                          Verbal Hook
-                        </p>
-                        <p className="mt-1 font-medium text-[#0F172A]">
-                          {ad.ai_hook_verbal}
-                        </p>
-                      </div>
-                    )}
-                    {ad.ai_hook_visual && (
-                      <div className="rounded-xl border border-[#ECEFF5] bg-white p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                          Visual Hook
-                        </p>
-                        <p className="mt-1 font-medium text-[#0F172A]">
-                          {ad.ai_hook_visual}
-                        </p>
-                      </div>
-                    )}
+            {/* 2. LANDING PAGE & LIVE FUNNEL INSPECTOR (100% Free Tool — 0 AI Keys) */}
+            {ad.landing_page_url && (
+              <section className="rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Globe className="h-4 w-4 shrink-0 text-[#0027eb]" />
+                    <h3 className="font-display text-[13.5px] font-semibold text-[#0F172A]">
+                      Landing Page
+                    </h3>
+                    <span className="rounded-md bg-white px-2 py-0.5 text-[10.5px] font-medium text-[#475569] ring-1 ring-[#E6E9F0]">
+                      {lpAudit?.funnelType || localAnalysis.funnelType}
+                    </span>
                   </div>
 
-                  {ad.ai_why_it_works && ad.ai_why_it_works.length > 0 && (
-                    <div className="rounded-xl border border-[#ECEFF5] bg-white p-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                        Hvorfor den virker {ad.ai_angle ? `· ${ad.ai_angle}` : ""}
-                      </p>
-                      <ul className="mt-1.5 space-y-1 text-[#334155]">
-                        {ad.ai_why_it_works.map((point, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#0027eb]" />
-                            <span>{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleInspectLandingPage}
+                      disabled={inspectingLp}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb] disabled:opacity-50"
+                    >
+                      {inspectingLp ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0027eb]" />
+                      ) : (
+                        <Search className="h-3.5 w-3.5" />
+                      )}
+                      {inspectingLp
+                        ? "Scanner..."
+                        : lpAudit
+                          ? "Opdatér LP"
+                          : "Inspicér LP"}
+                    </button>
 
-                  {ad.ai_script_breakdown && (
-                    <div className="grid grid-cols-1 gap-2 rounded-xl border border-[#ECEFF5] bg-white p-3 sm:grid-cols-2">
-                      {[
-                        { k: "1. Hook", v: ad.ai_script_breakdown.hook },
-                        { k: "2. Body", v: ad.ai_script_breakdown.body },
-                        {
-                          k: "3. Social Proof",
-                          v: ad.ai_script_breakdown.social_proof,
-                        },
-                        { k: "4. CTA", v: ad.ai_script_breakdown.cta },
-                      ]
-                        .filter((r) => r.v)
-                        .map((row) => (
-                          <div key={row.k}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                              {row.k}
-                            </p>
-                            <p className="mt-0.5 text-[#334155]">{row.v}</p>
-                          </div>
-                        ))}
-                    </div>
-                  )}
+                    <a
+                      href={ad.landing_page_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="adtrack-btn-primary inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
+                    >
+                      {ad.cta_text || "Åbn LP"}
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
 
-                  {ad.ai_transcript && (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setTranscriptOpen((v) => !v)}
-                        className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#64748B] hover:text-[#0F172A]"
-                      >
-                        {transcriptOpen ? (
-                          <>
-                            Skjul transskription{" "}
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          </>
-                        ) : (
-                          <>
-                            Vis transskription{" "}
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          </>
+                <p className="mt-2 truncate font-mono-num text-[11.5px] text-[#64748B]">
+                  {ad.landing_page_url.replace(/^https?:\/\/(www\.)?/, "")}
+                </p>
+
+                {lpError && (
+                  <p className="mt-2.5 rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs text-[#9F1239]">
+                    {lpError}
+                  </p>
+                )}
+
+                {lpAudit && (
+                  <div className="mt-3 space-y-2.5 border-t border-[#E6E9F0] pt-3 text-xs">
+                    {(lpAudit.title || lpAudit.h1) && (
+                      <div className="rounded-xl border border-[#ECEFF5] bg-white p-3">
+                        <p className="font-semibold text-[#0F172A]">
+                          {lpAudit.h1 || lpAudit.title}
+                        </p>
+                        {lpAudit.description && (
+                          <p className="mt-1 line-clamp-2 text-[11.5px] text-[#64748B]">
+                            {lpAudit.description}
+                          </p>
                         )}
-                      </button>
-                      {transcriptOpen && (
-                        <p className="mt-2 whitespace-pre-wrap rounded-xl border border-[#ECEFF5] bg-white p-3 text-xs leading-relaxed text-[#475569]">
-                          {ad.ai_transcript}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                        <div className="mt-2 flex flex-wrap items-center gap-3 font-mono-num text-[11px] text-[#475569]">
+                          {lpAudit.price && (
+                            <span className="font-semibold text-[#0F172A]">
+                              Pris: {lpAudit.price} {lpAudit.currency || ""}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1">
+                            <Gauge className="h-3 w-3 text-[#16A34A]" />
+                            {lpAudit.responseMs} ms
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-              {/* Interactive Follow-Up Ask Bar */}
-              <form
-                onSubmit={handleAskAi}
-                className="mt-3 flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Spørg AI om annoncen (fx omskriv hook til dit brand)..."
-                  className="min-w-0 flex-1 rounded-xl border border-[#E2E6EF] bg-white px-3 py-2 text-[16px] text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#0027eb] sm:text-xs"
-                />
-                <button
-                  type="submit"
-                  disabled={asking || !question.trim()}
-                  aria-label="Send spørgsmål til AI"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#E2E6EF] bg-white text-[#0027eb] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] disabled:opacity-40"
-                >
-                  {asking ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
-              </form>
-
-              {qaReply && (
-                <div className="mt-3 rounded-xl border border-[#DCE3F5] bg-white p-3 text-[12.5px] leading-relaxed text-[#1E293B]">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#0027eb]">
-                      AI svar
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => copyText("qa", qaReply)}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-[#64748B] hover:text-[#0027eb]"
-                    >
-                      {copiedKey === "qa" ? (
-                        <Check className="h-3 w-3 text-[#16A34A]" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                      Kopiér
-                    </button>
+                    {lpAudit.conversionSignals.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {lpAudit.conversionSignals.map((sig) => (
+                          <span
+                            key={sig}
+                            className="inline-flex items-center gap-1 rounded-full border border-[#E6E9F0] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#334155]"
+                          >
+                            <Check className="h-3 w-3 text-[#16A34A]" />
+                            {sig}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <p className="whitespace-pre-wrap">{qaReply}</p>
-                </div>
-              )}
+                )}
+              </section>
+            )}
 
-              {statusMessage && (
-                <div
-                  className={`mt-3 flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs ${
-                    statusError
-                      ? "border-[#FECDD3] bg-[#FFF1F2] text-[#9F1239]"
-                      : "border-[#E6E9F0] bg-white text-[#475569]"
-                  }`}
-                >
-                  <span className="leading-snug">{statusMessage}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyText("prompt", buildGeminiPrompt(ad))}
-                    className="shrink-0 font-semibold text-[#0027eb] hover:underline"
-                  >
-                    {copiedKey === "prompt" ? "Kopieret!" : "Kopiér prompt"}
-                  </button>
-                </div>
-              )}
-            </section>
-
-            {/* 3. FOLDERS & QUICK NOTE (Inline — No extra tab) */}
+            {/* 3. FOLDERS & QUICK NOTE */}
             <section className="space-y-3 border-t border-[#ECEFF5] pt-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#475569]">

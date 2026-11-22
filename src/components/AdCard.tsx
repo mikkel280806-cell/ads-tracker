@@ -10,7 +10,6 @@ import {
   Image as ImageIcon,
   Layers,
   Play,
-  Sparkles,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import { getActiveDays } from "@/lib/url-parser";
@@ -54,7 +53,6 @@ export function AdCard({
 
   const activeDays = getActiveDays(ad.started_running_at);
   const inFolders = ad.board_ids.length > 0;
-  const hasAi = Boolean(ad.ai_hook_verbal || ad.ai_script_breakdown);
 
   const isVideoFile =
     ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
@@ -257,13 +255,6 @@ export function AdCard({
                 <Play className="ml-0.5 h-4 w-4 fill-current" />
               </span>
             </div>
-          )}
-
-          {hasAi && (
-            <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#05060B]/70 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
-              <Sparkles className="h-2.5 w-2.5 text-[#7BA2FF]" />
-              Gemini
-            </span>
           )}
         </div>
       </div>
