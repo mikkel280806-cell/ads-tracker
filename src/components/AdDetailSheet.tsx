@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   ArrowUpRight,
   Bookmark,
+  Captions,
   Check,
   ChevronDown,
   ChevronUp,
@@ -61,6 +62,12 @@ export function AdDetailSheet({
   >({});
   const [lpErrorByAdId, setLpErrorByAdId] = useState<Record<string, string>>({});
 
+  // Video transcription state (Groq Whisper / Deepgram API)
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcribeErrorByAdId, setTranscribeErrorByAdId] = useState<
+    Record<string, string>
+  >({});
+
   const localAnalysis = useMemo(
     () => (ad ? analyzeAdLocally(ad) : null),
     [ad]
@@ -70,6 +77,7 @@ export function AdDetailSheet({
 
   const lpAudit = lpAuditByAdId[ad.id] || null;
   const lpError = lpErrorByAdId[ad.id] || null;
+  const transcribeError = transcribeErrorByAdId[ad.id] || null;
 
   const isVideoFile =
     !mediaFailed &&
@@ -89,6 +97,48 @@ export function AdDetailSheet({
       setTimeout(() => setCopiedKey(null), 1800);
     } catch {
       // ignore
+    }
+  };
+
+  const handleTranscribeVideo = async () => {
+    if (!ad.media_url || transcribing) return;
+    setTranscribing(true);
+    setTranscribeErrorByAdId((prev) => {
+      const next = { ...prev };
+      delete next[ad.id];
+      return next;
+    });
+    try {
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ad,
+          adId: ad.id,
+          videoUrl: ad.media_url,
+          market: ad.market,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok || !data.transcript) {
+        setTranscribeErrorByAdId((prev) => ({
+          ...prev,
+          [ad.id]: data.message || "Kunne ikke transskribere videoen.",
+        }));
+        return;
+      }
+      onUpdateAd(ad.id, {
+        ai_transcript: data.transcript,
+        ai_hook_verbal: data.hook || ad.ai_hook_verbal,
+        duration_seconds: data.durationSec || ad.duration_seconds,
+      });
+    } catch {
+      setTranscribeErrorByAdId((prev) => ({
+        ...prev,
+        [ad.id]: "Netværksfejl ved video-transskription.",
+      }));
+    } finally {
+      setTranscribing(false);
     }
   };
 
@@ -446,6 +496,85 @@ export function AdDetailSheet({
                 </div>
               )}
             </section>
+
+            {/* 1B. VIDEO SCRIPT & SPOKEN HOOK (Groq Whisper / Deepgram Speech-to-Text) */}
+            {ad.media_type === "video" && (
+              <section className="rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Captions className="h-4 w-4 text-[#0027eb]" />
+                    <h3 className="font-display text-[13.5px] font-semibold text-[#0F172A]">
+                      Video Script
+                    </h3>
+                    {ad.duration_seconds ? (
+                      <span className="font-mono-num text-[11px] text-[#64748B]">
+                        {ad.duration_seconds}s
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {ad.ai_transcript && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          copyText("transcript", ad.ai_transcript || "")
+                        }
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#475569] hover:text-[#0027eb]"
+                      >
+                        {copiedKey === "transcript" ? (
+                          <Check className="h-3.5 w-3.5 text-[#16A34A]" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        Kopiér script
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleTranscribeVideo}
+                      disabled={transcribing}
+                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-55"
+                    >
+                      {transcribing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Captions className="h-3.5 w-3.5" />
+                      )}
+                      {transcribing
+                        ? "Transskriberer..."
+                        : ad.ai_transcript
+                          ? "Opdatér"
+                          : "Transskribér video"}
+                    </button>
+                  </div>
+                </div>
+
+                {ad.ai_hook_verbal && ad.ai_transcript && (
+                  <div className="mt-3 rounded-xl border border-[#DCE3F5] bg-white p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#0027eb]">
+                      Spoken Hook (0–3 sek.)
+                    </p>
+                    <p className="mt-1 text-[13px] font-medium text-[#0F172A]">
+                      &ldquo;{ad.ai_hook_verbal}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                {ad.ai_transcript && (
+                  <p className="mt-2.5 whitespace-pre-wrap rounded-xl border border-[#ECEFF5] bg-white p-3 text-[12.5px] leading-relaxed text-[#334155]">
+                    {ad.ai_transcript}
+                  </p>
+                )}
+
+                {transcribeError && (
+                  <p className="mt-2.5 rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs text-[#9F1239]">
+                    {transcribeError}
+                  </p>
+                )}
+              </section>
+            )}
 
             {/* 2. LANDING PAGE & LIVE FUNNEL INSPECTOR (100% Free Tool — 0 AI Keys) */}
             {ad.landing_page_url && (

@@ -13,6 +13,7 @@ import {
   detectPixels,
   detectShopifyApps,
   extractMeta,
+  fetchHtmlSmart,
   fetchTrancoRank,
   fetchWithTimeout,
   scrapeShopifyProducts,
@@ -28,15 +29,15 @@ async function resolveBrandUrl(
     const candidate = trimmed.startsWith("http")
       ? trimmed
       : `https://${trimmed}`;
-    const res = await fetchWithTimeout(candidate, 8000);
-    if (res && res.ok) {
-      return { url: res.url || candidate, html: await res.text() };
+    const direct = await fetchHtmlSmart(candidate, 8000);
+    if (direct.ok) {
+      return { url: direct.url, html: direct.html };
     }
     if (!candidate.includes("://www.")) {
       const wwwCandidate = candidate.replace("://", "://www.");
-      const resWww = await fetchWithTimeout(wwwCandidate, 8000);
-      if (resWww && resWww.ok) {
-        return { url: resWww.url || wwwCandidate, html: await resWww.text() };
+      const wwwRes = await fetchHtmlSmart(wwwCandidate, 8000);
+      if (wwwRes.ok) {
+        return { url: wwwRes.url, html: wwwRes.html };
       }
     }
     return null;

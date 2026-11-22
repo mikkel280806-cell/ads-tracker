@@ -41,6 +41,8 @@ export function getConnectorStatus(): ConnectorStatus {
     scrapeCreators: Boolean(process.env.SCRAPECREATORS_API_KEY),
     apify: Boolean(process.env.APIFY_API_TOKEN),
     similarweb: Boolean(process.env.SIMILARWEB_API_KEY || process.env.RAPIDAPI_KEY),
+    firecrawl: Boolean(process.env.FIRECRAWL_API_KEY),
+    transcription: Boolean(process.env.GROQ_API_KEY || process.env.DEEPGRAM_API_KEY),
     passcodeLock: Boolean(process.env.APP_PASSWORD),
     mode: supabase ? "live" : "demo",
   };

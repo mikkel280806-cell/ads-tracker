@@ -61,6 +61,119 @@ export async function fetchWithTimeout(
   }
 }
 
+function isCloudflareChallenge(html: string): boolean {
+  const sample = html.slice(0, 4000).toLowerCase();
+  return (
+    sample.includes("<title>just a moment") ||
+    sample.includes("attention required! | cloudflare") ||
+    sample.includes("cf-browser-verification") ||
+    sample.includes("challenge-platform/h/")
+  );
+}
+
+/**
+ * Fetches storefront or landing-page HTML with zero-cost direct fetch first,
+ * automatically falling back to Firecrawl API (1 credit, rawHtml) ONLY when
+ * blocked by Cloudflare (HTTP 403/503/challenge) and FIRECRAWL_API_KEY is set.
+ */
+export async function fetchHtmlSmart(
+  url: string,
+  timeoutMs = 8000
+): Promise<{
+  ok: boolean;
+  status: number;
+  url: string;
+  html: string;
+  source: "direct" | "firecrawl";
+  responseMs: number;
+}> {
+  const start = Date.now();
+  const res = await fetchWithTimeout(url, timeoutMs);
+
+  if (res && res.ok) {
+    const html = await res.text();
+    if (html.length >= 400 && !isCloudflareChallenge(html)) {
+      return {
+        ok: true,
+        status: res.status,
+        url: res.url || url,
+        html,
+        source: "direct",
+        responseMs: Date.now() - start,
+      };
+    }
+  }
+
+  const directStatus = res?.status || 0;
+  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+  if (!firecrawlKey) {
+    return {
+      ok: false,
+      status: directStatus,
+      url,
+      html: "",
+      source: "direct",
+      responseMs: Date.now() - start,
+    };
+  }
+
+  // Fallback to Firecrawl rawHtml (preserves full <script> tags for pixel & Shopify app detection!)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 16_000);
+  try {
+    const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${firecrawlKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        formats: ["rawHtml"],
+        onlyMainContent: false,
+        waitFor: 1500,
+      }),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+
+    if (fcRes.ok) {
+      const json = (await fcRes.json()) as {
+        success?: boolean;
+        data?: {
+          rawHtml?: string;
+          html?: string;
+          metadata?: { sourceURL?: string; statusCode?: number };
+        };
+      };
+      const html = json.data?.rawHtml || json.data?.html || "";
+      if (html.length >= 400) {
+        return {
+          ok: true,
+          status: json.data?.metadata?.statusCode || 200,
+          url: json.data?.metadata?.sourceURL || url,
+          html,
+          source: "firecrawl",
+          responseMs: Date.now() - start,
+        };
+      }
+    }
+  } catch {
+    // ignore firecrawl timeout/error
+  } finally {
+    clearTimeout(timer);
+  }
+
+  return {
+    ok: false,
+    status: directStatus,
+    url,
+    html: "",
+    source: "direct",
+    responseMs: Date.now() - start,
+  };
+}
+
 interface ShopifyWebPixelEntry {
   id?: string;
   type?: string;

@@ -159,6 +159,8 @@ export interface ConnectorStatus {
   scrapeCreators: boolean;
   apify: boolean;
   similarweb: boolean;
+  firecrawl: boolean;
+  transcription: boolean;
   passcodeLock: boolean;
   mode: "live" | "demo";
 }
