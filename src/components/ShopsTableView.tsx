@@ -11,8 +11,6 @@ import {
   Package,
   Plus,
   Search,
-  Sparkles,
-  Store,
   TrendingDown,
   TrendingUp,
   X,
@@ -217,32 +215,21 @@ export function ShopsTableView({
 
   return (
     <div className="space-y-4 lg:space-y-5">
-      {/* HEADER — Ultra-clean on iPhone, Full on Desktop */}
+      {/* HEADER — KISS: Single clear title + compact count + primary action */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="adtrack-icon-badge hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white sm:flex">
-            <Store className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A] sm:text-[20px]">
-                Shops
-              </h1>
-              <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
-                {brands.length}
-              </span>
-              <span className="hidden items-center gap-1.5 rounded-full bg-[#ECFDF3] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#15803D] sm:inline-flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
-                {totalLiveAdsAcrossIndex.toLocaleString("en-US")} live Meta ads
-              </span>
-            </div>
-            <p className="mt-0.5 hidden text-[12.5px] text-[#64748B] sm:block">
-              Danske &amp; amerikanske Shopify-shops med live Meta Ads, trafik, produkter, pixels, apps, hooks og landing pages
-            </p>
-          </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+            Shops
+          </h1>
+          <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
+            {brands.length}
+          </span>
+          <span className="hidden font-mono-num text-xs text-[#64748B] sm:inline">
+            · {totalLiveAdsAcrossIndex.toLocaleString("en-US")} live ads
+          </span>
         </div>
 
-        {/* Mobile Quick "+ Scrape" Trigger (keeps above-the-fold razor-clean on iPhone) */}
+        {/* Mobile Quick "+ Scrape" Trigger */}
         <button
           type="button"
           onClick={() => setMobileScraperOpen((v) => !v)}
@@ -256,31 +243,28 @@ export function ShopsTableView({
           ) : (
             <>
               <Plus className="h-3.5 w-3.5" />
-              Scrape Shop
+              Tilføj shop
             </>
           )}
         </button>
       </div>
 
-      {/* 1-FIELD LIVE SHOP SCRAPER BAR (Always open on sm+, collapsible on iPhone) */}
+      {/* CLEAN SINGLE-LINE SHOP SCRAPER BAR (Always visible on sm+, toggle on iPhone) */}
       <div
         className={`${
           mobileScraperOpen ? "block animate-sheet-up" : "hidden sm:block"
-        } relative overflow-hidden rounded-2xl border border-[#DCE3F5] bg-gradient-to-br from-[#F8FAFF] via-white to-[#EEF2FF]/60 p-3 sm:p-3.5 shadow-[0_2px_12px_rgba(0,39,235,0.05)]`}
+        } rounded-2xl border border-[#E6E9F0] bg-white p-2.5 shadow-[0_1px_3px_rgba(15,23,42,0.03)] sm:p-3`}
       >
-        <form
-          onSubmit={handleSubmit}
-          className="flex items-center gap-2"
-        >
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-xs transition-all focus-within:border-[#0027eb] focus-within:ring-4 focus-within:ring-[#0027eb]/10">
-            <Globe className="h-4 w-4 shrink-0 text-[#0027eb]" />
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl bg-[#F7F8FB] px-3 py-2 transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0027eb]/20">
+            <Globe className="h-4 w-4 shrink-0 text-[#64748B]" />
             <input
               id="brand-magic-input"
               type="text"
               value={lookupInput}
               onChange={(e) => setLookupInput(e.target.value)}
-              placeholder="Skriv brand eller URL (fx bareen.com)..."
-              className="w-full bg-transparent text-[16px] sm:text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+              placeholder="Indsæt shop-URL eller brandnavn (fx bareen.com)..."
+              className="w-full bg-transparent text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-[13.5px]"
             />
           </div>
 
@@ -288,7 +272,7 @@ export function ShopsTableView({
             id="brand-magic-submit"
             type="submit"
             disabled={loading || !lookupInput.trim()}
-            className="adtrack-btn-primary inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs font-semibold text-white transition-all disabled:opacity-45"
+            className="adtrack-btn-primary inline-flex h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white transition-all disabled:opacity-45 sm:px-5"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -296,50 +280,41 @@ export function ShopsTableView({
               <Plus className="h-4 w-4" />
             )}
             <span className="hidden sm:inline">
-              {loading ? "Scraper..." : "Scrape Shop"}
+              {loading ? "Scraper..." : "Tilføj shop"}
             </span>
           </button>
         </form>
 
-        <div className="mt-2.5 hidden flex-wrap items-center justify-between gap-2 px-0.5 text-[11.5px] sm:flex">
-          <span className="inline-flex items-center gap-1.5 text-[#64748B]">
-            <Sparkles className="h-3.5 w-3.5 text-[#0027eb]" />
-            Henter live: Shopify produkter, pixels, Shopify apps, månedlig trafik, landing pages, hooks &amp; live Meta Ad Library.
-          </span>
-
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-medium text-[#94A3B8]">
-              Tilføj hurtigt:
-            </span>
-            {QUICK_SUGGESTIONS.map((domain) => (
-              <button
-                key={domain}
-                type="button"
-                disabled={loading}
-                onClick={() => runBrandLookup(domain)}
-                className="rounded-lg border border-[#DCE1EC] bg-white px-2.5 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155] transition-colors hover:border-[#0027eb] hover:text-[#0027eb] disabled:opacity-40"
-              >
-                + {domain}
-              </button>
-            ))}
-          </div>
+        <div className="mt-2 hidden items-center gap-1.5 px-1 text-[11px] sm:flex">
+          <span className="text-[#94A3B8]">Hurtig tilføj:</span>
+          {QUICK_SUGGESTIONS.map((domain) => (
+            <button
+              key={domain}
+              type="button"
+              disabled={loading}
+              onClick={() => runBrandLookup(domain)}
+              className="rounded-lg px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#475569] transition-colors hover:bg-[#F3F5F9] hover:text-[#0027eb] disabled:opacity-40"
+            >
+              + {domain}
+            </button>
+          ))}
         </div>
 
         {error && (
-          <p className="mt-2.5 rounded-xl border border-[#FECDD3] bg-[#FFF1F2] px-3 py-2 text-xs font-medium text-[#E11D48]">
+          <p className="mt-2 rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs font-medium text-[#E11D48]">
             {error}
           </p>
         )}
       </div>
 
-      {/* COMPACT FILTER & MARKET BAR */}
+      {/* UNIFIED FILTER BAR — Hick's Law: Market · Search · Tech · Sort */}
       <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-3 lg:space-y-0">
-        {/* Crisp Single-Line iOS 3-Column Segmented Market Control */}
-        <div className="grid grid-cols-3 rounded-xl border border-[#E6E9F0] bg-[#EFEFF4] p-1 text-xs font-semibold lg:inline-flex lg:w-fit">
+        {/* Clean Segmented Market Control */}
+        <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold lg:inline-flex lg:w-fit">
           {[
-            { id: "ALL" as const, short: "Alle", full: "Alle Markets", count: brands.length },
-            { id: "DK" as const, short: "🇩🇰 DK", full: "🇩🇰 Danmark", count: dkCount },
-            { id: "US" as const, short: "🇺🇸 US", full: "🇺🇸 USA & Global", count: usCount },
+            { id: "ALL" as const, label: "Alle", count: brands.length },
+            { id: "DK" as const, label: "DK", count: dkCount },
+            { id: "US" as const, label: "US & Global", count: usCount },
           ].map((m) => {
             const active = marketFilter === m.id;
             return (
@@ -353,13 +328,10 @@ export function ShopsTableView({
                     : "text-[#64748B] hover:text-[#0F172A]"
                 }`}
               >
-                <span className="sm:hidden">{m.short}</span>
-                <span className="hidden sm:inline">{m.full}</span>
+                <span>{m.label}</span>
                 <span
-                  className={`rounded-md px-1.5 py-px font-mono-num text-[10px] font-bold ${
-                    active
-                      ? "bg-[#EEF2FF] text-[#0027eb]"
-                      : "bg-black/[0.06] text-[#64748B]"
+                  className={`font-mono-num text-[10.5px] font-semibold ${
+                    active ? "text-[#0027eb]" : "text-[#94A3B8]"
                   }`}
                 >
                   {m.count}
@@ -369,7 +341,7 @@ export function ShopsTableView({
           })}
         </div>
 
-        {/* Search + Tech + Sort (text-[16px] on mobile prevents iOS Safari auto-zoom!) */}
+        {/* Search + Tech + Sort */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1 sm:w-56 sm:flex-none">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
@@ -377,8 +349,8 @@ export function ShopsTableView({
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Søg shop, tema, app..."
-              className="w-full rounded-xl border border-[#E2E6EF] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#0027eb] sm:text-xs"
+              placeholder="Søg shop eller app..."
+              className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#0027eb] sm:text-xs"
             />
           </div>
 
@@ -387,9 +359,9 @@ export function ShopsTableView({
               aria-label="Filtrer efter pixel eller Shopify app"
               value={techFilter}
               onChange={(e) => setTechFilter(e.target.value)}
-              className="w-full truncate rounded-xl border border-[#E2E6EF] bg-white px-2.5 py-2 text-[14px] font-medium text-[#334155] outline-none focus:border-[#0027eb] sm:w-auto sm:text-xs"
+              className="w-full truncate rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 text-[14px] font-medium text-[#334155] outline-none focus:border-[#0027eb] sm:w-auto sm:text-xs"
             >
-              <option value="all">Pixels &amp; Apps</option>
+              <option value="all">Alle pixels &amp; apps</option>
               {allTechTools.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -401,7 +373,7 @@ export function ShopsTableView({
               aria-label="Sortér shops"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortKey)}
-              className="w-full truncate rounded-xl border border-[#E2E6EF] bg-white px-2.5 py-2 text-[14px] font-semibold text-[#0F172A] outline-none focus:border-[#0027eb] sm:w-auto sm:text-xs"
+              className="w-full truncate rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 text-[14px] font-semibold text-[#0F172A] outline-none focus:border-[#0027eb] sm:w-auto sm:text-xs"
             >
               <option value="ads">Flest Live Ads</option>
               <option value="visits">Højest Visits</option>

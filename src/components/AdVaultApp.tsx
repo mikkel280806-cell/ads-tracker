@@ -633,24 +633,16 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           </div>
         </div>
 
-        {/* Bottom Live Index Card over Cobalt Ambient Glow */}
-        <div className="mt-auto border-t border-white/[0.08] pt-4">
-          <div className="rounded-2xl border border-white/[0.09] bg-white/[0.04] p-3 backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white">
-                <span className="h-2 w-2 rounded-full bg-[#22C55E] shadow-[0_0_8px_#22C55E]" />
-                {supabaseSynced ? "Supabase Live Sync" : "Meta Scraper Active"}
-              </span>
-              <span className="text-[11px]">🇩🇰 🇺🇸</span>
-            </div>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-white/55">
-              {brands.length} Shopify-shops &amp; {ads.length} live Meta-annoncer indekseret.
-              {supabaseSynced
-                ? " Synkroniseret med Supabase."
-                : initialStatus.scrapeCreators
-                  ? " Live API klar."
-                  : ""}
-            </p>
+        {/* Quiet Bottom Sync Indicator */}
+        <div className="mt-auto border-t border-white/[0.08] pt-3.5">
+          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] text-white/60">
+            <span className="inline-flex items-center gap-2 font-medium text-white/85">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+              {supabaseSynced ? "Supabase Live" : "Local"}
+            </span>
+            <span className="font-mono-num text-[10.5px] text-white/45">
+              {brands.length} · {ads.length}
+            </span>
           </div>
         </div>
       </aside>
@@ -660,7 +652,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
          ===================================================================== */}
       <div className="flex min-w-0 flex-1 flex-col lg:p-2.5 lg:pl-0">
         {/* NATIVE iOS FROSTED TOP BAR */}
-        <header className="pt-safe sticky top-0 z-30 flex items-center justify-between border-b border-[#E6E9F0]/90 bg-white/90 px-4 py-2.5 text-[#0F172A] backdrop-blur-xl lg:hidden">
+        <header className="pt-safe sticky top-0 z-30 flex items-center justify-between border-b border-[#ECEFF5] bg-white/88 px-4 py-2.5 text-[#0F172A] backdrop-blur-xl lg:hidden">
           <button
             type="button"
             onClick={() => {
@@ -674,16 +666,16 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             <img
               src="/icons/logo.png"
               alt="Adtrack"
-              className="h-7 w-7 rounded-[8px] shadow-[0_2px_8px_rgba(0,39,235,0.28)]"
+              className="h-7 w-7 rounded-[8px] shadow-[0_2px_8px_rgba(0,39,235,0.22)]"
             />
             <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-[#0F172A]">
               Adtrack
             </span>
           </button>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-[#F7F8FB] px-2.5 py-1 font-mono-num text-[11px] font-semibold text-[#334155]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F5F7FA] px-2.5 py-1 font-mono-num text-[11px] font-semibold text-[#475569]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
-            {brands.length} shops · {ads.length} ads
+            {brands.length} · {ads.length}
           </span>
         </header>
 
@@ -729,32 +721,22 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
              ================================================================= */}
           {view === "explore" && (
             <div className="space-y-4 lg:space-y-5">
-              {/* Explore Header */}
+              {/* Explore Header — KISS */}
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-3">
-                  <div className="adtrack-icon-badge hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white sm:flex">
-                    <Compass className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A] sm:text-[20px]">
-                        Explore
-                      </h1>
-                      <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
-                        {visibleAds.length} ads
-                      </span>
-                    </div>
-                    <p className="mt-0.5 hidden text-[12.5px] text-[#64748B] sm:block">
-                      Live scrapet Meta Ad Library fra danske og amerikanske e-commerce brands — søg i ads, hooks, copy og landing pages
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2.5">
+                  <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+                    Explore
+                  </h1>
+                  <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
+                    {visibleAds.length}
+                  </span>
                 </div>
 
-                {/* Sub-mode switcher: Ads Feed | Hooks Library | Landing Pages */}
-                <div className="grid grid-cols-3 rounded-xl border border-[#E6E9F0] bg-[#EFEFF4] p-1 text-xs font-semibold sm:inline-flex">
+                {/* Sub-mode switcher: Ads | Hooks | Landing Pages */}
+                <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold sm:inline-flex">
                   {[
-                    { id: "ads" as const, short: "Ads", label: "Meta Ads", count: visibleAds.length },
-                    { id: "hooks" as const, short: "Hooks", label: "Hooks & Copy", count: exploreHooks.length },
+                    { id: "ads" as const, short: "Ads", label: "Ads", count: visibleAds.length },
+                    { id: "hooks" as const, short: "Hooks", label: "Hooks", count: exploreHooks.length },
                     { id: "lp" as const, short: "LP", label: "Landing Pages", count: exploreLandingPages.length },
                   ].map((m) => (
                     <button
@@ -770,10 +752,8 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                       <span className="sm:hidden">{m.short}</span>
                       <span className="hidden sm:inline">{m.label}</span>
                       <span
-                        className={`rounded px-1.5 py-px font-mono-num text-[10px] font-bold ${
-                          exploreSubView === m.id
-                            ? "bg-[#EEF2FF] text-[#0027eb]"
-                            : "bg-black/[0.06] text-[#64748B]"
+                        className={`font-mono-num text-[10.5px] font-semibold ${
+                          exploreSubView === m.id ? "text-[#0027eb]" : "text-[#94A3B8]"
                         }`}
                       >
                         {m.count}
@@ -783,9 +763,9 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 </div>
               </div>
 
-              {/* Filters Toolbar (Clean & Touch-Friendly on iPhone) */}
-              <div className="space-y-2.5 rounded-2xl border border-[#E6E9F0] bg-white p-3 xl:flex xl:items-center xl:justify-between xl:gap-3 xl:space-y-0 lg:bg-[#FAFBFD]">
-                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+              {/* Unified Calm Filter Bar */}
+              <div className="space-y-2.5 xl:flex xl:items-center xl:justify-between xl:gap-3 xl:space-y-0">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   {/* Search (16px on mobile prevents iOS Safari auto-zoom) */}
                   <div className="relative flex-1 sm:w-64 sm:flex-none">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
@@ -797,17 +777,17 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                         setSearch(e.target.value);
                         setVisibleLimit(24);
                       }}
-                      placeholder="Søg brands, hooks, copy, LP..."
-                      className="w-full rounded-xl border border-[#DCE1EC] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#0027eb] sm:text-xs"
+                      placeholder="Søg brands, hooks, copy..."
+                      className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#0027eb] sm:text-xs"
                     />
                   </div>
 
-                  {/* Single-line Market Pills */}
-                  <div className="grid grid-cols-3 rounded-xl border border-[#E2E6EF] bg-[#F5F7FA] p-0.5 text-xs font-semibold sm:inline-flex">
+                  {/* Clean Market Segmented Control */}
+                  <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold sm:inline-flex">
                     {[
-                      { id: "ALL" as const, label: `Alle`, count: ads.length },
-                      { id: "DK" as const, label: `🇩🇰 DK`, count: dkAdsCount },
-                      { id: "US" as const, label: `🇺🇸 US`, count: usAdsCount },
+                      { id: "ALL" as const, label: "Alle", count: ads.length },
+                      { id: "DK" as const, label: "DK", count: dkAdsCount },
+                      { id: "US" as const, label: "US", count: usAdsCount },
                     ].map((m) => (
                       <button
                         key={m.id}
@@ -816,14 +796,18 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                           setMarketFilter(m.id);
                           setVisibleLimit(24);
                         }}
-                        className={`inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-all ${
+                        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 transition-all ${
                           marketFilter === m.id
-                            ? "bg-[#0027eb] text-white shadow-xs"
-                            : "text-[#475569] hover:text-[#0F172A]"
+                            ? "bg-white text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
                         }`}
                       >
                         <span>{m.label}</span>
-                        <span className="font-mono-num text-[10px] opacity-80">
+                        <span
+                          className={`font-mono-num text-[10px] ${
+                            marketFilter === m.id ? "text-[#0027eb]" : "text-[#94A3B8]"
+                          }`}
+                        >
                           {m.count}
                         </span>
                       </button>
@@ -831,9 +815,9 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                   </div>
                 </div>
 
-                {/* Format + Brand + Sort (Horizontal scroll on iPhone, flex on desktop) */}
+                {/* Format + Brand + Sort */}
                 <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-0.5 text-xs">
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-2 sm:py-1.5">
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 sm:py-1.5">
                     <Film className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Format"
@@ -845,14 +829,14 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                       }
                       className="cursor-pointer bg-transparent text-[13px] font-medium text-[#334155] outline-none sm:text-xs"
                     >
-                      <option value="all">Alle Formater</option>
+                      <option value="all">Alle formater</option>
                       <option value="video">Video</option>
-                      <option value="image">Static Image</option>
-                      <option value="carousel">Carousel / DCO</option>
+                      <option value="image">Image</option>
+                      <option value="carousel">Carousel</option>
                     </select>
                   </div>
 
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-2 sm:py-1.5">
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 sm:py-1.5">
                     <Building2 className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Vælg shop"
@@ -860,17 +844,16 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                       onChange={(e) => setBrandFilter(e.target.value)}
                       className="max-w-[140px] cursor-pointer truncate bg-transparent text-[13px] font-medium text-[#334155] outline-none sm:max-w-none sm:text-xs"
                     >
-                      <option value="all">Alle Shops ({brands.length})</option>
+                      <option value="all">Alle shops ({brands.length})</option>
                       {brands.map((b) => (
                         <option key={b.id} value={b.id}>
-                          {b.market === "DK" ? "🇩🇰 " : b.country_code === "FR" ? "🇫🇷 " : "🇺🇸 "}
                           {b.name}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-2.5 py-2 sm:py-1.5">
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 sm:py-1.5">
                     <Clock className="h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Sortér"
@@ -881,7 +864,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                       <option value="top">Top Performing</option>
                       <option value="longest">Longest Active</option>
                       <option value="duplicated">Most Duplicated</option>
-                      <option value="newest">Newest Launched</option>
+                      <option value="newest">Newest</option>
                     </select>
                   </div>
                 </div>

@@ -144,6 +144,9 @@ export interface Ad {
   ai_format?: string;
   ai_transcript?: string;
   ai_script_breakdown?: ScriptBreakdown;
+  ai_why_it_works?: string[];
+  ai_provider?: string;
+  ai_analyzed_at?: string;
   tags: string[];
   board_ids: string[];
   user_notes: string;

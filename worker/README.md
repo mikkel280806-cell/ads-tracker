@@ -1,30 +1,25 @@
-# AdVault InstaBox.sh On-Demand Worker
+# Adtrack `agy acp` Worker (InstaBox.sh)
 
-Denne mappe kører inde i din **InstaBox.sh** Linux VM og vækkes automatisk af Vercel (`/api/analyze`) med din `INSTABOX_API_KEY`, når du importerer eller analyserer en ny ad.
+Runs the official, unmodified `agy acp` binary on your **InstaBox.sh** VM (using your native `agy acp --login` Google AI Pro/Ultra subscription) when you click **"Analysér med Gemini"** or ask a question inside View Ad.
 
-## Engangsopsætning på din InstaBox
+## One-time setup on InstaBox
 
 ```bash
-# 1. Opret mappe og kopiér filer (eller git clone hele repoet)
-mkdir -p /home/user/advault-worker
-cp analyze-ad.sh analyze-ad.mjs /home/user/advault-worker/
-chmod +x /home/user/advault-worker/analyze-ad.sh /home/user/advault-worker/analyze-ad.mjs
+# 1. Copy worker files (or git pull the repo)
+mkdir -p /data/advault-worker
+cp worker/analyze-ad.sh worker/analyze-ad.mjs /data/advault-worker/
+chmod +x /data/advault-worker/analyze-ad.sh /data/advault-worker/analyze-ad.mjs
 
-# 2. Installér ffmpeg + gratis lokal Whisper til lyd-transskription
+# 2. Optional: install ffmpeg + faster-whisper for video audio transcription
 sudo apt-get update && sudo apt-get install -y ffmpeg python3-pip
 pip install --break-system-packages faster-whisper
 
-# 3. Log ind én gang i Antigravity CLI (gemmes på din faste InstaBox-disk)
+# 3. Sign in once with your Google AI subscription (persisted on InstaBox disk)
 agy acp --login
-
-# 4. Sæt dine Supabase-miljøvariabler som InstaBox Secrets (eller i ~/.bashrc)
-# NEXT_PUBLIC_SUPABASE_URL=...
-# SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-## Sådan virker auto-wake efter 30 min idle
-1. Efter 30 minutters inaktivitet pauser InstaBox automatisk VM'en (filer, `agy`-login og RAM bevares).
-2. Når du trykker **"Analyser med InstaBox"** i din AdVault-app (på telefon eller PC), kalder Vercel:
-   - `POST https://api.instabox.sh/v1/machines/<INSTABOX_MACHINE_ID>/wake` (vækker VM'en på < 1 sek.)
-   - `POST https://api.instabox.sh/v1/machines/<INSTABOX_MACHINE_ID>/exec` med `["/home/user/advault-worker/analyze-ad.sh", "<ad_id>"]`
-3. Workeren henter videoen fra Supabase Storage, udtrækker lyd med `ffmpeg`, transskriberer gratis lokalt med `faster-whisper`, sender prompt til officiel `agy acp` og opdaterer `ads`-rækken i Supabase.
+## How it works
+1. Clicking **"Analysér med Gemini"** or submitting a question in **View Ad** calls `POST /api/analyze`.
+2. Vercel wakes your InstaBox VM (`POST /v1/machines/{id}/wake`) and executes `node analyze-ad.mjs --json <base64>`.
+3. `analyze-ad.mjs` spawns the official `agy acp` binary over JSON-RPC 2.0 stdio, returns the structured breakdown (or interactive answer) live to the modal, and saves it into `adtrack_ads` in Supabase.
+4. When running `npm run dev` locally with `agy` on your `PATH`, `/api/analyze` also supports calling local `agy acp` directly.

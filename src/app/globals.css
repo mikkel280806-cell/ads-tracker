@@ -198,17 +198,17 @@ h3,
 /* Subtle Elevated Light Surface Card */
 .adtrack-card {
   background: #ffffff;
-  border: 1px solid #e7eaf1;
+  border: 1px solid #eceff5;
   box-shadow: var(--shadow-card);
 }
 .adtrack-card-interactive {
   background: #ffffff;
-  border: 1px solid #e7eaf1;
+  border: 1px solid #eceff5;
   box-shadow: var(--shadow-card);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .adtrack-card-interactive:hover {
-  border-color: #cfd7e8;
+  border-color: #d6dce8;
   box-shadow: var(--shadow-card-hover);
 }
 

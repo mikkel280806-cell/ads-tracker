@@ -5,14 +5,15 @@ import {
   ArrowUpRight,
   Bookmark,
   Check,
-  Copy,
+  Clock,
+  Film,
+  Image as ImageIcon,
   Layers,
   Play,
   Sparkles,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
-import { formatReach, getActiveDays } from "@/lib/url-parser";
-import { MetaInfinityIcon } from "./BrandIcons";
+import { getActiveDays } from "@/lib/url-parser";
 
 interface AdCardProps {
   ad: Ad;
@@ -24,23 +25,12 @@ interface AdCardProps {
   onOpenBrand?: (brandId: string) => void;
 }
 
-function formatShortDate(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 function getDomainDisplay(url?: string, path?: string): string {
   if (!url) return "";
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
     if (path && path !== "/") {
-      const shortPath = path.length > 26 ? `${path.slice(0, 26)}…` : path;
+      const shortPath = path.length > 22 ? `${path.slice(0, 22)}…` : path;
       return `${host}${shortPath}`;
     }
     return host;
@@ -64,7 +54,7 @@ export function AdCard({
 
   const activeDays = getActiveDays(ad.started_running_at);
   const inFolders = ad.board_ids.length > 0;
-  const hasLongCopy = (ad.primary_text?.length || 0) > 105;
+  const hasAi = Boolean(ad.ai_hook_verbal || ad.ai_script_breakdown);
 
   const isVideoFile =
     ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
@@ -80,17 +70,6 @@ export function AdCard({
         ? "aspect-[9/14]"
         : "aspect-[4/5]";
 
-  const marketFlag = ad.market === "DK" ? "🇩🇰" : ad.market === "EU" ? "🇪🇺" : "🇺🇸";
-
-  const rankStyle =
-    rank === 1
-      ? "bg-gradient-to-b from-[#FDE68A] to-[#F59E0B] text-[#78350F] shadow-sm"
-      : rank === 2
-        ? "bg-gradient-to-b from-[#F1F5F9] to-[#CBD5E1] text-[#334155] shadow-sm"
-        : rank === 3
-          ? "bg-gradient-to-b from-[#FED7AA] to-[#D97706] text-white shadow-sm"
-          : "bg-[#F1F5F9] text-[#475569]";
-
   return (
     <article
       className="adtrack-card-interactive group relative flex flex-col overflow-hidden rounded-[18px]"
@@ -100,8 +79,8 @@ export function AdCard({
         setFolderMenuOpen(false);
       }}
     >
-      {/* 1. TRENDTRACK META AD HEADER */}
-      <div className="flex items-start justify-between gap-2 px-3.5 pb-2 pt-3">
+      {/* 1. CLEAN BRAND HEADER (KISS: Avatar, Name, Market, Bookmark) */}
+      <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
         <button
           type="button"
           onClick={() => (onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad))}
@@ -113,20 +92,18 @@ export function AdCard({
               <img
                 src={ad.brand_logo_url}
                 alt={ad.brand_name}
-                className="h-9 w-9 rounded-full border border-[#E6E9F0] bg-white object-contain p-0.5"
+                className="h-8 w-8 rounded-full border border-[#ECEFF5] bg-white object-contain p-0.5"
               />
             ) : (
               <span
-                className="flex h-9 w-9 items-center justify-center rounded-full font-display text-[11px] font-bold text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full font-display text-[11px] font-bold text-white"
                 style={{ backgroundColor: ad.brand_avatar_color || "#0027eb" }}
               >
                 {ad.brand_avatar_initials}
               </span>
             )}
-            {rank && rank <= 10 && (
-              <span
-                className={`absolute -left-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-md px-1 font-mono-num text-[9.5px] font-bold ${rankStyle}`}
-              >
+            {rank && rank <= 3 && (
+              <span className="absolute -left-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[9px] font-bold text-white ring-2 ring-white">
                 {rank}
               </span>
             )}
@@ -134,61 +111,55 @@ export function AdCard({
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <MetaInfinityIcon className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate font-display text-[13.5px] font-semibold leading-tight text-[#0F172A] transition-colors group-hover:text-[#0027eb]">
                 {ad.brand_name}
               </span>
-              <span className="text-[11px]" title={ad.market}>
-                {marketFlag}
+              <span className="shrink-0 rounded bg-[#F1F5F9] px-1.5 py-px font-mono-num text-[9.5px] font-semibold text-[#64748B]">
+                {ad.market}
               </span>
             </div>
-            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#64748B]">
-              {ad.brand_live_ads ? (
-                <span className="font-mono-num font-medium text-[#475569]">
-                  {ad.brand_live_ads.toLocaleString("en-US")} Live Ads
+            <div className="mt-0.5 flex items-center gap-2 font-mono-num text-[11px] text-[#64748B]">
+              <span className="inline-flex items-center gap-1 font-medium text-[#15803D]">
+                <Clock className="h-3 w-3" />
+                {activeDays}d
+              </span>
+              {ad.duplicated_count && ad.duplicated_count > 1 && (
+                <span className="inline-flex items-center gap-0.5 font-medium text-[#334155]">
+                  <Layers className="h-3 w-3 text-[#0027eb]" />
+                  ×{ad.duplicated_count}
                 </span>
-              ) : null}
-              {ad.display_format && (
-                <>
-                  <span className="text-[#CBD5E1]">·</span>
-                  <span className="rounded bg-[#F1F5F9] px-1.5 py-px font-mono-num text-[9.5px] font-semibold text-[#475569]">
-                    {ad.display_format}
-                  </span>
-                </>
               )}
+              <span className="inline-flex items-center gap-0.5">
+                {ad.media_type === "video" ? (
+                  <Film className="h-3 w-3" />
+                ) : (
+                  <ImageIcon className="h-3 w-3" />
+                )}
+              </span>
             </div>
           </div>
         </button>
 
-        {/* Save to Folder Bookmark Button */}
+        {/* Save to Folder Bookmark */}
         <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={() => setFolderMenuOpen((v) => !v)}
             title="Gem i folder"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border transition-all"
-            style={
+            className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
               inFolders
-                ? {
-                    backgroundColor: "#EEF2FF",
-                    borderColor: "rgba(0,39,235,0.28)",
-                    color: "#0027eb",
-                  }
-                : {
-                    backgroundColor: "#FFFFFF",
-                    borderColor: "#E6E9F0",
-                    color: "#64748B",
-                  }
-            }
+                ? "bg-[#EEF2FF] text-[#0027eb]"
+                : "text-[#94A3B8] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+            }`}
           >
             <Bookmark
-              className="h-3.5 w-3.5"
+              className="h-4 w-4"
               fill={inFolders ? "currentColor" : "none"}
             />
           </button>
 
           {folderMenuOpen && (
-            <div className="absolute right-0 top-9 z-40 w-52 rounded-2xl border border-[#E2E6EF] bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)]">
+            <div className="absolute right-0 top-9 z-40 w-48 rounded-2xl border border-[#E6E9F0] bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
               <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
                 Gem i folder
               </p>
@@ -219,47 +190,20 @@ export function AdCard({
         </div>
       </div>
 
-      {/* 2. ACTIVE STATUS + LAUNCH DATE + DUPLICATED COUNT BAR */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 pb-2 text-[11px]">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF3] px-2 py-0.5 font-mono-num font-semibold text-[#15803D]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
-            {activeDays}d
-          </span>
-          <span className="text-[#64748B]">
-            {formatShortDate(ad.started_running_at)} – Today
-          </span>
-        </div>
-
-        {ad.duplicated_count && ad.duplicated_count > 1 && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#E6E9F0] bg-[#F8FAFC] px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-[#334155]">
-            <Layers className="h-3 w-3 text-[#0027eb]" />
-            {ad.duplicated_count} Duplicated
-          </span>
-        )}
-      </div>
-
-      {/* 3. AD COPY PREVIEW WITH CLEAN "See more" PILL */}
+      {/* 2. SCANNABLE 2-LINE COPY PREVIEW */}
       {!compact && ad.primary_text && (
         <button
           type="button"
           onClick={() => onOpen(ad)}
-          className="relative mb-2.5 block w-full px-3.5 text-left"
+          className="mb-2.5 block w-full px-3.5 text-left"
         >
-          <p className="line-clamp-3 text-[12.5px] leading-[1.48] text-[#334155]">
+          <p className="line-clamp-2 text-[12.5px] leading-[1.48] text-[#475569]">
             {ad.primary_text}
           </p>
-          {hasLongCopy && (
-            <div className="pointer-events-none absolute inset-x-3.5 bottom-0 flex justify-end bg-gradient-to-t from-white via-white/95 to-transparent pt-3">
-              <span className="rounded-full border border-[#E6E9F0] bg-white px-2 py-0.5 text-[10.5px] font-semibold text-[#0027eb] shadow-xs">
-                See more
-              </span>
-            </div>
-          )}
         </button>
       )}
 
-      {/* 4. CREATIVE MEDIA VIEWPORT */}
+      {/* 3. CREATIVE MEDIA VIEWPORT */}
       <div className="px-2.5">
         <div
           role="button"
@@ -271,7 +215,7 @@ export function AdCard({
               onOpen(ad);
             }
           }}
-          className={`relative w-full cursor-pointer overflow-hidden rounded-[13px] border border-[#EDF0F5] bg-[#F3F5F9] ${aspectClass}`}
+          className={`relative w-full cursor-pointer overflow-hidden rounded-[13px] bg-[#F3F5F9] ${aspectClass}`}
         >
           {isVideoFile && isHovered && !imgFailed ? (
             <video
@@ -296,86 +240,62 @@ export function AdCard({
               className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#F3F5F9] to-[#E8EEFF] p-5 text-center">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0027eb] font-display text-xs font-bold text-white shadow-md">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#F5F7FA] p-5 text-center">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0027eb] font-display text-xs font-bold text-white">
                 {ad.brand_avatar_initials}
               </span>
-              <p className="font-display text-xs font-semibold text-[#0F172A]">
-                {ad.brand_name}
-              </p>
-              <p className="line-clamp-2 max-w-[190px] text-[11px] text-[#64748B]">
+              <p className="line-clamp-2 max-w-[180px] text-xs font-medium text-[#475569]">
                 {ad.headline}
               </p>
             </div>
           )}
 
-          {/* Frosted Glass Play Button for Videos */}
+          {/* Frosted Glass Play Button */}
           {ad.media_type === "video" && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-[#05060B]/45 text-white shadow-lg backdrop-blur-md transition-all duration-200 group-hover:scale-110 group-hover:border-[#4D6BFF] group-hover:bg-[#0027eb]/90">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-[#05060B]/45 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-[#0027eb]/90">
                 <Play className="ml-0.5 h-4 w-4 fill-current" />
               </span>
             </div>
           )}
 
-          {/* Top-right subtle format & hook badge on hover */}
-          <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-center justify-between gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-            {ad.hook_category ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#05060B]/75 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
-                <Sparkles className="h-2.5 w-2.5 text-[#7BA2FF]" />
-                {ad.hook_category}
-              </span>
-            ) : (
-              <span />
-            )}
-
-            {ad.eu_reach ? (
-              <span className="rounded-full bg-[#05060B]/75 px-2 py-0.5 font-mono-num text-[10px] font-medium text-white backdrop-blur-md">
-                {formatReach(ad.eu_reach)} reach
-              </span>
-            ) : null}
-          </div>
+          {hasAi && (
+            <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#05060B]/70 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+              <Sparkles className="h-2.5 w-2.5 text-[#7BA2FF]" />
+              Gemini
+            </span>
+          )}
         </div>
       </div>
 
-      {/* 5. TRENDTRACK LANDING PAGE + HEADLINE + CTA FOOTER */}
-      <div className="mt-2.5 flex items-center justify-between gap-2.5 border-t border-[#EFF2F6] bg-[#FAFBFD] px-3.5 py-2.5">
-        <div className="min-w-0 flex-1">
+      {/* 4. MINIMAL FOOTER */}
+      <div className="mt-2.5 flex items-center justify-between gap-2 px-3.5 pb-3 pt-0.5">
+        <button
+          type="button"
+          onClick={() => onOpen(ad)}
+          className="min-w-0 flex-1 text-left"
+        >
+          <p className="truncate font-display text-[12.5px] font-semibold text-[#0F172A]">
+            {ad.headline}
+          </p>
           {ad.landing_page_url && (
-            <p className="truncate font-mono-num text-[10.5px] font-medium text-[#64748B]">
+            <p className="mt-0.5 truncate font-mono-num text-[10.5px] text-[#94A3B8]">
               {getDomainDisplay(ad.landing_page_url, ad.landing_page_path)}
             </p>
           )}
-          <p className="mt-0.5 truncate font-display text-[12.5px] font-semibold text-[#0F172A]">
-            {ad.headline}
-          </p>
-          {ad.link_description && ad.link_description !== ad.headline && (
-            <p className="truncate text-[11px] text-[#64748B]">
-              {ad.link_description}
-            </p>
-          )}
-        </div>
+        </button>
 
-        {ad.landing_page_url ? (
+        {ad.landing_page_url && (
           <a
             href={ad.landing_page_url}
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#DCE1EC] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#0F172A] shadow-xs transition-all hover:border-[#0027eb] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
           >
-            {ad.cta_text || "Shop now"}
+            {ad.cta_text || "Shop"}
             <ArrowUpRight className="h-3 w-3" />
           </a>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onOpen(ad)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#DCE1EC] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#0F172A] hover:border-[#0027eb] hover:text-[#0027eb]"
-          >
-            <Copy className="h-3 w-3" />
-            Inspect
-          </button>
         )}
       </div>
     </article>
