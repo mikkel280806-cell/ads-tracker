@@ -709,6 +709,40 @@ export async function scrapeShopifyProducts(
     }
   }
 
+  // On large Shopify stores (>250 SKUs, e.g. Watery), best-selling handles from
+  // /collections/all?sort_by=best-selling may not appear in /products.json?limit=250.
+  // Fetch missing handles directly via /products/<handle>.json in parallel!
+  const missingHandles = Array.from(
+    new Set([...bestHandles.slice(0, 14), ...newestHandles.slice(0, 10)])
+  )
+    .filter((h) => !byHandle.has(h))
+    .slice(0, 16);
+
+  if (missingHandles.length > 0) {
+    const fetchedMissing = await Promise.all(
+      missingHandles.map(async (h) => {
+        const res = await fetchWithTimeout(
+          `${origin}/products/${encodeURIComponent(h)}.json`,
+          4500
+        );
+        if (!res || !res.ok) return null;
+        try {
+          const json = await res.json();
+          if (!json?.product) return null;
+          const mapped = mapProd(json.product);
+          return hasPositiveProductPrice(mapped.price) ? mapped : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    for (const prod of fetchedMissing) {
+      if (prod?.handle) {
+        byHandle.set(prod.handle.toLowerCase(), prod);
+      }
+    }
+  }
+
   // 1. True Shopify Best-Selling order from /collections/all?sort_by=best-selling
   const orderedBest: ProductPreview[] = [];
   const usedBest = new Set<string>();

@@ -1109,7 +1109,7 @@ export function ShopAnalyticsView({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] p-0.5 text-xs font-semibold">
                     <button
                       type="button"
@@ -1134,6 +1134,20 @@ export function ShopAnalyticsView({
                       Last published
                     </button>
                   </div>
+
+                  {brand.website_url && (
+                    <a
+                      href={`${brand.website_url.replace(/\/+$/, "")}/collections/all?sort_by=${
+                        productSort === "best" ? "best-selling" : "created-descending"
+                      }`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-xl border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                    >
+                      {productSort === "best" ? "Bestsellers" : "Nyeste"}
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -1873,29 +1887,45 @@ export function ShopAnalyticsView({
               />
             </div>
 
-            <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F5F7FA] p-1 text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setProductSort("best")}
-                className={`rounded-lg px-3 py-1.5 ${
-                  productSort === "best"
-                    ? "bg-white text-[#0F172A] shadow-xs"
-                    : "text-[#64748B]"
-                }`}
-              >
-                Best Seller
-              </button>
-              <button
-                type="button"
-                onClick={() => setProductSort("latest")}
-                className={`rounded-lg px-3 py-1.5 ${
-                  productSort === "latest"
-                    ? "bg-white text-[#0F172A] shadow-xs"
-                    : "text-[#64748B]"
-                }`}
-              >
-                Last published
-              </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F5F7FA] p-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setProductSort("best")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    productSort === "best"
+                      ? "bg-white text-[#0F172A] shadow-xs"
+                      : "text-[#64748B]"
+                  }`}
+                >
+                  Best Seller
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductSort("latest")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    productSort === "latest"
+                      ? "bg-white text-[#0F172A] shadow-xs"
+                      : "text-[#64748B]"
+                  }`}
+                >
+                  Last published
+                </button>
+              </div>
+
+              {brand.website_url && (
+                <a
+                  href={`${brand.website_url.replace(/\/+$/, "")}/collections/all?sort_by=${
+                    productSort === "best" ? "best-selling" : "created-descending"
+                  }`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-xl border border-[#E2E6EF] bg-white px-3 py-2 text-xs font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                >
+                  Åbn {productSort === "best" ? "Bestsellers" : "Nyeste"}
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </a>
+              )}
             </div>
           </div>
 

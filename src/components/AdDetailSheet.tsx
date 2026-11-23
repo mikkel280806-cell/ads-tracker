@@ -24,6 +24,7 @@ import {
 import type { Ad, Board } from "@/lib/types";
 import type { AdRankingMeta } from "@/lib/ad-ranking";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
+import { preloadImage, preloadVideo } from "@/lib/media-preloader";
 import { FacebookColorIcon, MetaInfinityIcon } from "./BrandIcons";
 
 interface AdDetailSheetProps {
@@ -149,6 +150,22 @@ export function AdDetailSheet({
   const hasPrev = currentIdx > 0 && Boolean(onSelectAd);
   const hasNext =
     currentIdx >= 0 && currentIdx < adsList.length - 1 && Boolean(onSelectAd);
+
+  // Preload adjacent ads (+1, +2, -1) so prev/next navigation plays instantaneously
+  useEffect(() => {
+    if (!ad || currentIdx < 0) return;
+    const neighbors = [
+      adsList[currentIdx + 1],
+      adsList[currentIdx + 2],
+      adsList[currentIdx - 1],
+    ].filter(Boolean);
+    for (const n of neighbors) {
+      preloadImage(n.thumbnail_url || n.fallback_image_url || n.media_url);
+      if (n.media_type === "video" && n.media_url) {
+        preloadVideo(n.media_url);
+      }
+    }
+  }, [ad, adsList, currentIdx]);
 
   // Keyboard shortcuts: Escape to close, Left/Right to cycle ads
   useEffect(() => {

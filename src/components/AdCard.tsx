@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Bookmark,
   BookmarkPlus,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import { getActiveDays } from "@/lib/url-parser";
+import { preloadImage, preloadVideo } from "@/lib/media-preloader";
 
 interface AdCardProps {
   ad: Ad;
@@ -36,6 +37,34 @@ export function AdCard({
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
+  const [nearViewport, setNearViewport] = useState(false);
+  const cardRef = useRef<HTMLElement | null>(null);
+
+  const isVideoFile =
+    ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
+
+  const primaryImg = imgFailed
+    ? ad.fallback_image_url || ""
+    : ad.thumbnail_url || ad.fallback_image_url || (!isVideoFile ? ad.media_url : "") || "";
+
+  // Instagram/TikTok-style predictive lookahead: warm poster + video ~1200px before entering viewport
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setNearViewport(true);
+          if (primaryImg) preloadImage(primaryImg);
+          if (isVideoFile && ad.media_url) preloadVideo(ad.media_url);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "1200px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ad.media_url, isVideoFile, primaryImg]);
 
   const activeDays = getActiveDays(ad.started_running_at);
   const inFolders = ad.board_ids.length > 0;
@@ -49,13 +78,6 @@ export function AdCard({
       : rank === 2
         ? "bg-gradient-to-b from-[#F8FAFC] via-[#CBD5E1] to-[#94A3B8] text-[#0F172A] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.18)]"
         : "bg-gradient-to-b from-[#FDBA74] via-[#D97706] to-[#9A3412] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_1px_2px_rgba(15,23,42,0.18)]";
-
-  const isVideoFile =
-    ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
-
-  const primaryImg = imgFailed
-    ? ad.fallback_image_url || ""
-    : ad.thumbnail_url || ad.fallback_image_url || ad.media_url || "";
 
   // Clamp extreme outlier banners only; 9:16 (0.56), 4:5 (0.8), 1:1 (1.0), 16:9 (1.78) all show 100% uncropped
   const clampedRatio = naturalRatio
@@ -74,6 +96,7 @@ export function AdCard({
 
   return (
     <article
+      ref={cardRef}
       className="group relative flex flex-col rounded-[14px] border border-[#EAECEF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 hover:border-[#D8DEE9] hover:shadow-[0_10px_28px_-8px_rgba(15,23,42,0.09)]"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
@@ -184,20 +207,22 @@ export function AdCard({
             }
           }}
           style={{
-            aspectRatio: primaryImg
-              ? String(clampedRatio ?? fallbackRatio)
-              : "1 / 1",
+            aspectRatio:
+              primaryImg || isVideoFile
+                ? String(clampedRatio ?? fallbackRatio)
+                : "1 / 1",
           }}
           className="relative w-full cursor-pointer overflow-hidden rounded-[10px] bg-[#F3F5F9]"
         >
-          {isVideoFile && isHovered && !imgFailed ? (
+          {isVideoFile && (isHovered || !primaryImg) && !imgFailed ? (
             <video
               src={ad.media_url}
-              poster={primaryImg}
-              autoPlay
+              poster={primaryImg || undefined}
+              autoPlay={isHovered}
               muted
               loop
               playsInline
+              preload={nearViewport ? "auto" : "metadata"}
               onLoadedMetadata={(e) => {
                 const v = e.currentTarget;
                 if (v.videoWidth > 0 && v.videoHeight > 0) {
@@ -205,7 +230,7 @@ export function AdCard({
                 }
               }}
               onError={() => setImgFailed(true)}
-              className="h-full w-full object-contain bg-black"
+              className="h-full w-full bg-black object-contain"
             />
           ) : primaryImg ? (
             <>
@@ -216,7 +241,8 @@ export function AdCard({
               <img
                 src={primaryImg}
                 alt={`${ad.brand_name} — ${ad.headline}`}
-                loading="lazy"
+                loading={nearViewport ? "eager" : "lazy"}
+                decoding="async"
                 onLoad={(e) => {
                   const img = e.currentTarget;
                   if (img.naturalWidth > 0 && img.naturalHeight > 0) {

@@ -20,6 +20,7 @@ import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types"
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import { dedupeAds, getActiveDays } from "@/lib/url-parser";
 import { buildAdRankIndex, sortAdsForExplore } from "@/lib/ad-ranking";
+import { preloadFeedWindow } from "@/lib/media-preloader";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
 import { CollectionsView } from "./CollectionsView";
@@ -82,7 +83,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [rankOpen, setRankOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("top");
-  const [visibleLimit, setVisibleLimit] = useState(24);
+  const [visibleLimit, setVisibleLimit] = useState(40);
   const [masonryCols, setMasonryCols] = useState(4);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -364,6 +365,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     if (selectedFolderId === boardId) setSelectedFolderId(null);
   };
 
+  const handleAddCustomAd = (newAd: Ad) => {
+    setAds((prev) => [newAd, ...prev.filter((a) => a.id !== newAd.id)]);
+    syncCatalog({ action: "upsert_ad", ad: newAd });
+    showToast(`Video tilføjet til folder`);
+  };
+
   const openShopAnalytics = (brandId: string) => {
     const exists = brands.some((b) => b.id === brandId);
     if (!exists) return;
@@ -463,7 +470,13 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const activeFilterCount =
     (marketFilter !== "ALL" ? 1 : 0) + (mediaFilter !== "all" ? 1 : 0);
 
-  // Automatic seamless infinite scroll for Explore (loads next 24 ads 650px before bottom)
+  // Predictive Instagram/TikTok-style media lookahead for Explore feed
+  useEffect(() => {
+    if (view !== "explore" || visibleAds.length === 0) return;
+    preloadFeedWindow(visibleAds, Math.max(0, visibleLimit - 40), 56, 12);
+  }, [view, visibleAds, visibleLimit]);
+
+  // Automatic seamless infinite scroll for Explore (loads next 32 ads ~2 screens before bottom)
   useEffect(() => {
     if (view !== "explore") return;
     if (visibleAds.length <= visibleLimit) return;
@@ -473,10 +486,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisibleLimit((prev) => Math.min(visibleAds.length, prev + 24));
+          setVisibleLimit((prev) => Math.min(visibleAds.length, prev + 32));
         }
       },
-      { rootMargin: "650px 0px" }
+      { rootMargin: "1800px 0px" }
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -497,7 +510,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   return (
     <>
-    <div className="flex min-h-dvh w-full overflow-x-clip bg-[#F7F8FB] lg:bg-[#05060B]">
+    <div className="flex min-h-dvh w-full overflow-x-clip bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — ONLY SHOPS, EXPLORE, AND FOLDERS
          ===================================================================== */}
@@ -707,9 +720,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       </aside>
 
       {/* =====================================================================
-          FLUSH WHITE MAIN WORKSPACE
+          FLUSH WHITE MAIN WORKSPACE WITH ROUNDED TOP-LEFT CORNER
          ===================================================================== */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:bg-white">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:mt-2 lg:overflow-x-clip lg:rounded-tl-[22px] lg:bg-white">
         {/* CLEAN SOLID MOBILE TOP BAR */}
         <header className="pt-safe sticky top-0 z-30 flex items-center border-b border-[#ECEFF5] bg-white px-4 py-2.5 text-[#0F172A] lg:hidden">
           <button
@@ -1163,6 +1176,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 onOpenShop={openShopAnalytics}
                 onOpenAd={(ad) => setActiveAdId(ad.id)}
                 onToggleBoard={handleToggleBoard}
+                onAddCustomAd={handleAddCustomAd}
               />
             </div>
           )}
