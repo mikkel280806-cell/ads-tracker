@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/types";
 import { getTechMeta } from "@/lib/tech-catalog";
+import { buildAdRankIndex } from "@/lib/ad-ranking";
 import { dedupeAds, formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { MasonryGrid } from "./MasonryGrid";
@@ -509,6 +510,12 @@ export function ShopAnalyticsView({
     [uniqueHooks]
   );
 
+  // Intelligent Brand-Relative Ad Rank Index (consistent with Explore & Ad Detail Sheet)
+  const brandRankIndex = useMemo(
+    () => buildAdRankIndex(brandAds, [brand]),
+    [brandAds, brand]
+  );
+
   // Sorted Meta Ads for Ad Library tab
   const sortedMetaAds = useMemo(() => {
     return [...brandAds].sort((a, b) => {
@@ -518,12 +525,11 @@ export function ShopAnalyticsView({
       if (metaSort === "duplicated") {
         return (b.duplicated_count || 1) - (a.duplicated_count || 1);
       }
-      // Top Performing = weighted score of longevity + duplication
-      const scoreA = getActiveDays(a.started_running_at) * 1.2 + (a.duplicated_count || 1) * 18;
-      const scoreB = getActiveDays(b.started_running_at) * 1.2 + (b.duplicated_count || 1) * 18;
-      return scoreB - scoreA;
+      const rankA = brandRankIndex.get(a.id)?.brandRank ?? 9999;
+      const rankB = brandRankIndex.get(b.id)?.brandRank ?? 9999;
+      return rankA - rankB;
     });
-  }, [brandAds, metaSort]);
+  }, [brandAds, brandRankIndex, metaSort]);
 
   const filteredCreatives = useMemo(() => {
     if (creativeFormat === "all") return sortedMetaAds;

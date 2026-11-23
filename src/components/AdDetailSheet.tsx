@@ -22,11 +22,13 @@ import {
   X,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
+import type { AdRankingMeta } from "@/lib/ad-ranking";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
 import { FacebookColorIcon, MetaInfinityIcon } from "./BrandIcons";
 
 interface AdDetailSheetProps {
   ad: Ad | null;
+  rankMeta?: AdRankingMeta;
   adsList?: Ad[];
   boards: Board[];
   onClose: () => void;
@@ -56,6 +58,7 @@ function formatReadableDate(iso?: string): string {
 
 export function AdDetailSheet({
   ad,
+  rankMeta,
   adsList = [],
   boards,
   onClose,
@@ -678,6 +681,54 @@ export function AdDetailSheet({
                       {formatIsoDate(ad.started_running_at)}
                     </span>
                   </div>
+
+                  {/* Impressions */}
+                  {rankMeta && (
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">Impressions</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-mono-num font-semibold text-[#0F172A]">
+                          {formatReach(rankMeta.impressions)}
+                        </span>
+                        <span className="font-mono-num text-[11px] text-[#64748B]">
+                          (~{formatReach(rankMeta.dailyImpressions)}/day)
+                        </span>
+                        <span className="rounded-md bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#64748B]">
+                          {rankMeta.impressionsSource === "meta_eu" ? "EU" : "Est."}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Brand Ad Rank */}
+                  {rankMeta && (
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">Ad Rank</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 font-mono-num text-[11px] font-bold leading-none ${
+                            rankMeta.brandRank === 1
+                              ? "bg-gradient-to-b from-[#FDE047] via-[#EAB308] to-[#CA8A04] text-[#422006]"
+                              : rankMeta.brandRank === 2
+                                ? "bg-gradient-to-b from-[#F8FAFC] via-[#CBD5E1] to-[#94A3B8] text-[#0F172A]"
+                                : rankMeta.brandRank === 3
+                                  ? "bg-gradient-to-b from-[#FDBA74] via-[#D97706] to-[#9A3412] text-white"
+                                  : "bg-[#F1F5F9] text-[#0F172A]"
+                          }`}
+                        >
+                          #{rankMeta.brandRank}
+                        </span>
+                        <span className="text-[11.5px] text-[#64748B]">
+                          of {rankMeta.brandTotalAds} in {ad.brand_name}
+                        </span>
+                        {rankMeta.tier !== "Active" && (
+                          <span className="rounded-md bg-[#ECFDF3] px-1.5 py-0.5 text-[10px] font-semibold text-[#15803D]">
+                            {rankMeta.tier}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* CTA */}
                   {ad.cta_text && (

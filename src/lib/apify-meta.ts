@@ -40,6 +40,9 @@ export interface ApifyMetaAdItem {
   endDate?: string;
   runningTAT?: number;
   format?: string;
+  impressions?: number | { lower_bound?: number; upper_bound?: number };
+  euTotalReach?: number;
+  reach?: number;
 }
 
 function getApifyToken(): string | null {
@@ -131,6 +134,21 @@ export function mapApifyMetaAd(
     fallbackBrand.defaultFallbackImage ||
     "";
 
+  const rawImp =
+    typeof raw.euTotalReach === "number" && raw.euTotalReach > 0
+      ? raw.euTotalReach
+      : typeof raw.reach === "number" && raw.reach > 0
+        ? raw.reach
+        : typeof raw.impressions === "number" && raw.impressions > 0
+          ? raw.impressions
+          : typeof raw.impressions === "object" && raw.impressions
+            ? Math.round(
+                ((raw.impressions.lower_bound || 0) +
+                  (raw.impressions.upper_bound || raw.impressions.lower_bound || 0)) /
+                  2
+              ) || undefined
+            : undefined;
+
   return {
     id: `meta-${archiveId}`,
     brand_id: brandId,
@@ -164,6 +182,7 @@ export function mapApifyMetaAd(
     landing_page_path: landingPath,
     is_active: raw.active ?? true,
     started_running_at: startedAt,
+    eu_reach: rawImp,
     duplicated_count: duplicatedCount,
     platforms,
     status: "ready",

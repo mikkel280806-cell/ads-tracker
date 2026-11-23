@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Award,
   Building2,
   Calendar,
   Check,
@@ -9,6 +10,7 @@ import {
   Clock,
   Compass,
   FolderKanban,
+  Info,
   ListFilter,
   Plus,
   Search,
@@ -17,6 +19,7 @@ import {
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import { dedupeAds, getActiveDays } from "@/lib/url-parser";
+import { buildAdRankIndex, sortAdsForExplore } from "@/lib/ad-ranking";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
 import { CollectionsView } from "./CollectionsView";
@@ -72,6 +75,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image" | "carousel">("all");
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
+  const [rankMin, setRankMin] = useState<number | null>(null);
+  const [rankMax, setRankMax] = useState<number | null>(null);
+  const [rankMinDraft, setRankMinDraft] = useState("");
+  const [rankMaxDraft, setRankMaxDraft] = useState("");
+  const [rankOpen, setRankOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("top");
   const [visibleLimit, setVisibleLimit] = useState(24);
@@ -366,10 +374,17 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     });
   };
 
+  // Brand-relative Ad Rank & Impressions intelligence index across all deduplicated ads
+  const dedupedAds = useMemo(() => dedupeAds(ads), [ads]);
+  const adRankIndex = useMemo(
+    () => buildAdRankIndex(dedupedAds, brands),
+    [dedupedAds, brands]
+  );
+
   // Filtered & sorted Explore ads
   const visibleAds = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = dedupeAds(ads).filter((ad) => {
+    const list = dedupedAds.filter((ad) => {
       if (marketFilter === "DK" && ad.market !== "DK") return false;
       if (marketFilter === "US" && ad.market === "DK") return false;
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
@@ -379,6 +394,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         if (timeFilter === "7d" && days > 7) return false;
         if (timeFilter === "30d" && days > 30) return false;
         if (timeFilter === "90d" && days > 90) return false;
+      }
+      if (rankMin !== null || rankMax !== null) {
+        const meta = adRankIndex.get(ad.id);
+        const br = meta?.brandRank ?? 999;
+        if (rankMin !== null && br < rankMin) return false;
+        if (rankMax !== null && br > rankMax) return false;
       }
       if (q) {
         const haystack = [
@@ -414,45 +435,19 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       });
     }
 
-    // Top Performing: balanced blend of reach/impressions + scaling + longevity,
-    // with per-brand diversity interleaving so no single brand monopolizes Explore.
-    const brandMap = new Map(brands.map((b) => [b.id, b]));
-    const baseScore = (ad: Ad) => {
-      const days = Math.max(1, getActiveDays(ad.started_running_at));
-      const brand = brandMap.get(ad.brand_id);
-      const longevityScore = Math.log1p(Math.min(days, 365)) * 14;
-      const reachScore =
-        ad.eu_reach && ad.eu_reach > 0
-          ? Math.log10(ad.eu_reach + 10) * 18
-          : Math.log10(((brand?.monthly_visits || 0) / 1000) + 10) * 9;
-      const scalingScore =
-        Math.log1p(Math.max(0, (ad.duplicated_count || 1) - 1)) * 26 +
-        Math.log10((ad.brand_live_ads || brand?.active_ads_count || 1) + 1) * 7;
-      const spendBonus =
-        ad.estimated_spend && ad.estimated_spend > 0
-          ? Math.log10(ad.estimated_spend + 10) * 8
-          : 0;
-      return longevityScore + reachScore + scalingScore + spendBonus;
-    };
-
-    const scored = list
-      .map((ad) => ({ ad, raw: baseScore(ad) }))
-      .sort((a, b) => b.raw - a.raw);
-
-    if (brandFilter !== "all") {
-      return scored.map((s) => s.ad);
-    }
-
-    const brandSeenCount = new Map<string, number>();
-    return scored
-      .map((item) => {
-        const rankInBrand = brandSeenCount.get(item.ad.brand_id) || 0;
-        brandSeenCount.set(item.ad.brand_id, rankInBrand + 1);
-        return { ad: item.ad, finalScore: item.raw - rankInBrand * 22 };
-      })
-      .sort((a, b) => b.finalScore - a.finalScore)
-      .map((s) => s.ad);
-  }, [ads, brands, marketFilter, brandFilter, mediaFilter, timeFilter, search, sortBy]);
+    return sortAdsForExplore(list, adRankIndex, brandFilter !== "all");
+  }, [
+    dedupedAds,
+    adRankIndex,
+    marketFilter,
+    brandFilter,
+    mediaFilter,
+    timeFilter,
+    rankMin,
+    rankMax,
+    search,
+    sortBy,
+  ]);
 
   const exploreMasonryColumns = useMemo(() => {
     const cols: { ad: Ad; idx: number }[][] = Array.from(
@@ -892,11 +887,110 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-[#94A3B8]" />
                   </div>
 
+                  {/* Ad Rank Min-Max Popover (exact Konvert/Afterlib style) */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiltersOpen(false);
+                        setRankMinDraft(rankMin !== null ? String(rankMin) : "");
+                        setRankMaxDraft(rankMax !== null ? String(rankMax) : "");
+                        setRankOpen((v) => !v);
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+                        rankMin !== null || rankMax !== null || rankOpen
+                          ? "bg-[#F1F5F9] text-[#0F172A]"
+                          : "text-[#1E293B] hover:bg-[#F3F5F9]"
+                      }`}
+                    >
+                      <Award className="h-3.5 w-3.5 text-[#475569]" />
+                      <span>
+                        {rankMin !== null || rankMax !== null
+                          ? `Rank ${rankMin ?? 1}–${rankMax ?? "∞"}`
+                          : "Ad Rank"}
+                      </span>
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform ${
+                          rankOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {rankOpen && (
+                      <div className="absolute right-0 top-10 z-40 w-[330px] overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                        <div className="space-y-3.5 p-4">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              min={1}
+                              inputMode="numeric"
+                              value={rankMinDraft}
+                              onChange={(e) => setRankMinDraft(e.target.value)}
+                              placeholder="Min"
+                              className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[14px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A]"
+                            />
+                            <span className="text-[#94A3B8]">-</span>
+                            <input
+                              type="number"
+                              min={1}
+                              inputMode="numeric"
+                              value={rankMaxDraft}
+                              onChange={(e) => setRankMaxDraft(e.target.value)}
+                              placeholder="50"
+                              className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[14px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A]"
+                            />
+                          </div>
+
+                          <div className="flex items-start gap-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-3 text-[12px] leading-[1.45] text-[#475569]">
+                            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
+                            <p>
+                              Ads are ranked by comparing impressions to other ads from their brand. The lower the rank, the better the ad is performing.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-[#ECEFF5] px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRankMin(null);
+                              setRankMax(null);
+                              setRankMinDraft("");
+                              setRankMaxDraft("");
+                              setVisibleLimit(24);
+                              setRankOpen(false);
+                            }}
+                            className="text-[13px] font-medium text-[#334155] transition-colors hover:text-[#0F172A]"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const parsedMin = parseInt(rankMinDraft, 10);
+                              const parsedMax = parseInt(rankMaxDraft, 10);
+                              setRankMin(Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null);
+                              setRankMax(Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null);
+                              setVisibleLimit(24);
+                              setRankOpen(false);
+                            }}
+                            className="rounded-xl bg-[#0F172A] px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1E293B]"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Filters Popover (Market + Format) */}
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setFiltersOpen((v) => !v)}
+                      onClick={() => {
+                        setRankOpen(false);
+                        setFiltersOpen((v) => !v);
+                      }}
                       className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
                         activeFilterCount > 0 || filtersOpen
                           ? "bg-[#F1F5F9] text-[#0F172A]"
@@ -1122,9 +1216,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       {/* AD DETAIL SHEET */}
       <AdDetailSheet
         ad={activeAd}
+        rankMeta={activeAd ? adRankIndex.get(activeAd.id) : undefined}
         adsList={
           selectedShop
-            ? ads.filter((a) => a.brand_id === selectedShop.id)
+            ? dedupedAds.filter((a) => a.brand_id === selectedShop.id)
             : visibleAds
         }
         boards={boards}
