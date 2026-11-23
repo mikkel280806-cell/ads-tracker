@@ -3,23 +3,34 @@
 import React, { useRef, useState } from "react";
 import {
   ArrowLeft,
-  ArrowUpRight,
+  Check,
   Film,
   FolderKanban,
   Layers,
   Link2,
   Loader2,
+  Pencil,
   Plus,
-  Store,
   Trash2,
   Upload,
   X,
 } from "lucide-react";
 import type { Ad, Board, Brand } from "@/lib/types";
-import { formatReach } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { MasonryGrid } from "./MasonryGrid";
-import { ShopifyBagIcon } from "./BrandIcons";
+
+const FOLDER_COLORS = [
+  "#0027eb",
+  "#0284c7",
+  "#0ea5e9",
+  "#0d9488",
+  "#16a34a",
+  "#65a30d",
+  "#d97706",
+  "#ea580c",
+  "#e11d48",
+  "#0f172a",
+];
 
 interface CollectionsViewProps {
   boards: Board[];
@@ -27,7 +38,8 @@ interface CollectionsViewProps {
   brands: Brand[];
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string | null) => void;
-  onCreateBoard: (name: string) => void;
+  onCreateBoard: (name: string, accentColor?: string) => void;
+  onUpdateBoard: (boardId: string, patch: { name: string; accent_color: string }) => void;
   onDeleteBoard: (boardId: string) => void;
   onOpenShop: (brandId: string) => void;
   onOpenAd: (ad: Ad) => void;
@@ -95,18 +107,152 @@ async function extractVideoPosterBlob(file: File): Promise<Blob | null> {
 export function CollectionsView({
   boards,
   ads,
-  brands,
+  brands: _brands,
   selectedFolderId,
   onSelectFolder,
   onCreateBoard,
+  onUpdateBoard,
   onDeleteBoard,
   onOpenShop,
   onOpenAd,
   onToggleBoard,
   onAddCustomAd,
 }: CollectionsViewProps) {
+  void _brands;
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [newColor, setNewColor] = useState(FOLDER_COLORS[0]);
+
+  // Edit Folder Modal state
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState(FOLDER_COLORS[0]);
+
+  const openEditModal = (board: Board) => {
+    setEditingBoard(board);
+    setEditName(board.name);
+    setEditColor(board.accent_color || FOLDER_COLORS[0]);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBoard || !editName.trim()) return;
+    onUpdateBoard(editingBoard.id, {
+      name: editName.trim(),
+      accent_color: editColor,
+    });
+    setEditingBoard(null);
+  };
+
+  const editFolderModal = editingBoard ? (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/50 p-0 backdrop-blur-xs sm:items-center sm:p-4"
+      onClick={() => setEditingBoard(null)}
+    >
+      <div
+        className="animate-sheet-up w-full max-w-md rounded-t-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-colors"
+              style={{ backgroundColor: editColor }}
+            >
+              <FolderKanban className="h-4.5 w-4.5" />
+            </span>
+            <div>
+              <h2 className="font-display text-[16.5px] font-bold text-[#0F172A]">
+                Rediger folder
+              </h2>
+              <p className="text-xs text-[#64748B]">
+                Skift navn og farve på din folder.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEditingBoard(null)}
+            aria-label="Luk"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSaveEdit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-[11.5px] font-semibold text-[#334155]">
+              Navn
+            </label>
+            <input
+              type="text"
+              autoFocus
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Folder-navn..."
+              className="w-full rounded-xl border border-[#E2E6EF] bg-[#F7F8FB] px-3 py-2.5 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-[13.5px]"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-[11.5px] font-semibold text-[#334155]">
+              Farve
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              {FOLDER_COLORS.map((hex) => {
+                const selected = editColor.toLowerCase() === hex.toLowerCase();
+                return (
+                  <button
+                    key={hex}
+                    type="button"
+                    onClick={() => setEditColor(hex)}
+                    aria-label={`Vælg farve ${hex}`}
+                    className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform hover:scale-105 ${
+                      selected ? "ring-2 ring-[#0F172A] ring-offset-2" : ""
+                    }`}
+                    style={{ backgroundColor: hex }}
+                  >
+                    {selected && <Check className="h-3.5 w-3.5 text-white" />}
+                  </button>
+                );
+              })}
+
+              <label
+                title="Vælg egen farve"
+                className="relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[10px] font-bold text-[#64748B] transition-colors hover:border-[#94A3B8] hover:text-[#0F172A]"
+              >
+                <span>+</span>
+                <input
+                  type="color"
+                  value={editColor}
+                  onChange={(e) => setEditColor(e.target.value)}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setEditingBoard(null)}
+              className="rounded-xl px-3.5 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+            >
+              Annuller
+            </button>
+            <button
+              type="submit"
+              disabled={!editName.trim()}
+              className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Gem ændringer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null;
 
   // Add Video Modal state (Instagram link or local file / iPhone Photos upload)
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -133,8 +279,9 @@ export function CollectionsView({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onCreateBoard(name.trim());
+    onCreateBoard(name.trim(), newColor);
     setName("");
+    setNewColor(FOLDER_COLORS[(boards.length + 1) % FOLDER_COLORS.length]);
     setCreating(false);
   };
 
@@ -333,7 +480,15 @@ export function CollectionsView({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openEditModal(activeFolder)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E2E6EF] bg-white px-3 py-2 text-xs font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Rediger
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -347,6 +502,8 @@ export function CollectionsView({
             </button>
           </div>
         </div>
+
+        {editFolderModal}
 
         {/* ADD VIDEO MODAL (Instagram Link OR Local File / iPhone Photo Library) */}
         {addModalOpen && (
@@ -660,22 +817,43 @@ export function CollectionsView({
       {creating && (
         <form
           onSubmit={handleSubmit}
-          className="animate-sheet-up flex items-center gap-2 rounded-2xl border border-[#DCE3F5] bg-white p-3"
+          className="animate-sheet-up space-y-3 rounded-2xl border border-[#DCE3F5] bg-white p-3.5"
         >
-          <input
-            type="text"
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Navn på ny folder (fx DK Winners)..."
-            className="min-w-0 flex-1 rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3.5 py-2 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-sm"
-          />
-          <button
-            type="submit"
-            className="adtrack-btn-primary shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold text-white sm:py-2"
-          >
-            Opret Folder
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Navn på ny folder (fx DK Winners)..."
+              className="min-w-0 flex-1 rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3.5 py-2 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-sm"
+            />
+            <button
+              type="submit"
+              className="adtrack-btn-primary shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold text-white sm:py-2"
+            >
+              Opret Folder
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {FOLDER_COLORS.map((hex) => {
+              const selected = newColor.toLowerCase() === hex.toLowerCase();
+              return (
+                <button
+                  key={hex}
+                  type="button"
+                  onClick={() => setNewColor(hex)}
+                  aria-label={`Vælg farve ${hex}`}
+                  className={`flex h-6 w-6 items-center justify-center rounded-full transition-transform hover:scale-105 ${
+                    selected ? "ring-2 ring-[#0F172A] ring-offset-2" : ""
+                  }`}
+                  style={{ backgroundColor: hex }}
+                >
+                  {selected && <Check className="h-3 w-3 text-white" />}
+                </button>
+              );
+            })}
+          </div>
         </form>
       )}
 
@@ -774,19 +952,33 @@ export function CollectionsView({
                   </p>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => onDeleteBoard(board.id)}
-                  aria-label={`Slet ${board.name}`}
-                  className="rounded-lg p-1.5 text-[#94A3B8] opacity-0 transition-all hover:bg-[#FFF1F2] hover:text-[#E11D48] group-hover:opacity-100"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(board)}
+                    aria-label={`Rediger ${board.name}`}
+                    title="Rediger navn & farve"
+                    className="rounded-lg p-1.5 text-[#94A3B8] transition-all hover:bg-[#F1F5F9] hover:text-[#0F172A] sm:opacity-0 sm:group-hover:opacity-100"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteBoard(board.id)}
+                    aria-label={`Slet ${board.name}`}
+                    title="Slet folder"
+                    className="rounded-lg p-1.5 text-[#94A3B8] transition-all hover:bg-[#FFF1F2] hover:text-[#E11D48] sm:opacity-0 sm:group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {editFolderModal}
     </div>
   );
 }

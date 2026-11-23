@@ -343,18 +343,35 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     });
   };
 
-  const handleCreateBoard = (name: string) => {
+  const handleCreateBoard = (name: string, accentColor?: string) => {
     const palette = ["#0027eb", "#16a34a", "#d97706", "#e11d48", "#0284c7"];
     const board: Board = {
       id: `folder-${Date.now()}`,
       name,
-      description: "Personlig folder til shops og Meta ads",
-      accent_color: palette[boards.length % palette.length],
+      description: "Personlig folder til videoer og Meta ads",
+      accent_color: accentColor || palette[boards.length % palette.length],
       created_at: new Date().toISOString(),
     };
     setBoards((prev) => [...prev, board]);
     syncCatalog({ action: "upsert_folder", folder: board });
     showToast(`Folder "${name}" oprettet`);
+  };
+
+  const handleUpdateBoard = (
+    boardId: string,
+    patch: { name: string; accent_color: string }
+  ) => {
+    const existing = boards.find((b) => b.id === boardId);
+    if (!existing) return;
+    const cleanName = patch.name.trim() || existing.name;
+    const updated: Board = {
+      ...existing,
+      name: cleanName,
+      accent_color: patch.accent_color || existing.accent_color,
+    };
+    setBoards((prev) => prev.map((b) => (b.id === boardId ? updated : b)));
+    syncCatalog({ action: "upsert_folder", folder: updated });
+    showToast(`Folder "${cleanName}" opdateret`);
   };
 
   const handleDeleteBoard = (boardId: string) => {
@@ -1199,6 +1216,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   navigateWithSkeleton(() => setSelectedFolderId(id))
                 }
                 onCreateBoard={handleCreateBoard}
+                onUpdateBoard={handleUpdateBoard}
                 onDeleteBoard={handleDeleteBoard}
                 onOpenShop={openShopAnalytics}
                 onOpenAd={(ad) => setActiveAdId(ad.id)}
