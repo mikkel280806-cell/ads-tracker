@@ -2,13 +2,10 @@
 
 import React, { useState } from "react";
 import {
-  ArrowUpRight,
   Bookmark,
+  BookmarkPlus,
   Check,
-  Clock,
-  Film,
-  Image as ImageIcon,
-  Layers,
+  ChevronDown,
   Play,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
@@ -24,20 +21,6 @@ interface AdCardProps {
   onOpenBrand?: (brandId: string) => void;
 }
 
-function getDomainDisplay(url?: string, path?: string): string {
-  if (!url) return "";
-  try {
-    const host = new URL(url).hostname.replace(/^www\./, "");
-    if (path && path !== "/") {
-      const shortPath = path.length > 22 ? `${path.slice(0, 22)}…` : path;
-      return `${host}${shortPath}`;
-    }
-    return host;
-  } catch {
-    return url;
-  }
-}
-
 export function AdCard({
   ad,
   boards,
@@ -48,9 +31,16 @@ export function AdCard({
   onOpenBrand,
 }: AdCardProps) {
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
+  const [copyExpanded, setCopyExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  const activeDays = getActiveDays(ad.started_running_at);
+  const inFolders = ad.board_ids.length > 0;
+  const savedBoardName = inFolders
+    ? boards.find((b) => ad.board_ids.includes(b.id))?.name
+    : undefined;
 
   const rankBadgeStyle =
     rank === 1
@@ -58,9 +48,6 @@ export function AdCard({
       : rank === 2
         ? "bg-gradient-to-b from-[#F8FAFC] via-[#CBD5E1] to-[#94A3B8] text-[#0F172A] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.18)]"
         : "bg-gradient-to-b from-[#FDBA74] via-[#D97706] to-[#9A3412] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_1px_2px_rgba(15,23,42,0.18)]";
-
-  const activeDays = getActiveDays(ad.started_running_at);
-  const inFolders = ad.board_ids.length > 0;
 
   const isVideoFile =
     ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
@@ -72,25 +59,28 @@ export function AdCard({
   const aspectClass =
     ad.aspect_ratio === "1:1"
       ? "aspect-square"
-      : ad.aspect_ratio === "9:16"
+      : ad.media_type === "video"
         ? "aspect-[9/14]"
         : "aspect-[4/5]";
 
+  const copyText = (ad.primary_text || "").trim();
+  const hasLongCopy = copyText.length > 105;
+
   return (
     <article
-      className="adtrack-card-interactive group relative flex flex-col overflow-hidden rounded-[18px]"
+      className="group relative flex flex-col rounded-[14px] border border-[#EAECEF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 hover:border-[#D8DEE9] hover:shadow-[0_10px_28px_-8px_rgba(15,23,42,0.09)]"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
         setFolderMenuOpen(false);
       }}
     >
-      {/* 1. CLEAN BRAND HEADER (KISS: Avatar, Name, Market, Bookmark) */}
-      <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
+      {/* 1. CLEAN KONVERT CARD HEADER: Avatar + Brand Name + [● 2 D] */}
+      <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
         <button
           type="button"
           onClick={() => (onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad))}
-          className="flex min-w-0 items-center gap-2.5 text-left"
+          className="flex min-w-0 items-center gap-2 text-left"
         >
           <div className="relative shrink-0">
             {ad.brand_logo_url ? (
@@ -98,12 +88,12 @@ export function AdCard({
               <img
                 src={ad.brand_logo_url}
                 alt={ad.brand_name}
-                className="h-8 w-8 rounded-full border border-[#ECEFF5] bg-white object-contain p-0.5"
+                className="h-7 w-7 rounded-full border border-[#ECEFF5] bg-white object-contain p-0.5"
               />
             ) : (
               <span
-                className="flex h-8 w-8 items-center justify-center rounded-full font-display text-[11px] font-bold text-white"
-                style={{ backgroundColor: ad.brand_avatar_color || "#0027eb" }}
+                className="flex h-7 w-7 items-center justify-center rounded-full font-display text-[10.5px] font-bold text-white"
+                style={{ backgroundColor: ad.brand_avatar_color || "#0F172A" }}
               >
                 {ad.brand_avatar_initials}
               </span>
@@ -117,102 +107,66 @@ export function AdCard({
             )}
           </div>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate font-display text-[13.5px] font-semibold leading-tight text-[#0F172A]">
-                {ad.brand_name}
-              </span>
-              <span className="shrink-0 rounded bg-[#F1F5F9] px-1.5 py-px font-mono-num text-[9.5px] font-semibold text-[#64748B]">
-                {ad.market}
-              </span>
-            </div>
-            <div className="mt-0.5 flex items-center gap-2 font-mono-num text-[11px] text-[#64748B]">
-              <span className="inline-flex items-center gap-1 font-medium text-[#15803D]">
-                <Clock className="h-3 w-3" />
-                {activeDays}d
-              </span>
-              {ad.duplicated_count && ad.duplicated_count > 1 && (
-                <span className="inline-flex items-center gap-0.5 font-medium text-[#475569]">
-                  <Layers className="h-3 w-3 text-[#64748B]" />
-                  ×{ad.duplicated_count}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-0.5">
-                {ad.media_type === "video" ? (
-                  <Film className="h-3 w-3" />
-                ) : (
-                  <ImageIcon className="h-3 w-3" />
-                )}
-              </span>
-            </div>
-          </div>
+          <span className="truncate font-display text-[13px] font-semibold leading-tight text-[#0F172A]">
+            {ad.brand_name}
+          </span>
         </button>
 
-        {/* Save to Folder Bookmark */}
-        <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setFolderMenuOpen((v) => !v)}
-            title="Gem i folder"
-            className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-              inFolders
-                ? "bg-[#F1F5F9] text-[#0F172A]"
-                : "text-[#94A3B8] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+        {/* Crisp Green-Dot Days Running Pill */}
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#EAECEF] bg-white px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#334155]">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              ad.is_active ? "bg-[#22C55E]" : "bg-[#94A3B8]"
             }`}
-          >
-            <Bookmark
-              className="h-4 w-4"
-              fill={inFolders ? "currentColor" : "none"}
-            />
-          </button>
-
-          {folderMenuOpen && (
-            <div className="absolute right-0 top-9 z-40 w-48 rounded-2xl border border-[#E6E9F0] bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
-              <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                Gem i folder
-              </p>
-              {boards.map((board) => {
-                const selected = ad.board_ids.includes(board.id);
-                return (
-                  <button
-                    key={board.id}
-                    type="button"
-                    onClick={() => onToggleBoard(ad.id, board.id)}
-                    className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F3F5F9]"
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: board.accent_color }}
-                      />
-                      <span className="truncate">{board.name}</span>
-                    </span>
-                    {selected && (
-                      <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          />
+          {activeDays} D
+        </span>
       </div>
 
-      {/* 2. SCANNABLE 2-LINE COPY PREVIEW */}
-      {!compact && ad.primary_text && (
-        <button
-          type="button"
-          onClick={() => onOpen(ad)}
-          className="mb-2.5 block w-full px-3.5 text-left"
-        >
-          <p className="line-clamp-2 text-[12.5px] leading-[1.48] text-[#475569]">
-            {ad.primary_text}
+      {/* 2. AD COPY PREVIEW WITH GRADIENT FADE + FLOATING "See more" PILL */}
+      {!compact && copyText && (
+        <div className="relative px-3 pb-2.5">
+          <p
+            onClick={() => onOpen(ad)}
+            className={`cursor-pointer whitespace-pre-line text-[12.5px] leading-[1.45] text-[#334155] ${
+              copyExpanded ? "" : "line-clamp-3"
+            }`}
+          >
+            {copyText}
           </p>
-        </button>
+
+          {hasLongCopy && !copyExpanded && (
+            <div className="pointer-events-none absolute inset-x-3 bottom-1.5 flex items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pt-5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCopyExpanded(true);
+                }}
+                className="pointer-events-auto rounded-full border border-[#E6E9F0] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#0F172A] shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition-colors hover:bg-[#F8FAFC]"
+              >
+                See more
+              </button>
+            </div>
+          )}
+
+          {hasLongCopy && copyExpanded && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCopyExpanded(false);
+              }}
+              className="mt-1 text-[11px] font-medium text-[#64748B] hover:text-[#0F172A]"
+            >
+              See less
+            </button>
+          )}
+        </div>
       )}
 
-      {/* 3. CREATIVE MEDIA VIEWPORT */}
-      <div className="px-2.5">
+      {/* 3. TALL CREATIVE MEDIA VIEWPORT */}
+      <div className="px-2">
         <div
           role="button"
           tabIndex={0}
@@ -223,7 +177,7 @@ export function AdCard({
               onOpen(ad);
             }
           }}
-          className={`relative w-full cursor-pointer overflow-hidden rounded-[13px] bg-[#F3F5F9] ${aspectClass}`}
+          className={`relative w-full cursor-pointer overflow-hidden rounded-[10px] bg-[#F3F5F9] ${aspectClass}`}
         >
           {isVideoFile && isHovered && !imgFailed ? (
             <video
@@ -251,7 +205,7 @@ export function AdCard({
                   setImgLoaded(true);
                   if (!imgFailed) setImgFailed(true);
                 }}
-                className={`h-full w-full object-cover transition-all duration-300 ease-out group-hover:scale-[1.03] ${
+                className={`h-full w-full object-cover transition-all duration-300 ease-out group-hover:scale-[1.02] ${
                   imgLoaded ? "opacity-100" : "opacity-0"
                 }`}
               />
@@ -267,10 +221,10 @@ export function AdCard({
             </div>
           )}
 
-          {/* Frosted Glass Play Button */}
+          {/* Frosted Translucent Circular Play Button */}
           {ad.media_type === "video" && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-[#05060B]/45 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-[#0F172A]/85">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-black/55">
                 <Play className="ml-0.5 h-4 w-4 fill-current" />
               </span>
             </div>
@@ -278,34 +232,71 @@ export function AdCard({
         </div>
       </div>
 
-      {/* 4. MINIMAL FOOTER */}
-      <div className="mt-2.5 flex items-center justify-between gap-2 px-3.5 pb-3 pt-0.5">
+      {/* 4. FULL-WIDTH "Save to collection" FOOTER BAR */}
+      <div
+        className="relative mt-2 border-t border-[#F1F3F7]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
-          onClick={() => onOpen(ad)}
-          className="min-w-0 flex-1 text-left"
+          onClick={() => setFolderMenuOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-2 rounded-b-[14px] px-3 py-2.5 text-[12px] font-medium text-[#334155] transition-colors hover:bg-[#FAFBFD] hover:text-[#0F172A]"
         >
-          <p className="truncate font-display text-[12.5px] font-semibold text-[#0F172A]">
-            {ad.headline}
-          </p>
-          {ad.landing_page_url && (
-            <p className="mt-0.5 truncate font-mono-num text-[10.5px] text-[#94A3B8]">
-              {getDomainDisplay(ad.landing_page_url, ad.landing_page_path)}
-            </p>
-          )}
+          <span className="flex min-w-0 items-center gap-2">
+            {inFolders ? (
+              <Bookmark className="h-3.5 w-3.5 shrink-0 fill-[#0F172A] text-[#0F172A]" />
+            ) : (
+              <BookmarkPlus className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
+            )}
+            <span className="truncate">
+              {inFolders
+                ? ad.board_ids.length > 1
+                  ? `Saved in ${ad.board_ids.length} collections`
+                  : savedBoardName || "Saved to collection"
+                : "Save to collection"}
+            </span>
+          </span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 text-[#94A3B8] transition-transform ${
+              folderMenuOpen ? "rotate-180" : ""
+            }`}
+          />
         </button>
 
-        {ad.landing_page_url && (
-          <a
-            href={ad.landing_page_url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
-          >
-            {ad.cta_text || "Shop"}
-            <ArrowUpRight className="h-3 w-3" />
-          </a>
+        {folderMenuOpen && (
+          <div className="absolute bottom-full left-2 right-2 z-40 mb-1.5 rounded-xl border border-[#E6E9F0] bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)]">
+            <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+              Gem i folder
+            </p>
+            {boards.length === 0 ? (
+              <p className="px-2.5 py-2 text-xs text-[#94A3B8]">
+                Opret en folder i sidebaren først.
+              </p>
+            ) : (
+              boards.map((board) => {
+                const selected = ad.board_ids.includes(board.id);
+                return (
+                  <button
+                    key={board.id}
+                    type="button"
+                    onClick={() => onToggleBoard(ad.id, board.id)}
+                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F3F5F9]"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: board.accent_color }}
+                      />
+                      <span className="truncate">{board.name}</span>
+                    </span>
+                    {selected && (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
         )}
       </div>
     </article>

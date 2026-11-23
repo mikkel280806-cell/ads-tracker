@@ -110,54 +110,54 @@ export function ShopsSkeleton() {
 
 export function ExploreSkeleton() {
   return (
-    <div className="space-y-4 lg:space-y-5" aria-busy="true" aria-label="Indlæser annoncer">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <Skeleton className="h-7 w-24 rounded-lg" />
+    <div className="space-y-4" aria-busy="true" aria-label="Indlæser annoncer">
+      {/* Konvert-style Header */}
+      <div className="flex flex-col justify-between gap-3 border-b border-[#EFEFF4] pb-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-3 w-64" />
+          </div>
+        </div>
         <Skeleton className="h-9 w-full rounded-xl sm:w-64" />
       </div>
 
-      {/* Filter Bar */}
-      <div className="space-y-2.5 xl:flex xl:items-center xl:justify-between xl:gap-3 xl:space-y-0">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Skeleton className="h-9 w-full rounded-xl sm:w-64" />
-          <Skeleton className="h-9 w-full rounded-xl sm:w-52" />
-        </div>
+      {/* Single Clean Toolbar Row */}
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+        <Skeleton className="h-8 w-full rounded-lg lg:w-[270px]" />
         <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-32 rounded-xl" />
-          <Skeleton className="h-9 w-36 rounded-xl" />
-          <Skeleton className="h-9 w-36 rounded-xl" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
+          <Skeleton className="h-8 w-20 rounded-lg" />
+          <Skeleton className="h-8 w-20 rounded-lg" />
         </div>
       </div>
 
-      {/* Ad Card Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* 4-Column Staggered Ad Card Grid */}
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="adtrack-card flex flex-col overflow-hidden rounded-[18px] p-3"
+            className="flex flex-col overflow-hidden rounded-[14px] border border-[#EAECEF] bg-white"
           >
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="space-y-1.5">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-2.5 w-16" />
-                </div>
+            <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-7 rounded-full" />
+                <Skeleton className="h-3.5 w-24" />
               </div>
-              <Skeleton className="h-7 w-7 rounded-full" />
+              <Skeleton className="h-5 w-11 rounded-md" />
             </div>
-            <div className="mb-2.5 space-y-1.5">
+            <div className="space-y-1.5 px-3 pb-2.5">
               <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-4/5" />
             </div>
-            <Skeleton className="aspect-[4/5] w-full rounded-[13px]" />
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <div className="flex-1 space-y-1.5">
-                <Skeleton className="h-3.5 w-28" />
-                <Skeleton className="h-2.5 w-20" />
-              </div>
-              <Skeleton className="h-7 w-16 rounded-lg" />
+            <div className="px-2">
+              <Skeleton className={`${i % 2 === 0 ? "aspect-[9/14]" : "aspect-[4/5]"} w-full rounded-[10px]`} />
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-[#F1F3F7] px-3 py-2.5">
+              <Skeleton className="h-3.5 w-28" />
+              <Skeleton className="h-3.5 w-3.5 rounded" />
             </div>
           </div>
         ))}

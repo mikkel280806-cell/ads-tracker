@@ -4,14 +4,15 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
   Building2,
+  Calendar,
   Check,
   ChevronDown,
   Clock,
   Compass,
   Copy,
-  Film,
   FolderKanban,
   Link2,
+  ListFilter,
   Plus,
   Search,
   Sparkles,
@@ -77,9 +78,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [marketFilter, setMarketFilter] = useState<"ALL" | MarketCode>("ALL");
   const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image" | "carousel">("all");
   const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("top");
   const [visibleLimit, setVisibleLimit] = useState(24);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [masonryCols, setMasonryCols] = useState(4);
+
+  useEffect(() => {
+    const updateCols = () => {
+      const w = window.innerWidth;
+      if (w >= 1280) setMasonryCols(4);
+      else if (w >= 1024) setMasonryCols(3);
+      else if (w >= 640) setMasonryCols(2);
+      else setMasonryCols(1);
+    };
+    updateCols();
+    window.addEventListener("resize", updateCols);
+    return () => window.removeEventListener("resize", updateCols);
+  }, []);
 
   // Ad Detail Sheet
   const [activeAdId, setActiveAdId] = useState<string | null>(null);
@@ -374,6 +391,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       if (marketFilter === "US" && ad.market === "DK") return false;
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
       if (mediaFilter !== "all" && ad.media_type !== mediaFilter) return false;
+      if (timeFilter !== "all") {
+        const days = getActiveDays(ad.started_running_at);
+        if (timeFilter === "7d" && days > 7) return false;
+        if (timeFilter === "30d" && days > 30) return false;
+        if (timeFilter === "90d" && days > 90) return false;
+      }
       if (q) {
         const haystack = [
           ad.brand_name,
@@ -446,7 +469,21 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       })
       .sort((a, b) => b.finalScore - a.finalScore)
       .map((s) => s.ad);
-  }, [ads, brands, marketFilter, brandFilter, mediaFilter, search, sortBy]);
+  }, [ads, brands, marketFilter, brandFilter, mediaFilter, timeFilter, search, sortBy]);
+
+  const exploreMasonryColumns = useMemo(() => {
+    const cols: { ad: Ad; idx: number }[][] = Array.from(
+      { length: Math.max(1, masonryCols) },
+      () => []
+    );
+    visibleAds.slice(0, visibleLimit).forEach((ad, idx) => {
+      cols[idx % cols.length].push({ ad, idx });
+    });
+    return cols;
+  }, [visibleAds, visibleLimit, masonryCols]);
+
+  const activeFilterCount =
+    (marketFilter !== "ALL" ? 1 : 0) + (mediaFilter !== "all" ? 1 : 0);
 
   // Cross-brand winning hooks extracted from visibleAds
   const exploreHooks = useMemo(() => {
@@ -809,18 +846,28 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {/* =================================================================
-              VIEW 2: EXPLORE (Global Scraped Meta Ad Library + Hooks + LP)
+              VIEW 2: EXPLORE (Konvert-inspired Clean Masonry Ad Discovery)
              ================================================================= */}
           {view === "explore" && (
-            <div className="animate-view-in space-y-4 lg:space-y-5">
-              {/* Explore Header — Clean minimal */}
-              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
-                  Explore
-                </h1>
+            <div className="animate-view-in space-y-4">
+              {/* Konvert-style Explore Header: Icon Badge + Title + Subtitle (no Manage Plan / Display / Pin) */}
+              <div className="flex flex-col justify-between gap-3 border-b border-[#EFEFF4] pb-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
+                  <span className="adtrack-icon-badge flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
+                    <Compass className="h-[18px] w-[18px]" />
+                  </span>
+                  <div className="min-w-0">
+                    <h1 className="font-display text-[18px] font-bold leading-tight text-[#0F172A]">
+                      Explore
+                    </h1>
+                    <p className="mt-0.5 truncate text-[12px] text-[#64748B]">
+                      Browse through new and winning ads from top performing brands
+                    </p>
+                  </div>
+                </div>
 
-                {/* Sub-mode switcher: Ads | Hooks | Landing Pages */}
-                <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold sm:inline-flex">
+                {/* Clean Sub-mode switcher: Ads | Hooks | Landing Pages */}
+                <div className="grid grid-cols-3 rounded-xl bg-[#F3F4F6] p-1 text-xs font-semibold sm:inline-flex">
                   {[
                     { id: "ads" as const, short: "Ads", label: "Ads", count: visibleAds.length },
                     { id: "hooks" as const, short: "Hooks", label: "Hooks", count: exploreHooks.length },
@@ -850,130 +897,205 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 </div>
               </div>
 
-              {/* Unified Calm Filter Bar */}
-              <div className="space-y-2.5 xl:flex xl:items-center xl:justify-between xl:gap-3 xl:space-y-0">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  {/* Search (16px on mobile prevents iOS Safari auto-zoom) */}
-                  <div className="relative flex-1 sm:w-64 sm:flex-none">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
-                    <input
-                      id="explore-search-input"
-                      type="search"
-                      value={search}
-                      onChange={(e) => {
-                        setSearch(e.target.value);
-                        setVisibleLimit(24);
-                      }}
-                      placeholder="Søg brands, hooks, copy..."
-                      className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#94A3B8] sm:text-xs"
-                    />
-                  </div>
-
-                  {/* Clean Market Segmented Control */}
-                  <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold sm:inline-flex">
-                    {[
-                      { id: "ALL" as const, label: "Alle", count: ads.length },
-                      { id: "DK" as const, label: "DK", count: dkAdsCount },
-                      { id: "US" as const, label: "US", count: usAdsCount },
-                    ].map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          setMarketFilter(m.id);
-                          setVisibleLimit(24);
-                        }}
-                        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 transition-all ${
-                          marketFilter === m.id
-                            ? "bg-white text-[#0F172A] shadow-xs"
-                            : "text-[#64748B] hover:text-[#0F172A]"
-                        }`}
-                      >
-                        <span>{m.label}</span>
-                        <span
-                          className={`font-mono-num text-[10px] ${
-                            marketFilter === m.id ? "text-[#475569]" : "text-[#94A3B8]"
-                          }`}
-                        >
-                          {m.count}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+              {/* Single Clean Toolbar Row: Search Left · Sort / Brands / All time / Filters Right */}
+              <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+                {/* Search brands or keywords */}
+                <div className="relative w-full lg:w-[270px]">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#94A3B8]" />
+                  <input
+                    id="explore-search-input"
+                    type="search"
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setVisibleLimit(24);
+                    }}
+                    placeholder="Search brands or keywords"
+                    className="w-full rounded-lg border border-[#E6E9F0] bg-white py-1.5 pl-8 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#CBD5E1] sm:text-[12.5px]"
+                  />
                 </div>
 
-                {/* Format + Brand + Sort */}
-                <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-0.5 text-xs">
-                  <div className="relative inline-flex shrink-0 items-center rounded-xl border border-[#E6E9F0] bg-white">
-                    <Film className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#64748B]" />
+                {/* Inline Clean Right Controls: Sort · Brands · All time · Filters */}
+                <div className="flex flex-wrap items-center gap-1 text-[12.5px]">
+                  {/* Sort */}
+                  <div className="relative inline-flex items-center rounded-lg transition-colors hover:bg-[#F3F5F9]">
+                    <Clock className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#475569]" />
                     <select
-                      aria-label="Format"
-                      value={mediaFilter}
-                      onChange={(e) =>
-                        setMediaFilter(
-                          e.target.value as "all" | "video" | "image" | "carousel"
-                        )
-                      }
-                      className="cursor-pointer appearance-none bg-transparent py-2 pl-8 pr-8 text-[13px] font-medium text-[#334155] outline-none sm:py-1.5 sm:text-xs"
+                      aria-label="Sortér"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="cursor-pointer appearance-none bg-transparent py-1.5 pl-7.5 pr-6 text-[12.5px] font-medium text-[#1E293B] outline-none"
                     >
-                      <option value="all">Alle formater</option>
-                      <option value="video">Video</option>
-                      <option value="image">Image</option>
-                      <option value="carousel">Carousel</option>
+                      <option value="top">Top Performing</option>
+                      <option value="newest">Newest</option>
+                      <option value="longest">Longest Active</option>
+                      <option value="duplicated">Most Duplicated</option>
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#64748B]" />
+                    <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-[#94A3B8]" />
                   </div>
 
-                  <div className="relative inline-flex shrink-0 items-center rounded-xl border border-[#E6E9F0] bg-white">
-                    <Building2 className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#64748B]" />
+                  {/* Brands */}
+                  <div className="relative inline-flex items-center rounded-lg transition-colors hover:bg-[#F3F5F9]">
+                    <Building2 className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#475569]" />
                     <select
                       aria-label="Vælg shop"
                       value={brandFilter}
-                      onChange={(e) => setBrandFilter(e.target.value)}
-                      className="max-w-[165px] cursor-pointer appearance-none truncate bg-transparent py-2 pl-8 pr-8 text-[13px] font-medium text-[#334155] outline-none sm:max-w-none sm:py-1.5 sm:text-xs"
+                      onChange={(e) => {
+                        setBrandFilter(e.target.value);
+                        setVisibleLimit(24);
+                      }}
+                      className="max-w-[155px] cursor-pointer appearance-none truncate bg-transparent py-1.5 pl-7.5 pr-6 text-[12.5px] font-medium text-[#1E293B] outline-none"
                     >
-                      <option value="all">Alle shops ({brands.length})</option>
+                      <option value="all">{brands.length} Brands</option>
                       {brands.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.name}
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#64748B]" />
+                    <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-[#94A3B8]" />
                   </div>
 
-                  <div className="relative inline-flex shrink-0 items-center rounded-xl border border-[#E6E9F0] bg-white">
-                    <Clock className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#64748B]" />
+                  {/* Timeframe */}
+                  <div className="relative inline-flex items-center rounded-lg transition-colors hover:bg-[#F3F5F9]">
+                    <Calendar className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#475569]" />
                     <select
-                      aria-label="Sortér"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="cursor-pointer appearance-none bg-transparent py-2 pl-8 pr-8 text-[13px] font-semibold text-[#0F172A] outline-none sm:py-1.5 sm:text-xs"
+                      aria-label="Tidsperiode"
+                      value={timeFilter}
+                      onChange={(e) => {
+                        setTimeFilter(e.target.value as "all" | "7d" | "30d" | "90d");
+                        setVisibleLimit(24);
+                      }}
+                      className="cursor-pointer appearance-none bg-transparent py-1.5 pl-7.5 pr-6 text-[12.5px] font-medium text-[#1E293B] outline-none"
                     >
-                      <option value="top">Top Performing</option>
-                      <option value="longest">Longest Active</option>
-                      <option value="duplicated">Most Duplicated</option>
-                      <option value="newest">Newest</option>
+                      <option value="all">All time</option>
+                      <option value="7d">Last 7 days</option>
+                      <option value="30d">Last 30 days</option>
+                      <option value="90d">Last 90 days</option>
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#64748B]" />
+                    <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-[#94A3B8]" />
+                  </div>
+
+                  {/* Filters Popover (Market + Format) */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setFiltersOpen((v) => !v)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+                        activeFilterCount > 0 || filtersOpen
+                          ? "bg-[#F1F5F9] text-[#0F172A]"
+                          : "text-[#1E293B] hover:bg-[#F3F5F9]"
+                      }`}
+                    >
+                      <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
+                      <span>Filters</span>
+                      {activeFilterCount > 0 && (
+                        <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[10px] font-bold text-white">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform ${
+                          filtersOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {filtersOpen && (
+                      <div className="absolute right-0 top-10 z-40 w-64 rounded-2xl border border-[#E6E9F0] bg-white p-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                        <div className="space-y-3.5">
+                          <div>
+                            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                              Marked
+                            </p>
+                            <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-xs font-medium">
+                              {[
+                                { id: "ALL" as const, label: "Alle", count: ads.length },
+                                { id: "DK" as const, label: "DK", count: dkAdsCount },
+                                { id: "US" as const, label: "US", count: usAdsCount },
+                              ].map((m) => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setMarketFilter(m.id);
+                                    setVisibleLimit(24);
+                                  }}
+                                  className={`rounded-lg py-1 transition-all ${
+                                    marketFilter === m.id
+                                      ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                                      : "text-[#64748B] hover:text-[#0F172A]"
+                                  }`}
+                                >
+                                  {m.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                              Format
+                            </p>
+                            <div className="grid grid-cols-2 gap-1.5 text-xs font-medium">
+                              {(["all", "video", "image", "carousel"] as const).map((fmt) => (
+                                <button
+                                  key={fmt}
+                                  type="button"
+                                  onClick={() => {
+                                    setMediaFilter(fmt);
+                                    setVisibleLimit(24);
+                                  }}
+                                  className={`rounded-lg border px-2.5 py-1.5 capitalize transition-colors ${
+                                    mediaFilter === fmt
+                                      ? "border-[#0F172A] bg-[#0F172A] text-white"
+                                      : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
+                                  }`}
+                                >
+                                  {fmt === "all" ? "Alle formater" : fmt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {activeFilterCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMarketFilter("ALL");
+                                setMediaFilter("all");
+                                setVisibleLimit(24);
+                              }}
+                              className="w-full rounded-lg border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                            >
+                              Nulstil filtre
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* SUB-VIEW A: META ADS FEED */}
+              {/* SUB-VIEW A: KONVERT-STYLE 4-COLUMN HORIZONTAL MASONRY FEED */}
               {exploreSubView === "ads" && (
                 <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {visibleAds.slice(0, visibleLimit).map((ad, idx) => (
-                      <AdCard
-                        key={ad.id}
-                        ad={ad}
-                        boards={boards}
-                        rank={idx < 10 ? idx + 1 : undefined}
-                        onOpen={(item) => setActiveAdId(item.id)}
-                        onToggleBoard={handleToggleBoard}
-                        onOpenBrand={openShopAnalytics}
-                      />
+                  <div className="grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {exploreMasonryColumns.map((col, colIdx) => (
+                      <div key={colIdx} className="flex flex-col gap-3.5">
+                        {col.map(({ ad, idx }) => (
+                          <AdCard
+                            key={ad.id}
+                            ad={ad}
+                            boards={boards}
+                            rank={idx < 3 ? idx + 1 : undefined}
+                            onOpen={(item) => setActiveAdId(item.id)}
+                            onToggleBoard={handleToggleBoard}
+                            onOpenBrand={openShopAnalytics}
+                          />
+                        ))}
+                      </div>
                     ))}
                   </div>
 
