@@ -1219,7 +1219,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       <div
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-1 lg:hidden"
         style={{
-          paddingBottom: "max(0.35rem, calc(env(safe-area-inset-bottom) * 0.45))",
+          paddingBottom: "max(0.75rem, calc(env(safe-area-inset-bottom) * 0.72))",
         }}
       >
         <GlassTabBar
