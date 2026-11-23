@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     "Track danske og amerikanske e-commerce shops, live Meta Ad Library annoncer, pixels, Shopify apps, produkter, landing pages, hooks og ad copy.",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Flake",
   },
   icons: {
@@ -42,7 +42,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#05060B",
+  themeColor: [
+    { media: "(max-width: 1023px)", color: "#ffffff" },
+    { media: "(min-width: 1024px)", color: "#05060B" },
+  ],
 };
 
 export default function RootLayout({

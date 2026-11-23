@@ -747,8 +747,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           STATIONARY WHITE WORKSPACE FRAME — ONLY INNER CONTENT SCROLLS ON DESKTOP
          ===================================================================== */}
       <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:h-full lg:overflow-hidden lg:rounded-tl-[24px] lg:bg-white">
-        {/* CLEAN SOLID MOBILE TOP BAR */}
-        <header className="pt-safe sticky top-0 z-30 flex items-center border-b border-[#ECEFF5] bg-white px-4 py-3 text-[#0F172A] lg:hidden">
+        {/* CLEAN SOLID MOBILE TOP BAR (non-sticky so iOS 26 never applies top-edge blur over logo) */}
+        <header
+          className="relative z-10 flex items-center border-b border-[#ECEFF5] bg-white px-4 pb-3 text-[#0F172A] lg:hidden"
+          style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}
+        >
           <button
             type="button"
             onClick={() => {
@@ -762,7 +765,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             <img
               src="/icons/flake-wordmark-dark.png"
               alt="Flake"
-              className="h-[21px] w-auto select-none"
+              className="h-[22px] w-auto select-none"
             />
           </button>
         </header>
