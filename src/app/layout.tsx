@@ -60,9 +60,9 @@ export default function RootLayout({
     <html
       lang="da"
       suppressHydrationWarning
-      className={`${instrumentSans.variable} ${geist.variable} ${geistMono.variable} h-full`}
+      className={`${instrumentSans.variable} ${geist.variable} ${geistMono.variable}`}
     >
-      <body className="min-h-full overflow-x-hidden bg-[#F7F8FB] text-[#0F172A] antialiased selection:bg-[#0027eb]/15 selection:text-[#0027eb] lg:bg-[#05060B]">
+      <body className="min-h-dvh overflow-x-clip bg-[#F7F8FB] text-[#0F172A] antialiased selection:bg-[#0027eb]/15 selection:text-[#0027eb] lg:bg-[#05060B]">
         {children}
       </body>
     </html>

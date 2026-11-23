@@ -113,11 +113,14 @@ export async function GET() {
       return Boolean(seedBrand.meta_page_id && cur.meta_page_id !== seedBrand.meta_page_id);
     });
 
-    // Clean up old stale WordPress mycomfort.dk row if present
-    if (existingById.has("brand-mycomfort-dk")) {
-      await supabase.from("adtrack_brands").delete().eq("id", "brand-mycomfort-dk");
-      brands = brands.filter((b) => b.id !== "brand-mycomfort-dk");
-      ads = ads.filter((a) => a.brand_id !== "brand-mycomfort-dk");
+    // Clean up removed / stale brand rows if present
+    const removedBrandIds = ["brand-mycomfort-dk", "brand-deepstash-com"];
+    for (const removedId of removedBrandIds) {
+      if (existingById.has(removedId)) {
+        await supabase.from("adtrack_brands").delete().eq("id", removedId);
+        brands = brands.filter((b) => b.id !== removedId);
+        ads = ads.filter((a) => a.brand_id !== removedId);
+      }
     }
 
     if (brandsToUpsert.length > 0) {

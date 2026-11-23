@@ -84,7 +84,10 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => reg.update().catch(() => {}))
+        .catch(() => {});
     }
 
     let cancelled = false;
@@ -105,7 +108,10 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           if (Array.isArray(parsed) && parsed.length > 0) {
             const seedById = new Map(SEED_BRANDS.map((b) => [b.id, b]));
             const refreshed = parsed
-              .filter((b) => b.id !== "brand-mycomfort-dk")
+              .filter(
+                (b) =>
+                  b.id !== "brand-mycomfort-dk" && b.id !== "brand-deepstash-com"
+              )
               .map((b) => {
                 const sb = seedById.get(b.id);
                 if (!sb) return b;
@@ -134,6 +140,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             const cleaned = parsed.filter(
               (a) =>
                 a.brand_id !== "brand-mycomfort-dk" &&
+                a.brand_id !== "brand-deepstash-com" &&
                 !(a.brand_id === "brand-thenap-dk" && !a.landing_page_url?.includes("thenap"))
             );
             const existingIds = new Set(cleaned.map((a) => a.id));
@@ -426,7 +433,8 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
   const usAdsCount = useMemo(() => ads.filter((a) => a.market !== "DK").length, [ads]);
 
   return (
-    <div className="flex min-h-dvh w-full max-w-[100vw] overflow-x-hidden bg-[#F7F8FB] lg:bg-[#05060B]">
+    <>
+    <div className="flex min-h-dvh w-full overflow-x-clip bg-[#F7F8FB] lg:bg-[#05060B]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — ONLY SHOPS, EXPLORE, AND FOLDERS
          ===================================================================== */}
@@ -710,7 +718,10 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               brands={brands}
               ads={ads}
               boards={boards}
-              onOpenShop={(brandId) => setSelectedShopId(brandId)}
+              onOpenShop={(brandId) => {
+                setSelectedShopId(brandId);
+                window.scrollTo(0, 0);
+              }}
               onAddBrand={handleAddBrandWithAds}
               onToggleBrandFolder={handleToggleBrandFolder}
             />
@@ -1066,12 +1077,13 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           )}
         </main>
       </div>
+    </div>
 
       {/* =====================================================================
           FLOATING iOS 26 LIQUID GLASS TAB BAR — SHOPS, EXPLORE, FOLDERS
          ===================================================================== */}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pt-4 lg:hidden"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-4 lg:hidden"
         style={{
           paddingBottom: "max(0.85rem, env(safe-area-inset-bottom))",
           background:
@@ -1117,6 +1129,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         onToggleBoard={handleToggleBoard}
         onOpenBrand={openShopAnalytics}
       />
-    </div>
+    </>
   );
 }

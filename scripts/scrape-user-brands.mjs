@@ -30,7 +30,6 @@ const NEW_BRANDS = [
   { domain: "thepetlabco.com", name: "PetLab Co.", companyName: "PetLab Co.", market: "US", category: "Pet Health & Supplements" },
   { domain: "www.everydaydose.com", name: "Everyday Dose", companyName: "Everyday Dose", market: "US", category: "Mushroom Coffee & Health" },
   { domain: "smooche.com", name: "Smooche", companyName: "Smooche", market: "US", category: "Beauty & Skincare" },
-  { domain: "deepstash.com", name: "Deepstash", companyName: "Deepstash", market: "US", category: "Microlearning App" },
   { domain: "histrips.com", name: "Histrips", companyName: "Histrips", market: "US", category: "Performance Strips & Health" },
 
   // Additional brands requested by user
