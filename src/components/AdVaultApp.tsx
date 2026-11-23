@@ -560,7 +560,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           <img
             src="/icons/flake-wordmark-white.png"
             alt="Flake"
-            className="h-[24px] w-auto select-none"
+            className="h-[19px] w-auto select-none"
           />
         </button>
 
@@ -763,7 +763,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             <img
               src="/icons/flake-wordmark-dark.png"
               alt="Flake"
-              className="h-[22px] w-auto select-none"
+              className="h-[18px] w-auto select-none"
             />
           </button>
         </header>
