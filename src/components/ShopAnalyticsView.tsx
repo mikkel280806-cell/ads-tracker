@@ -988,7 +988,7 @@ export function ShopAnalyticsView({
 
               <InteractiveAreaChart
                 points={trafficPoints}
-                color="#0F172A"
+                color="#0027eb"
                 gradientId="adtrackTrafficGrad"
                 valuePrefix="Visitors: "
                 formatVal={(v) => formatReach(v)}

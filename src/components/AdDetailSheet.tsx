@@ -224,48 +224,6 @@ export function AdDetailSheet({
     }
   };
 
-  const handleTranscribeVideo = async () => {
-    if (!ad.media_url || transcribing) return;
-    setTranscribing(true);
-    setTranscribeErrorByAdId((prev) => {
-      const next = { ...prev };
-      delete next[ad.id];
-      return next;
-    });
-    try {
-      const res = await fetch("/api/transcribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ad,
-          adId: ad.id,
-          videoUrl: ad.media_url,
-          market: ad.market,
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok || !data.transcript) {
-        setTranscribeErrorByAdId((prev) => ({
-          ...prev,
-          [ad.id]: data.message || "Kunne ikke transskribere videoen.",
-        }));
-        return;
-      }
-      onUpdateAd(ad.id, {
-        ai_transcript: data.transcript,
-        ai_hook_verbal: data.hook || ad.ai_hook_verbal,
-        duration_seconds: data.durationSec || ad.duration_seconds,
-      });
-    } catch {
-      setTranscribeErrorByAdId((prev) => ({
-        ...prev,
-        [ad.id]: "Netværksfejl ved video-transskription.",
-      }));
-    } finally {
-      setTranscribing(false);
-    }
-  };
-
   const handleInspectLandingPage = async () => {
     if (!ad.landing_page_url || inspectingLp) return;
     setInspectingLp(true);
@@ -880,8 +838,8 @@ export function AdDetailSheet({
                       )}
                     </div>
 
-                    {/* Automatic Video Transcript Preview right inside Details */}
-                    {ad.media_type === "video" && (
+                    {/* Video Script Card inside Details — clean "Se hele scriptet" button, zero manual transcribe button */}
+                    {ad.media_type === "video" && (ad.ai_transcript || transcribing) && (
                       <div className="mt-4 border-t border-[#F1F4F9] pt-3.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F172A]">
@@ -892,9 +850,10 @@ export function AdDetailSheet({
                             <button
                               type="button"
                               onClick={() => setRightTab("script")}
-                              className="text-[11.5px] font-semibold text-[#475569] hover:text-[#0F172A]"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
                             >
-                              Se fuldt script →
+                              Se hele scriptet
+                              <ArrowUpRight className="h-3 w-3" />
                             </button>
                           )}
                         </div>
@@ -906,10 +865,6 @@ export function AdDetailSheet({
                         ) : ad.ai_transcript ? (
                           <p className="mt-2 line-clamp-3 rounded-xl bg-[#FAFBFD] p-2.5 text-[12px] leading-relaxed text-[#334155]">
                             {ad.ai_transcript}
-                          </p>
-                        ) : transcribeError ? (
-                          <p className="mt-2 text-[11.5px] text-[#94A3B8]">
-                            {transcribeError}
                           </p>
                         ) : null}
                       </div>
@@ -1091,15 +1046,6 @@ export function AdDetailSheet({
                             Kopiér
                           </button>
                         )}
-                        {transcribeError && !transcribing && (
-                          <button
-                            type="button"
-                            onClick={handleTranscribeVideo}
-                            className="rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-[#0F172A] hover:bg-[#F8FAFC]"
-                          >
-                            Prøv igen
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -1123,17 +1069,15 @@ export function AdDetailSheet({
                       </div>
                     )}
 
-                    {ad.ai_transcript && (
+                    {ad.ai_transcript ? (
                       <p className="mt-3 whitespace-pre-wrap rounded-xl bg-[#FAFBFD] p-3 text-[12.5px] leading-relaxed text-[#334155]">
                         {ad.ai_transcript}
                       </p>
-                    )}
-
-                    {transcribeError && (
-                      <p className="mt-2.5 rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs text-[#9F1239]">
-                        {transcribeError}
+                    ) : !transcribing ? (
+                      <p className="mt-2.5 text-xs text-[#94A3B8]">
+                        {transcribeError || "Ingen tale fundet i denne video (kun musik eller tekst)."}
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 )}
 
