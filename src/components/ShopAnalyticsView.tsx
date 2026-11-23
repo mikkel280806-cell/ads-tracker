@@ -308,7 +308,6 @@ export function ShopAnalyticsView({
   const [techTab, setTechTab] = useState<"pixels" | "apps">("pixels");
   const [productSearch, setProductSearch] = useState("");
 
-  const [folderMenuOpen, setFolderMenuOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [tabTransitioning, setTabTransitioning] = useState(false);
 
@@ -626,62 +625,6 @@ export function ShopAnalyticsView({
                   Shopify
                 </span>
               )}
-
-              {/* Bookmark / Folder Toggle */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setFolderMenuOpen((v) => !v)}
-                  title="Gem shop i folder"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border transition-colors"
-                  style={
-                    savedInFolders
-                      ? {
-                          backgroundColor: "#F1F5F9",
-                          borderColor: "#CBD5E1",
-                          color: "#0F172A",
-                        }
-                      : {
-                          backgroundColor: "#FFFFFF",
-                          borderColor: "#E2E6EF",
-                          color: "#64748B",
-                        }
-                  }
-                >
-                  <Bookmark
-                    className="h-3.5 w-3.5"
-                    fill={savedInFolders ? "currentColor" : "none"}
-                  />
-                </button>
-
-                {folderMenuOpen && (
-                  <div className="absolute left-0 top-9 z-40 w-52 rounded-2xl border border-[#E2E6EF] bg-white p-1.5 shadow-xl">
-                    <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                      Gem shop i folder
-                    </p>
-                    {boards.map((board) => {
-                      const active = (brand.folder_ids || []).includes(board.id);
-                      return (
-                        <button
-                          key={board.id}
-                          type="button"
-                          onClick={() => onToggleBrandFolder(brand.id, board.id)}
-                          className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs font-medium text-[#0F172A] hover:bg-[#F3F5F9]"
-                        >
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{ backgroundColor: board.accent_color }}
-                            />
-                            <span className="truncate">{board.name}</span>
-                          </span>
-                          {active && <Check className="h-3.5 w-3.5 text-[#0F172A]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
 
               <button
                 type="button"

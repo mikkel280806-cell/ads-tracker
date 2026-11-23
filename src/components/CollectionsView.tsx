@@ -107,7 +107,6 @@ export function CollectionsView({
 }: CollectionsViewProps) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [folderTab, setFolderTab] = useState<"all" | "shops" | "ads">("all");
 
   // Add Video Modal state (Instagram link or local file / iPhone Photos upload)
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -303,11 +302,8 @@ export function CollectionsView({
 
   const activeFolder = boards.find((b) => b.id === selectedFolderId) || null;
 
-  // FOLDER DETAIL VIEW (Shows saved Shops AND saved Ads/Videos inside this folder)
+  // FOLDER DETAIL VIEW (Shows saved Ads & custom Videos inside this folder)
   if (activeFolder) {
-    const folderBrands = brands.filter((b) =>
-      (b.folder_ids || []).includes(activeFolder.id)
-    );
     const folderAds = ads.filter((a) => a.board_ids.includes(activeFolder.id));
 
     return (
@@ -332,33 +328,12 @@ export function CollectionsView({
                 {activeFolder.name}
               </h1>
               <p className="text-xs text-[#64748B]">
-                {folderBrands.length} shops · {folderAds.length} videoer &amp; ads
+                {folderAds.length} videoer &amp; ads
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F5F7FA] p-1 text-xs font-semibold">
-              {[
-                { id: "all" as const, label: `Alle (${folderBrands.length + folderAds.length})` },
-                { id: "shops" as const, label: `Shops (${folderBrands.length})` },
-                { id: "ads" as const, label: `Ads (${folderAds.length})` },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setFolderTab(t.id)}
-                  className={`rounded-lg px-3 py-1.5 transition-all ${
-                    folderTab === t.id
-                      ? "bg-white text-[#0F172A] shadow-xs"
-                      : "text-[#64748B]"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
             <button
               type="button"
               onClick={() => {
@@ -627,62 +602,8 @@ export function CollectionsView({
           </div>
         )}
 
-        {/* Saved Shops inside Folder */}
-        {(folderTab === "all" || folderTab === "shops") && folderBrands.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="flex items-center gap-2 font-display text-sm font-bold text-[#0F172A]">
-              <Store className="h-4 w-4 text-[#64748B]" />
-              Gemte Shops ({folderBrands.length})
-            </h2>
-            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-              {folderBrands.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => onOpenShop(b.id)}
-                  className="adtrack-card-interactive flex items-center justify-between gap-3 rounded-2xl p-3.5 text-left"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0] bg-[#F7F8FB]">
-                      {b.storefront_image_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={b.storefront_image_url}
-                          alt={b.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold text-[#334155]">
-                          {b.avatar_initials}
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate font-display text-sm font-bold text-[#0F172A]">
-                          {b.name}
-                        </span>
-                        {b.is_shopify && <ShopifyBagIcon className="h-3.5 w-3.5" />}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-2 font-mono-num text-[11px] text-[#64748B]">
-                        <span>{formatReach(b.monthly_visits)} visits</span>
-                        <span>·</span>
-                        <span className="inline-flex items-center gap-1 text-[#15803D]">
-                          <Layers className="h-3 w-3" />
-                          {b.active_ads_count ?? 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 shrink-0 text-[#94A3B8]" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Saved Ads & Custom Videos inside Folder */}
-        {(folderTab === "all" || folderTab === "ads") && folderAds.length > 0 && (
+        {folderAds.length > 0 && (
           <div className="space-y-3">
             <h2 className="flex items-center gap-2 font-display text-sm font-bold text-[#0F172A]">
               <Layers className="h-4 w-4 text-[#64748B]" />
@@ -704,7 +625,7 @@ export function CollectionsView({
           </div>
         )}
 
-        {folderBrands.length === 0 && folderAds.length === 0 && (
+        {folderAds.length === 0 && (
           <div className="px-6 py-14 text-center">
             <p className="font-display text-sm font-bold text-[#0F172A]">
               Denne folder er tom endnu
@@ -762,16 +683,10 @@ export function CollectionsView({
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {boards.map((board) => {
           const folderAds = ads.filter((a) => a.board_ids.includes(board.id));
-          const folderBrands = brands.filter((b) =>
-            (b.folder_ids || []).includes(board.id)
-          );
 
-          const previewImages: string[] = [
-            ...folderAds.map((a) => a.fallback_image_url || a.thumbnail_url),
-            ...folderBrands.map(
-              (b) => b.storefront_image_url || b.top_products?.[0]?.image_url || ""
-            ),
-          ].filter(Boolean);
+          const previewImages: string[] = folderAds
+            .map((a) => a.fallback_image_url || a.thumbnail_url)
+            .filter(Boolean);
 
           const leftImg = previewImages[0];
           const topRightImg = previewImages[1];
@@ -855,7 +770,7 @@ export function CollectionsView({
                     </span>
                   </div>
                   <p className="mt-0.5 pl-4.5 font-mono-num text-[11.5px] text-[#64748B]">
-                    {folderBrands.length} shops · {folderAds.length} ads
+                    {folderAds.length} videoer &amp; ads
                   </p>
                 </button>
 

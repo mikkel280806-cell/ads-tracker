@@ -704,9 +704,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           {/* Direct Folder List */}
           <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pl-2 pt-1">
             {boards.map((board) => {
-              const count =
-                ads.filter((a) => a.board_ids.includes(board.id)).length +
-                brands.filter((b) => (b.folder_ids || []).includes(board.id)).length;
+              const count = ads.filter((a) => a.board_ids.includes(board.id)).length;
               const active = view === "folders" && selectedFolderId === board.id;
               return (
                 <button

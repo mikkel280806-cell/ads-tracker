@@ -672,34 +672,40 @@ export function AdDetailSheet({
               </button>
 
               {folderMenuOpen && (
-                <div className="mt-2 rounded-xl border border-[#E6E9F0] bg-white p-1.5 shadow-lg">
-                  {boards.length === 0 ? (
-                    <p className="px-3 py-2 text-xs text-[#64748B]">
-                      Opret en folder i sidebaren for at gemme annoncer.
-                    </p>
-                  ) : (
-                    boards.map((board) => {
-                      const active = ad.board_ids.includes(board.id);
-                      return (
-                        <button
-                          key={board.id}
-                          type="button"
-                          onClick={() => onToggleBoard(ad.id, board.id)}
-                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F5F7FA]"
-                        >
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{ backgroundColor: board.accent_color }}
-                            />
-                            <span className="truncate">{board.name}</span>
-                          </span>
-                          {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
+                <>
+                  <div
+                    className="fixed inset-0 z-20"
+                    onClick={() => setFolderMenuOpen(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-[#E2E6EF] bg-white p-1.5 shadow-[0_14px_38px_rgba(15,23,42,0.18)]">
+                    {boards.length === 0 ? (
+                      <p className="px-3 py-2 text-xs text-[#64748B]">
+                        Opret en folder i sidebaren for at gemme annoncer.
+                      </p>
+                    ) : (
+                      boards.map((board) => {
+                        const active = ad.board_ids.includes(board.id);
+                        return (
+                          <button
+                            key={board.id}
+                            type="button"
+                            onClick={() => onToggleBoard(ad.id, board.id)}
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F5F7FA]"
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full"
+                                style={{ backgroundColor: board.accent_color }}
+                              />
+                              <span className="truncate">{board.name}</span>
+                            </span>
+                            {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
