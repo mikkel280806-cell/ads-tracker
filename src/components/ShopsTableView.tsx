@@ -58,6 +58,13 @@ function getHomepageScreenshotUrl(websiteUrl?: string): string | null {
   return `https://image.thum.io/get/width/600/crop/380/noanimate/${clean}`;
 }
 
+function hasPositivePrice(price?: string): boolean {
+  if (!price) return false;
+  const normalized = price.replace(/[^0-9.,]/g, "").replace(",", ".");
+  const num = parseFloat(normalized);
+  return Number.isFinite(num) && num > 0;
+}
+
 function formatFoundedAge(iso?: string): { date: string; age: string } | null {
   if (!iso) return null;
   const d = new Date(iso);
@@ -67,7 +74,7 @@ function formatFoundedAge(iso?: string): { date: string; age: string } | null {
   const yyyy = d.getFullYear();
   const monthsDiff = Math.max(
     1,
-    Math.round((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
+    Math.round((Date.UTC(2026, 10, 23) - d.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
   );
   const years = Math.floor(monthsDiff / 12);
   const remMonths = monthsDiff % 12;
@@ -508,7 +515,9 @@ export function ShopsTableView({
             .replace(/^https?:\/\//, "")
             .replace(/^www\./, "")
             .replace(/\/.*$/, "");
-          const products = brand.top_products || [];
+          const products = (brand.top_products || []).filter((p) =>
+            hasPositivePrice(p.price)
+          );
           const allTech = [...(brand.pixels || []), ...(brand.shopify_apps || [])];
           const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
           const marketFlag = getFlag(brand);
@@ -770,7 +779,9 @@ export function ShopsTableView({
               .replace(/^https?:\/\//, "")
               .replace(/^www\./, "")
               .replace(/\/.*$/, "");
-            const products = brand.top_products || [];
+            const products = (brand.top_products || []).filter((p) =>
+            hasPositivePrice(p.price)
+          );
             const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
             const marketFlag = getFlag(brand);
             const savedInFolder = (brand.folder_ids || []).length > 0;

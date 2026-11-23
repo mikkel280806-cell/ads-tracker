@@ -322,7 +322,16 @@ export function ShopAnalyticsView({
     .replace(/^www\./, "")
     .replace(/\/.*$/, "");
 
-  const topProducts = useMemo(() => brand.top_products || [], [brand.top_products]);
+  const topProducts = useMemo(
+    () =>
+      (brand.top_products || []).filter((p) => {
+        if (!p.price) return false;
+        const normalized = p.price.replace(/[^0-9.,]/g, "").replace(",", ".");
+        const num = parseFloat(normalized);
+        return Number.isFinite(num) && num > 0;
+      }),
+    [brand.top_products]
+  );
   const latestProducts = useMemo(
     () =>
       brand.latest_products && brand.latest_products.length > 0

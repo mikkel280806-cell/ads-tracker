@@ -17,7 +17,7 @@ import {
   Store,
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
-import { SEED_ADS, SEED_BOARDS, SEED_BRANDS } from "@/lib/seed-data";
+import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import { getActiveDays } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
@@ -45,7 +45,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   void _initialStatus;
   const [ads, setAds] = useState<Ad[]>(SEED_ADS);
   const [brands, setBrands] = useState<Brand[]>(SEED_BRANDS);
-  const [boards, setBoards] = useState<Board[]>(SEED_BOARDS);
+  const [boards, setBoards] = useState<Board[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   // Navigation: ONLY Shops, Explore, Folders!
@@ -112,6 +112,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               "brand-deepstash-com",
               "brand-barons-dk",
               "brand-gymshark-com",
+              "brand-planetnusa-com",
+              "brand-rains-com",
+              "brand-colorfulstandard-com",
+              "brand-nordgreen-com",
+              "brand-shapingnewtomorrow-com",
+              "brand-eyda-com",
             ]);
             const refreshed = parsed
               .filter((b) => !removedIds.has(b.id))
@@ -145,6 +151,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               "brand-deepstash-com",
               "brand-barons-dk",
               "brand-gymshark-com",
+              "brand-planetnusa-com",
+              "brand-rains-com",
+              "brand-colorfulstandard-com",
+              "brand-nordgreen-com",
+              "brand-shapingnewtomorrow-com",
+              "brand-eyda-com",
             ]);
             const cleaned = parsed.filter(
               (a) =>
@@ -177,7 +189,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             if (Array.isArray(data.ads) && data.ads.length > 0) {
               setAds(data.ads);
             }
-            if (Array.isArray(data.folders) && data.folders.length > 0) {
+            if (Array.isArray(data.folders)) {
               setBoards(data.folders);
             }
           }

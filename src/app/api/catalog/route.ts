@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { SEED_ADS, SEED_BOARDS, SEED_BRANDS } from "@/lib/seed-data";
+import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import type { Ad, Board, Brand } from "@/lib/types";
 
 function toBrandRow(brand: Brand) {
@@ -119,6 +119,12 @@ export async function GET() {
       "brand-deepstash-com",
       "brand-barons-dk",
       "brand-gymshark-com",
+      "brand-planetnusa-com",
+      "brand-rains-com",
+      "brand-colorfulstandard-com",
+      "brand-nordgreen-com",
+      "brand-shapingnewtomorrow-com",
+      "brand-eyda-com",
     ];
     for (const removedId of removedBrandIds) {
       if (existingById.has(removedId)) {
@@ -198,13 +204,6 @@ export async function GET() {
         .upsert(techRefreshBrands.map(toBrandRow), { onConflict: "id" });
       const refreshedById = new Map(techRefreshBrands.map((b) => [b.id, b]));
       brands = brands.map((b) => refreshedById.get(b.id) || b);
-    }
-
-    if (folders.length === 0 && SEED_BOARDS.length > 0) {
-      await supabase
-        .from("adtrack_folders")
-        .upsert(SEED_BOARDS.map(toFolderRow), { onConflict: "id" });
-      folders = SEED_BOARDS;
     }
 
     return NextResponse.json({
