@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
         brand_avatar_initials: initials || "IG",
         brand_avatar_color: "#0F172A",
         market: "US",
-        source_type: isVideo ? "instagram_reel" : "instagram_post",
+        source_type: "instagram",
         source_url: cleanUrl,
         external_ad_id: shortcode,
         media_type: isVideo ? "video" : "image",
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
         media_url: storedMediaUrl,
         thumbnail_url: storedThumbUrl,
         fallback_image_url: storedThumbUrl,
-        aspect_ratio: isVideo ? "9:16" : "4:5",
+        aspect_ratio: isVideo ? "9:16" : "3:4",
         duration_seconds:
           typeof post.videoDuration === "number" && post.videoDuration > 0
             ? Math.round(post.videoDuration)
