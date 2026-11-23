@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useMemo, useState } from "react";
+import React, { useDeferredValue, useEffect, useId, useMemo, useState } from "react";
 import {
   Bookmark,
   Calendar,
@@ -174,14 +174,16 @@ function MiniSparkline({
   );
 }
 
-export function ShopsTableView({
+export const ShopsTableView = React.memo(function ShopsTableView({
   brands,
   ads,
-  boards,
+  boards: _boards,
   onOpenShop,
   onAddBrand,
-  onToggleBrandFolder,
+  onToggleBrandFolder: _onToggleBrandFolder,
 }: ShopsTableViewProps) {
+  void _boards;
+  void _onToggleBrandFolder;
   const [lookupInput, setLookupInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -191,6 +193,31 @@ export function ShopsTableView({
   const [techFilter, setTechFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortKey>("ads");
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  // Mount ONLY the active layout (desktop table OR mobile cards) to cut DOM & decoded images in half
+  const [isDesktopTable, setIsDesktopTable] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1280 : true
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const update = () => setIsDesktopTable(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  // O(1) brand -> ads lookup index instead of filtering 878+ ads per row
+  const adsByBrand = useMemo(() => {
+    const map = new Map<string, Ad[]>();
+    for (const ad of ads) {
+      const list = map.get(ad.brand_id);
+      if (list) list.push(ad);
+      else map.set(ad.brand_id, [ad]);
+    }
+    return map;
+  }, [ads]);
 
   const runBrandLookup = async (rawQuery: string) => {
     const q = rawQuery.trim();
@@ -246,7 +273,7 @@ export function ShopsTableView({
   }, [brands]);
 
   const filteredBrands = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = deferredSearchQuery.trim().toLowerCase();
     const list = brands.filter((b) => {
       if (marketFilter === "DK" && b.market !== "DK") return false;
       if (marketFilter === "US" && b.market === "DK") return false;
@@ -286,7 +313,7 @@ export function ShopsTableView({
       }
       return (b.active_ads_count || 0) - (a.active_ads_count || 0);
     });
-  }, [brands, marketFilter, techFilter, searchQuery, sortBy]);
+  }, [brands, marketFilter, techFilter, deferredSearchQuery, sortBy]);
 
   const getFlag = (brand: Brand) =>
     brand.country_code === "FR"
@@ -516,11 +543,12 @@ export function ShopsTableView({
       </div>
 
       {/* =====================================================================
-          MOBILE / IPHONE NATIVE APP CARDS (< xl)
+          MOBILE / IPHONE NATIVE APP CARDS (< xl) — only mounted below xl
          ===================================================================== */}
+      {!isDesktopTable && (
       <div className="space-y-3 xl:hidden">
         {filteredBrands.map((brand) => {
-          const brandAds = ads.filter((a) => a.brand_id === brand.id);
+          const brandAds = adsByBrand.get(brand.id) || [];
           const domain = brand.website_url
             .replace(/^https?:\/\//, "")
             .replace(/^www\./, "")
@@ -531,21 +559,20 @@ export function ShopsTableView({
           const allTech = [...(brand.pixels || []), ...(brand.shopify_apps || [])];
           const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
           const marketFlag = getFlag(brand);
-          const savedInFolder = (brand.folder_ids || []).length > 0;
 
           return (
             <div
               key={brand.id}
-              className="relative rounded-2xl border border-[#E6E9F0] bg-white p-3.5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] active:scale-[0.995] transition-transform"
+              className="cv-shop-row relative rounded-2xl border border-[#E6E9F0] bg-white p-3.5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] active:scale-[0.995] transition-transform"
             >
-              {/* Row 1: Thumbnail + Brand Title + Bookmark */}
+              {/* Row 1: Thumbnail + Brand Title */}
               <div className="flex items-center justify-between gap-2.5">
                 <button
                   type="button"
                   onClick={() => onOpenShop(brand.id)}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
-                  <div className="skeleton-shimmer relative h-[52px] w-[84px] shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0]">
+                  <div className="relative h-[52px] w-[84px] shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0] bg-[#F3F5F9]">
                     {getHomepageScreenshotUrl(brand.website_url, brand.storefront_image_url) || brand.storefront_image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
@@ -556,6 +583,7 @@ export function ShopsTableView({
                         }
                         alt={brand.name}
                         loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const img = e.currentTarget;
                           if (
@@ -707,10 +735,12 @@ export function ShopsTableView({
           </div>
         )}
       </div>
+      )}
 
       {/* =====================================================================
-          DESKTOP TRENDTRACK 6-COLUMN TABLE (xl+)
+          DESKTOP TRENDTRACK 6-COLUMN TABLE (xl+) — only mounted at xl+
          ===================================================================== */}
+      {isDesktopTable && (
       <div className="adtrack-card hidden overflow-visible rounded-2xl xl:block">
         <div className="grid grid-cols-[2.35fr_1.45fr_0.9fr_1.15fr_1.15fr_1.45fr] items-center gap-4 border-b border-[#EFF2F6] bg-[#FAFBFD] px-5 py-3 text-[11.5px] font-medium text-[#64748B]">
           <span>Shop Infos</span>
@@ -723,17 +753,16 @@ export function ShopsTableView({
 
         <div className="divide-y divide-[#F1F4F9]">
           {filteredBrands.map((brand) => {
-            const brandAds = ads.filter((a) => a.brand_id === brand.id);
+            const brandAds = adsByBrand.get(brand.id) || [];
             const domain = brand.website_url
               .replace(/^https?:\/\//, "")
               .replace(/^www\./, "")
               .replace(/\/.*$/, "");
             const products = (brand.top_products || []).filter((p) =>
-            hasPositivePrice(p.price)
-          );
+              hasPositivePrice(p.price)
+            );
             const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
             const marketFlag = getFlag(brand);
-            const savedInFolder = (brand.folder_ids || []).length > 0;
             const homepageShot = getHomepageScreenshotUrl(
               brand.website_url,
               brand.storefront_image_url
@@ -784,17 +813,18 @@ export function ShopsTableView({
                     onOpenShop(brand.id);
                   }
                 }}
-                className="group relative grid cursor-pointer grid-cols-[2.35fr_1.45fr_0.9fr_1.15fr_1.15fr_1.45fr] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F5F7FA]"
+                className="cv-shop-row group relative grid cursor-pointer grid-cols-[2.35fr_1.45fr_0.9fr_1.15fr_1.15fr_1.45fr] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F5F7FA]"
               >
-                {/* 1. SHOP INFOS (Wide Homepage Screenshot + Name + Bookmark + Domain + Founded Date) */}
+                {/* 1. SHOP INFOS (Wide Homepage Screenshot + Name + Domain + Founded Date) */}
                 <div className="flex min-w-0 items-center gap-3.5">
-                  <div className="skeleton-shimmer relative h-[68px] w-[108px] shrink-0 overflow-hidden rounded-xl border border-[#E2E6EF] text-left shadow-2xs">
+                  <div className="relative h-[68px] w-[108px] shrink-0 overflow-hidden rounded-xl border border-[#E2E6EF] bg-[#F3F5F9] text-left shadow-2xs">
                     {homepageShot || brand.storefront_image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={homepageShot || brand.storefront_image_url || ""}
                         alt={`${brand.name} homepage`}
                         loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const img = e.currentTarget;
                           if (
@@ -997,6 +1027,7 @@ export function ShopsTableView({
           )}
         </div>
       </div>
+      )}
     </div>
   );
-}
+});

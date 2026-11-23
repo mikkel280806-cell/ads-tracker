@@ -23,7 +23,7 @@ interface AdCardProps {
   onOpenBrand?: (brandId: string) => void;
 }
 
-export function AdCard({
+export const AdCard = React.memo(function AdCard({
   ad,
   boards,
   rank,
@@ -104,7 +104,7 @@ export function AdCard({
   return (
     <article
       ref={cardRef}
-      className="group relative flex flex-col rounded-[14px] border border-[#EAECEF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 hover:border-[#D8DEE9] hover:shadow-[0_10px_28px_-8px_rgba(15,23,42,0.09)]"
+      className="cv-ad-card group relative flex flex-col rounded-[14px] border border-[#EAECEF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#D8DEE9] hover:shadow-[0_10px_28px_-8px_rgba(15,23,42,0.09)]"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
@@ -368,4 +368,4 @@ export function AdCard({
       </div>
     </article>
   );
-}
+});

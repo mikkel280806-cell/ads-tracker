@@ -1,6 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Award,
   Building2,
@@ -55,7 +63,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [catalogLoaded, setCatalogLoaded] = useState(false);
-  const [viewLoading, setViewLoading] = useState(false);
 
   // Navigation: ONLY Shops, Explore, Folders!
   const [view, setView] = useState<ActiveView>("shops");
@@ -67,21 +74,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   const workspaceScrollRef = useRef<HTMLElement | null>(null);
 
-  const scrollWorkspaceToTop = (smooth = false) => {
+  const scrollWorkspaceToTop = useCallback((smooth = false) => {
     const behavior: ScrollBehavior = smooth ? "smooth" : "auto";
     workspaceScrollRef.current?.scrollTo({ top: 0, behavior });
     window.scrollTo({ top: 0, behavior });
-  };
+  }, []);
 
-  const navigateWithSkeleton = (fn: () => void) => {
-    setViewLoading(true);
-    fn();
-    scrollWorkspaceToTop(false);
-    setTimeout(() => setViewLoading(false), 180);
-  };
+  const navigateWithSkeleton = useCallback(
+    (fn: () => void) => {
+      startTransition(() => {
+        fn();
+      });
+      scrollWorkspaceToTop(false);
+    },
+    [scrollWorkspaceToTop]
+  );
 
   // Explore state
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [marketFilter, setMarketFilter] = useState<"ALL" | MarketCode>("ALL");
   const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image" | "carousel">("all");
   const [brandFilter, setBrandFilter] = useState<string>("all");
@@ -93,7 +104,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [rankOpen, setRankOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("top");
-  const [visibleLimit, setVisibleLimit] = useState(40);
+  const [visibleLimit, setVisibleLimit] = useState(48);
   const [masonryCols, setMasonryCols] = useState(4);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -263,28 +274,46 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   useEffect(() => {
     if (!hydrated) return;
-    try {
-      localStorage.setItem(STORAGE_KEYS.ads, JSON.stringify(ads));
-      localStorage.setItem(STORAGE_KEYS.brands, JSON.stringify(brands));
-      localStorage.setItem(STORAGE_KEYS.boards, JSON.stringify(boards));
-    } catch {
-      // ignore quota errors
-    }
+    const timer = window.setTimeout(() => {
+      const persist = () => {
+        try {
+          localStorage.setItem(STORAGE_KEYS.ads, JSON.stringify(ads));
+          localStorage.setItem(STORAGE_KEYS.brands, JSON.stringify(brands));
+          localStorage.setItem(STORAGE_KEYS.boards, JSON.stringify(boards));
+        } catch {
+          // ignore quota errors
+        }
+      };
+      const ric = (
+        window as unknown as {
+          requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+        }
+      ).requestIdleCallback;
+      if (typeof ric === "function") ric(persist, { timeout: 2000 });
+      else persist();
+    }, 800);
+    return () => window.clearTimeout(timer);
   }, [ads, brands, boards, hydrated]);
 
-  const handleToggleBoard = (adId: string, boardId: string) => {
-    const existing = ads.find((a) => a.id === adId);
-    if (!existing) return;
-    const hasBoard = existing.board_ids.includes(boardId);
-    const updatedAd: Ad = {
-      ...existing,
-      board_ids: hasBoard
-        ? existing.board_ids.filter((id) => id !== boardId)
-        : [...existing.board_ids, boardId],
-    };
-    setAds((prev) => prev.map((a) => (a.id === adId ? updatedAd : a)));
-    syncCatalog({ action: "upsert_ad", ad: updatedAd });
-  };
+  const handleOpenAd = useCallback((item: Ad) => {
+    setActiveAdId(item.id);
+  }, []);
+
+  const handleToggleBoard = useCallback((adId: string, boardId: string) => {
+    setAds((prev) => {
+      const existing = prev.find((a) => a.id === adId);
+      if (!existing) return prev;
+      const hasBoard = existing.board_ids.includes(boardId);
+      const updatedAd: Ad = {
+        ...existing,
+        board_ids: hasBoard
+          ? existing.board_ids.filter((id) => id !== boardId)
+          : [...existing.board_ids, boardId],
+      };
+      syncCatalog({ action: "upsert_ad", ad: updatedAd });
+      return prev.map((a) => (a.id === adId ? updatedAd : a));
+    });
+  }, []);
 
   const handleToggleBrandFolder = (brandId: string, boardId: string) => {
     const existing = brands.find((b) => b.id === brandId);
@@ -398,14 +427,15 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     showToast(`Video tilføjet til folder`);
   };
 
-  const openShopAnalytics = (brandId: string) => {
-    const exists = brands.some((b) => b.id === brandId);
-    if (!exists) return;
-    navigateWithSkeleton(() => {
-      setSelectedShopId(brandId);
-      setView("shops");
-    });
-  };
+  const openShopAnalytics = useCallback(
+    (brandId: string) => {
+      navigateWithSkeleton(() => {
+        setSelectedShopId(brandId);
+        setView("shops");
+      });
+    },
+    [navigateWithSkeleton]
+  );
 
   // Brand-relative Ad Rank & Impressions intelligence index across all deduplicated ads
   const dedupedAds = useMemo(() => dedupeAds(ads), [ads]);
@@ -416,7 +446,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   // Filtered & sorted Explore ads
   const visibleAds = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = deferredSearch.trim().toLowerCase();
     const list = dedupedAds.filter((ad) => {
       if (marketFilter === "DK" && ad.market !== "DK") return false;
       if (marketFilter === "US" && ad.market === "DK") return false;
@@ -490,7 +520,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     timeFilter,
     rankMin,
     rankMax,
-    search,
+    deferredSearch,
     sortBy,
   ]);
 
@@ -511,15 +541,13 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   // Predictive Instagram/TikTok-style media lookahead for Explore feed
   useEffect(() => {
     if (view !== "explore" || visibleAds.length === 0) return;
-    preloadFeedWindow(visibleAds, Math.max(0, visibleLimit - 40), 56, 12);
+    preloadFeedWindow(visibleAds, Math.max(0, visibleLimit - 48), 40, 6);
   }, [view, visibleAds, visibleLimit]);
 
-  // Automatic seamless infinite scroll for Explore (loads next 32 ads ~2 screens before bottom)
+  // Bulletproof seamless infinite scroll for Explore (both IntersectionObserver + passive scroll listener)
   useEffect(() => {
-    if (view !== "explore") return;
+    if (view !== "explore" || !catalogLoaded) return;
     if (visibleAds.length <= visibleLimit) return;
-    const node = loadMoreRef.current;
-    if (!node) return;
 
     const scrollCandidate = workspaceScrollRef.current;
     const overflowY = scrollCandidate
@@ -530,17 +558,63 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         ? scrollCandidate
         : null;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setVisibleLimit((prev) => Math.min(visibleAds.length, prev + 32));
-        }
-      },
-      { root: scrollRoot, rootMargin: "1800px 0px" }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [view, visibleAds.length, visibleLimit]);
+    let expanded = false;
+    const loadNextBatch = () => {
+      if (expanded) return;
+      expanded = true;
+      startTransition(() => {
+        setVisibleLimit((prev) => Math.min(visibleAds.length, prev + 48));
+      });
+    };
+
+    // 1. IntersectionObserver ~3 screens ahead of sentinel
+    const node = loadMoreRef.current;
+    let observer: IntersectionObserver | null = null;
+    if (node) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) loadNextBatch();
+        },
+        { root: scrollRoot, rootMargin: "2600px 0px" }
+      );
+      observer.observe(node);
+    }
+
+    // 2. Passive rAF-throttled scroll fallback so fast flick-scrolling NEVER hits a roadblock
+    let rafPending = false;
+    const checkScrollDistance = () => {
+      rafPending = false;
+      if (expanded) return;
+      if (scrollRoot) {
+        const remaining =
+          scrollRoot.scrollHeight - scrollRoot.scrollTop - scrollRoot.clientHeight;
+        if (remaining < 2600) loadNextBatch();
+      } else {
+        const remaining =
+          document.documentElement.scrollHeight -
+          window.scrollY -
+          window.innerHeight;
+        if (remaining < 2600) loadNextBatch();
+      }
+    };
+
+    const onScroll = () => {
+      if (rafPending || expanded) return;
+      rafPending = true;
+      requestAnimationFrame(checkScrollDistance);
+    };
+
+    const target: EventTarget = scrollRoot || window;
+    target.addEventListener("scroll", onScroll, { passive: true });
+    // Also check immediately in case current viewport is already close to bottom
+    const initRaf = requestAnimationFrame(checkScrollDistance);
+
+    return () => {
+      observer?.disconnect();
+      target.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(initRaf);
+    };
+  }, [view, catalogLoaded, visibleAds.length, visibleLimit]);
 
   const activeAd = useMemo(
     () => ads.find((a) => a.id === activeAdId) || null,
@@ -801,8 +875,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             </div>
           )}
 
-          {/* UNIFORM SKELETON LOADING ON INITIAL HYDRATION & VIEW TRANSITIONS */}
-          {(!catalogLoaded || viewLoading) ? (
+          {/* UNIFORM SKELETON LOADING ON INITIAL HYDRATION */}
+          {!catalogLoaded ? (
             view === "explore" ? (
               <ExploreSkeleton />
             ) : view === "folders" ? (
@@ -1155,7 +1229,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         ad={ad}
                         boards={boards}
                         rank={idx < 3 ? idx + 1 : undefined}
-                        onOpen={(item) => setActiveAdId(item.id)}
+                        onOpen={handleOpenAd}
                         onToggleBoard={handleToggleBoard}
                         onOpenBrand={openShopAnalytics}
                       />
@@ -1164,29 +1238,13 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 ))}
               </div>
 
-              {/* Automatic Infinite Scroll Sentinel with Clean Shimmer Cards */}
+              {/* Seamless Infinite Scroll Sentinel (triggers ~3 screens ahead so user never hits a wall) */}
               {visibleAds.length > visibleLimit && (
                 <div
                   ref={loadMoreRef}
-                  className="grid grid-cols-1 gap-3.5 pt-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  className="h-8 w-full"
                   aria-hidden="true"
-                >
-                  {Array.from({ length: masonryCols }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="flex flex-col overflow-hidden rounded-[14px] border border-[#EAECEF] bg-white p-3"
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="skeleton-shimmer h-7 w-7 rounded-full" />
-                          <div className="skeleton-shimmer h-3.5 w-24 rounded" />
-                        </div>
-                        <div className="skeleton-shimmer h-5 w-10 rounded-md" />
-                      </div>
-                      <div className="skeleton-shimmer aspect-[4/5] w-full rounded-[10px]" />
-                    </div>
-                  ))}
-                </div>
+                />
               )}
 
               {visibleAds.length === 0 && (

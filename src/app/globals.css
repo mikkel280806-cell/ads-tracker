@@ -181,6 +181,17 @@ body {
   background-color: rgba(15, 23, 42, 0.26);
 }
 
+/* Content-visibility optimizations for long lists (skips offscreen layout & paint) */
+.cv-ad-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 440px;
+}
+
+.cv-shop-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 98px;
+}
+
 h1,
 h2,
 h3,
