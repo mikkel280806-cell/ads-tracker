@@ -554,19 +554,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               setSelectedFolderId(null);
             });
           }}
-          className="mb-7 flex items-center px-2 text-left"
+          className="mb-7 flex items-center px-2.5 text-left"
         >
-          <span className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icons/logo.png"
-              alt="Adtrack"
-              className="h-7.5 w-7.5 rounded-[9px]"
-            />
-            <span className="font-display text-[18px] font-bold tracking-[-0.03em] text-white">
-              Adtrack
-            </span>
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons/flake-wordmark-white.png"
+            alt="Flake"
+            className="h-[24px] w-auto select-none"
+          />
         </button>
 
         {/* SECTION 1: DISCOVER (Shops + Explore ONLY) */}
@@ -753,7 +748,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
          ===================================================================== */}
       <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:h-full lg:overflow-hidden lg:rounded-tl-[24px] lg:bg-white">
         {/* CLEAN SOLID MOBILE TOP BAR */}
-        <header className="pt-safe sticky top-0 z-30 flex items-center border-b border-[#ECEFF5] bg-white px-4 py-2.5 text-[#0F172A] lg:hidden">
+        <header className="pt-safe sticky top-0 z-30 flex items-center border-b border-[#ECEFF5] bg-white px-4 py-3 text-[#0F172A] lg:hidden">
           <button
             type="button"
             onClick={() => {
@@ -761,17 +756,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               setSelectedShopId(null);
               setSelectedFolderId(null);
             }}
-            className="flex items-center gap-2"
+            className="flex items-center"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/icons/logo.png"
-              alt="Adtrack"
-              className="h-7 w-7 rounded-[8px]"
+              src="/icons/flake-wordmark-dark.png"
+              alt="Flake"
+              className="h-[21px] w-auto select-none"
             />
-            <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-[#0F172A]">
-              Adtrack
-            </span>
           </button>
         </header>
 

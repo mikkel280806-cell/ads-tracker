@@ -17,19 +17,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Adtrack — E-commerce Shops & Meta Ad Intelligence",
+  title: "Flake — E-commerce Shops & Meta Ad Intelligence",
   description:
     "Track danske og amerikanske e-commerce shops, live Meta Ad Library annoncer, pixels, Shopify apps, produkter, landing pages, hooks og ad copy.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Adtrack",
+    title: "Flake",
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-192.png", sizes: "192x192", type: "image/png" },
     ],
+    shortcut: "/icons/favicon-32.png",
     apple: [
       { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Adtrack — E-commerce Shops & Meta Ad Intelligence",
-    short_name: "Adtrack",
+    name: "Flake — E-commerce Shops & Meta Ad Intelligence",
+    short_name: "Flake",
     description:
       "Track danske og amerikanske e-commerce shops, live Meta Ad Library annoncer, pixels, Shopify apps, produkter, landing pages og hooks.",
     start_url: "/",
