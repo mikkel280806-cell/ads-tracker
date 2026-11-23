@@ -14,25 +14,15 @@ import {
   ExternalLink,
   Eye,
   Film,
-  Gauge,
-  Globe,
   Image as ImageIcon,
   Layers,
   Link2,
-  Loader2,
   MousePointerClick,
-  Search,
-  ShieldCheck,
   StickyNote,
-  Tag,
   X,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
-import {
-  analyzeAdLocally,
-  type LiveLandingPageAudit,
-} from "@/lib/ad-analyzer";
-import { formatReach } from "@/lib/url-parser";
+import { formatReach, getActiveDays } from "@/lib/url-parser";
 import { FacebookColorIcon, MetaInfinityIcon } from "./BrandIcons";
 
 interface AdDetailSheetProps {
@@ -78,15 +68,7 @@ export function AdDetailSheet({
   const [copyExpanded, setCopyExpanded] = useState(false);
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"details" | "script">("details");
-  const [detailsSubTab, setDetailsSubTab] = useState<"ad" | "lp">("ad");
   const [failedAdId, setFailedAdId] = useState<string | null>(null);
-
-  // Zero-cost Live Landing Page Inspector state (keyed by ad.id)
-  const [inspectingLp, setInspectingLp] = useState(false);
-  const [lpAuditByAdId, setLpAuditByAdId] = useState<
-    Record<string, LiveLandingPageAudit>
-  >({});
-  const [lpErrorByAdId, setLpErrorByAdId] = useState<Record<string, string>>({});
 
   // Video transcription state (Deepgram Nova-2 — automatic on video open)
   const [transcribing, setTranscribing] = useState(false);
@@ -95,8 +77,8 @@ export function AdDetailSheet({
   >({});
   const autoTranscribedRef = useRef<Set<string>>(new Set());
 
-  const localAnalysis = useMemo(
-    () => (ad ? analyzeAdLocally(ad) : null),
+  const activeDays = useMemo(
+    () => (ad ? getActiveDays(ad.started_running_at) : 0),
     [ad]
   );
 
@@ -183,11 +165,9 @@ export function AdDetailSheet({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [ad, adsList, currentIdx, hasNext, hasPrev, onClose, onSelectAd]);
 
-  if (!ad || !localAnalysis) return null;
+  if (!ad) return null;
 
   const mediaFailed = failedAdId === ad.id;
-  const lpAudit = lpAuditByAdId[ad.id] || null;
-  const lpError = lpErrorByAdId[ad.id] || null;
   const transcribeError = transcribeErrorByAdId[ad.id] || null;
 
   const isVideoFile =
@@ -221,39 +201,6 @@ export function AdDetailSheet({
       setTimeout(() => setCopiedKey(null), 1800);
     } catch {
       // ignore
-    }
-  };
-
-  const handleInspectLandingPage = async () => {
-    if (!ad.landing_page_url || inspectingLp) return;
-    setInspectingLp(true);
-    setLpErrorByAdId((prev) => {
-      const next = { ...prev };
-      delete next[ad.id];
-      return next;
-    });
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: ad.landing_page_url }),
-      });
-      const data = await res.json();
-      if (!data.ok || !data.audit) {
-        setLpErrorByAdId((prev) => ({
-          ...prev,
-          [ad.id]: data.message || "Kunne ikke inspicere landing page.",
-        }));
-        return;
-      }
-      setLpAuditByAdId((prev) => ({ ...prev, [ad.id]: data.audit }));
-    } catch {
-      setLpErrorByAdId((prev) => ({
-        ...prev,
-        [ad.id]: "Netværksfejl ved inspektion af landing page.",
-      }));
-    } finally {
-      setInspectingLp(false);
     }
   };
 
@@ -464,7 +411,7 @@ export function AdDetailSheet({
                     }`}
                   />
                   <span className="font-medium text-[#334155]">
-                    {localAnalysis.activeDays} days
+                    {activeDays} days
                   </span>
                   {ad.started_running_at && (
                     <>
@@ -566,30 +513,30 @@ export function AdDetailSheet({
             RIGHT PANE: CLEAN TRENDTRACK DETAILS & SCRIPT INSPECTOR
            =================================================================== */}
         <div className="flex min-h-0 flex-col bg-white lg:w-[40%]">
-          {/* Top Tabs (Details | Script & Notes) + Desktop Close Button */}
-          <div className="flex shrink-0 items-center justify-between border-b border-[#ECEFF5] px-5">
-            <div className="flex items-center gap-6">
+          {/* Top 2 Big Equal Tabs (Ad Details | Copy & Notes) + Desktop Close Button */}
+          <div className="flex shrink-0 items-center border-b border-[#ECEFF5]">
+            <div className="grid flex-1 grid-cols-2">
               <button
                 type="button"
                 onClick={() => setRightTab("details")}
-                className={`border-b-2 py-3 text-[13px] font-semibold transition-colors ${
+                className={`border-b-2 py-3.5 text-center font-display text-[13.5px] font-semibold transition-colors ${
                   rightTab === "details"
                     ? "border-[#0F172A] text-[#0F172A]"
                     : "border-transparent text-[#64748B] hover:text-[#0F172A]"
                 }`}
               >
-                Details
+                Ad Details
               </button>
               <button
                 type="button"
                 onClick={() => setRightTab("script")}
-                className={`inline-flex items-center gap-1.5 border-b-2 py-3 text-[13px] font-semibold transition-colors ${
+                className={`inline-flex items-center justify-center gap-1.5 border-b-2 py-3.5 font-display text-[13.5px] font-semibold transition-colors ${
                   rightTab === "script"
                     ? "border-[#0F172A] text-[#0F172A]"
                     : "border-transparent text-[#64748B] hover:text-[#0F172A]"
                 }`}
               >
-                <span>Script &amp; Notes</span>
+                <span>Copy &amp; Notes</span>
                 {(ad.ai_transcript || ad.user_notes) && (
                   <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
                 )}
@@ -600,7 +547,7 @@ export function AdDetailSheet({
               type="button"
               onClick={onClose}
               aria-label="Luk"
-              className="hidden h-8 w-8 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A] lg:flex"
+              className="mr-3 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A] lg:flex"
             >
               <X className="h-4 w-4" />
             </button>
@@ -668,359 +615,177 @@ export function AdDetailSheet({
             </div>
 
             {rightTab === "details" && (
-              <>
-                {/* Segmented Sub-Tab: Ad Details | Landing Page */}
-                <div className="grid grid-cols-2 rounded-xl bg-[#F3F5F9] p-1 text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => setDetailsSubTab("ad")}
-                    className={`rounded-lg py-1.5 transition-all ${
-                      detailsSubTab === "ad"
-                        ? "bg-white text-[#0F172A] shadow-xs"
-                        : "text-[#64748B] hover:text-[#0F172A]"
-                    }`}
-                  >
-                    Ad Details
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDetailsSubTab("lp")}
-                    className={`rounded-lg py-1.5 transition-all ${
-                      detailsSubTab === "lp"
-                        ? "bg-white text-[#0F172A] shadow-xs"
-                        : "text-[#64748B] hover:text-[#0F172A]"
-                    }`}
-                  >
-                    Landing Page
-                  </button>
+              <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
+                <h3 className="mb-3.5 font-display text-[14px] font-bold text-[#0F172A]">
+                  Details
+                </h3>
+
+                <div className="divide-y divide-[#F3F5F9] text-[12.5px]">
+                  {/* Brand */}
+                  <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                    <span className="text-[#64748B]">Brand</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onOpenBrand) {
+                          onOpenBrand(ad.brand_id);
+                          onClose();
+                        }
+                      }}
+                      className="flex min-w-0 items-center gap-2 font-semibold text-[#0F172A] hover:underline"
+                    >
+                      {ad.brand_logo_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={ad.brand_logo_url}
+                          alt=""
+                          className="h-5 w-5 shrink-0 rounded-full border border-[#E6E9F0] bg-white object-contain p-0.5"
+                        />
+                      ) : (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0F172A] text-[9px] font-bold text-white">
+                          {ad.brand_avatar_initials}
+                        </span>
+                      )}
+                      <span className="truncate">{ad.brand_name}</span>
+                    </button>
+                  </div>
+
+                  {/* Status */}
+                  <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                    <span className="text-[#64748B]">Status</span>
+                    <span className="inline-flex items-center gap-1.5 font-medium text-[#0F172A]">
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          ad.is_active ? "bg-[#16A34A]" : "bg-[#94A3B8]"
+                        }`}
+                      />
+                      {ad.is_active ? "Running" : "Not Running"}
+                    </span>
+                  </div>
+
+                  {/* Time Running */}
+                  <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                    <span className="text-[#64748B]">Time Running</span>
+                    <span className="font-mono-num font-semibold text-[#0F172A]">
+                      {activeDays} Days
+                    </span>
+                  </div>
+
+                  {/* Active Since */}
+                  <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                    <span className="text-[#64748B]">Started</span>
+                    <span className="font-mono-num text-[#334155]">
+                      {formatIsoDate(ad.started_running_at)}
+                    </span>
+                  </div>
+
+                  {/* CTA */}
+                  {ad.cta_text && (
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">CTA</span>
+                      <div>
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#0F172A]">
+                          <MousePointerClick className="h-3 w-3 text-[#64748B]" />
+                          {ad.cta_text}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Format */}
+                  <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                    <span className="text-[#64748B]">Format</span>
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 text-[11.5px] font-medium text-[#0F172A]">
+                        {ad.media_type === "video" ? (
+                          <Film className="h-3 w-3 text-[#64748B]" />
+                        ) : (
+                          <ImageIcon className="h-3 w-3 text-[#64748B]" />
+                        )}
+                        {formatLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Landing Page */}
+                  {ad.landing_page_url && (
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">Landing Page</span>
+                      <a
+                        href={ad.landing_page_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-lg bg-[#F1F5F9] px-2.5 py-1.5 font-mono-num text-[11.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#E2E8F0]"
+                      >
+                        <ExternalLink className="h-3 w-3 shrink-0 text-[#64748B]" />
+                        <span className="truncate">{ad.landing_page_url}</span>
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Original Ad */}
+                  {ad.source_url && (
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">Original Ad</span>
+                      <div>
+                        <a
+                          href={ad.source_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Open in Facebook
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {detailsSubTab === "ad" && (
-                  <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
-                    <h3 className="mb-3.5 font-display text-[14px] font-bold text-[#0F172A]">
-                      Details
-                    </h3>
-
-                    <div className="divide-y divide-[#F3F5F9] text-[12.5px]">
-                      {/* Brand */}
-                      <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                        <span className="text-[#64748B]">Brand</span>
+                {/* Video Script Preview inside Details */}
+                {ad.media_type === "video" && (ad.ai_transcript || transcribing) && (
+                  <div className="mt-4 border-t border-[#F1F4F9] pt-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F172A]">
+                        <Captions className="h-3.5 w-3.5 text-[#64748B]" />
+                        Video Script
+                      </span>
+                      {ad.ai_transcript && (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (onOpenBrand) {
-                              onOpenBrand(ad.brand_id);
-                              onClose();
-                            }
-                          }}
-                          className="flex min-w-0 items-center gap-2 font-semibold text-[#0F172A] hover:text-[#0027eb]"
+                          onClick={() => setRightTab("script")}
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
                         >
-                          {ad.brand_logo_url ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={ad.brand_logo_url}
-                              alt=""
-                              className="h-5 w-5 shrink-0 rounded-full border border-[#E6E9F0] bg-white object-contain p-0.5"
-                            />
-                          ) : (
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0027eb] text-[9px] font-bold text-white">
-                              {ad.brand_avatar_initials}
-                            </span>
-                          )}
-                          <span className="truncate">{ad.brand_name}</span>
+                          Se hele scriptet
+                          <ArrowUpRight className="h-3 w-3" />
                         </button>
-                      </div>
-
-                      {/* Status */}
-                      <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                        <span className="text-[#64748B]">Status</span>
-                        <span className="inline-flex items-center gap-1.5 font-medium text-[#0F172A]">
-                          <span
-                            className={`h-2 w-2 rounded-full ${
-                              ad.is_active ? "bg-[#16A34A]" : "bg-[#94A3B8]"
-                            }`}
-                          />
-                          {ad.is_active ? "Running" : "Not Running"}
-                        </span>
-                      </div>
-
-                      {/* Time Running */}
-                      <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                        <span className="text-[#64748B]">Time Running</span>
-                        <span className="font-mono-num font-semibold text-[#0F172A]">
-                          {localAnalysis.activeDays} Days
-                        </span>
-                      </div>
-
-                      {/* Active Since */}
-                      <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                        <span className="text-[#64748B]">Started</span>
-                        <span className="font-mono-num text-[#334155]">
-                          {formatIsoDate(ad.started_running_at)}
-                        </span>
-                      </div>
-
-                      {/* CTA */}
-                      {ad.cta_text && (
-                        <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                          <span className="text-[#64748B]">CTA</span>
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#0F172A]">
-                              <MousePointerClick className="h-3 w-3 text-[#64748B]" />
-                              {ad.cta_text}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Format */}
-                      <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                        <span className="text-[#64748B]">Format</span>
-                        <div>
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 text-[11.5px] font-medium text-[#0F172A]">
-                            {ad.media_type === "video" ? (
-                              <Film className="h-3 w-3 text-[#64748B]" />
-                            ) : (
-                              <ImageIcon className="h-3 w-3 text-[#64748B]" />
-                            )}
-                            {formatLabel}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Hook */}
-                      {localAnalysis.hook && (
-                        <div className="grid grid-cols-[118px_1fr] items-start gap-3 py-2.5">
-                          <span className="pt-0.5 text-[#64748B]">Hook</span>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-medium leading-snug text-[#0F172A]">
-                              &ldquo;{localAnalysis.hook}&rdquo;
-                            </p>
-                            <span className="mt-1 inline-block text-[10.5px] text-[#64748B]">
-                              {localAnalysis.hookCategory}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Landing Page */}
-                      {ad.landing_page_url && (
-                        <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                          <span className="text-[#64748B]">Landing Page</span>
-                          <a
-                            href={ad.landing_page_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-lg bg-[#F1F5F9] px-2.5 py-1.5 font-mono-num text-[11.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#E2E8F0]"
-                          >
-                            <ExternalLink className="h-3 w-3 shrink-0 text-[#64748B]" />
-                            <span className="truncate">{ad.landing_page_url}</span>
-                          </a>
-                        </div>
-                      )}
-
-                      {/* Original Ad */}
-                      {ad.source_url && (
-                        <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                          <span className="text-[#64748B]">Original Ad</span>
-                          <div>
-                            <a
-                              href={ad.source_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Open in Facebook
-                            </a>
-                          </div>
-                        </div>
                       )}
                     </div>
-
-                    {/* Video Script Card inside Details — clean "Se hele scriptet" button, zero manual transcribe button */}
-                    {ad.media_type === "video" && (ad.ai_transcript || transcribing) && (
-                      <div className="mt-4 border-t border-[#F1F4F9] pt-3.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F172A]">
-                            <Captions className="h-3.5 w-3.5 text-[#64748B]" />
-                            Video Script
-                          </span>
-                          {ad.ai_transcript && (
-                            <button
-                              type="button"
-                              onClick={() => setRightTab("script")}
-                              className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-                            >
-                              Se hele scriptet
-                              <ArrowUpRight className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                        {transcribing && !ad.ai_transcript ? (
-                          <div className="mt-2.5 space-y-2">
-                            <div className="skeleton-shimmer h-3 w-full rounded" />
-                            <div className="skeleton-shimmer h-3 w-4/5 rounded" />
-                          </div>
-                        ) : ad.ai_transcript ? (
-                          <p className="mt-2 line-clamp-3 rounded-xl bg-[#FAFBFD] p-2.5 text-[12px] leading-relaxed text-[#334155]">
-                            {ad.ai_transcript}
-                          </p>
-                        ) : null}
+                    {transcribing && !ad.ai_transcript ? (
+                      <div className="mt-2.5 space-y-2">
+                        <div className="skeleton-shimmer h-3 w-full rounded" />
+                        <div className="skeleton-shimmer h-3 w-4/5 rounded" />
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {detailsSubTab === "lp" && (
-                  <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-[#64748B]" />
-                        <h3 className="font-display text-[14px] font-bold text-[#0F172A]">
-                          Landing Page Inspector
-                        </h3>
-                      </div>
-
-                      {ad.landing_page_url && (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={handleInspectLandingPage}
-                            disabled={inspectingLp}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC] disabled:opacity-50"
-                          >
-                            {inspectingLp ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#475569]" />
-                            ) : (
-                              <Search className="h-3.5 w-3.5" />
-                            )}
-                            {inspectingLp
-                              ? "Scanner..."
-                              : lpAudit
-                                ? "Opdatér"
-                                : "Inspicér LP"}
-                          </button>
-
-                          <a
-                            href={ad.landing_page_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="adtrack-btn-primary inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
-                          >
-                            Åbn
-                            <ArrowUpRight className="h-3.5 w-3.5" />
-                          </a>
-                        </div>
-                      )}
-                    </div>
-
-                    {ad.landing_page_url ? (
-                      <>
-                        <p className="mt-2 truncate font-mono-num text-[11.5px] text-[#64748B]">
-                          {ad.landing_page_url}
-                        </p>
-
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          <span className="rounded-md bg-[#F3F5F9] px-2.5 py-1 text-[11px] font-medium text-[#334155]">
-                            {lpAudit?.funnelType || localAnalysis.funnelType}
-                          </span>
-                          {localAnalysis.offers.map((offer) => (
-                            <span
-                              key={offer}
-                              className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-medium text-[#334155]"
-                            >
-                              <Tag className="h-3 w-3 text-[#64748B]" />
-                              {offer}
-                            </span>
-                          ))}
-                          {localAnalysis.socialProof.map((proof) => (
-                            <span
-                              key={proof}
-                              className="inline-flex items-center gap-1 rounded-md bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-medium text-[#15803D]"
-                            >
-                              <ShieldCheck className="h-3 w-3" />
-                              {proof}
-                            </span>
-                          ))}
-                        </div>
-
-                        {inspectingLp && (
-                          <div className="mt-4 space-y-2.5 border-t border-[#F1F4F9] pt-3">
-                            <div className="skeleton-shimmer h-4 w-3/4 rounded" />
-                            <div className="skeleton-shimmer h-3 w-full rounded" />
-                            <div className="skeleton-shimmer h-3 w-2/3 rounded" />
-                          </div>
-                        )}
-
-                        {lpError && (
-                          <p className="mt-3 rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs text-[#9F1239]">
-                            {lpError}
-                          </p>
-                        )}
-
-                        {!inspectingLp && lpAudit && (
-                          <div className="mt-4 space-y-3 border-t border-[#F1F4F9] pt-3 text-xs">
-                            {(lpAudit.title || lpAudit.h1) && (
-                              <div className="rounded-xl bg-[#FAFBFD] p-3">
-                                <p className="font-semibold text-[#0F172A]">
-                                  {lpAudit.h1 || lpAudit.title}
-                                </p>
-                                {lpAudit.description && (
-                                  <p className="mt-1 line-clamp-3 text-[11.5px] text-[#64748B]">
-                                    {lpAudit.description}
-                                  </p>
-                                )}
-                                <div className="mt-2 flex flex-wrap items-center gap-3 font-mono-num text-[11px] text-[#475569]">
-                                  {lpAudit.price && (
-                                    <span className="font-semibold text-[#0F172A]">
-                                      Pris: {lpAudit.price} {lpAudit.currency || ""}
-                                    </span>
-                                  )}
-                                  <span className="inline-flex items-center gap-1">
-                                    <Gauge className="h-3 w-3 text-[#16A34A]" />
-                                    {lpAudit.responseMs} ms
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            {lpAudit.conversionSignals.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5">
-                                {lpAudit.conversionSignals.map((sig) => (
-                                  <span
-                                    key={sig}
-                                    className="inline-flex items-center gap-1 rounded-full border border-[#E6E9F0] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#334155]"
-                                  >
-                                    <Check className="h-3 w-3 text-[#16A34A]" />
-                                    {sig}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <p className="mt-2 text-xs text-[#64748B]">
-                        Ingen landing page URL fundet for denne annonce.
+                    ) : ad.ai_transcript ? (
+                      <p className="mt-2 line-clamp-3 rounded-xl bg-[#FAFBFD] p-2.5 text-[12px] leading-relaxed text-[#334155]">
+                        {ad.ai_transcript}
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {rightTab === "script" && (
               <div className="space-y-4">
-                {/* Video Script / Automatic Deepgram Transcription */}
+                {/* Clean Raw Video Script (no hook analysis box) */}
                 {ad.media_type === "video" && (
                   <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Captions className="h-4 w-4 text-[#64748B]" />
                         <h3 className="font-display text-[13.5px] font-bold text-[#0F172A]">
-                          Video Transcript
+                          Video Script
                         </h3>
                         {ad.duration_seconds ? (
                           <span className="font-mono-num text-[11px] text-[#64748B]">
@@ -1029,43 +794,29 @@ export function AdDetailSheet({
                         ) : null}
                       </div>
 
-                      <div className="flex items-center gap-1.5">
-                        {ad.ai_transcript && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              copyText("transcript", ad.ai_transcript || "")
-                            }
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#475569] hover:text-[#0F172A]"
-                          >
-                            {copiedKey === "transcript" ? (
-                              <Check className="h-3.5 w-3.5 text-[#16A34A]" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                            Kopiér
-                          </button>
-                        )}
-                      </div>
+                      {ad.ai_transcript && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            copyText("transcript", ad.ai_transcript || "")
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#475569] hover:text-[#0F172A]"
+                        >
+                          {copiedKey === "transcript" ? (
+                            <Check className="h-3.5 w-3.5 text-[#16A34A]" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                          Kopiér
+                        </button>
+                      )}
                     </div>
 
                     {transcribing && !ad.ai_transcript && (
                       <div className="mt-3 space-y-2.5">
-                        <div className="skeleton-shimmer h-14 w-full rounded-xl" />
                         <div className="skeleton-shimmer h-3.5 w-full rounded" />
                         <div className="skeleton-shimmer h-3.5 w-5/6 rounded" />
                         <div className="skeleton-shimmer h-3.5 w-3/4 rounded" />
-                      </div>
-                    )}
-
-                    {ad.ai_hook_verbal && ad.ai_transcript && (
-                      <div className="mt-3 rounded-xl bg-[#F8FAFC] p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                          Spoken Hook (0–3 sek.)
-                        </p>
-                        <p className="mt-1 text-[13px] font-medium text-[#0F172A]">
-                          &ldquo;{ad.ai_hook_verbal}&rdquo;
-                        </p>
                       </div>
                     )}
 
