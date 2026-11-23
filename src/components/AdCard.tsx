@@ -81,10 +81,10 @@ export function AdCard({
 
   const rankBadgeStyle =
     rank === 1
-      ? "bg-gradient-to-b from-[#FDE047] via-[#EAB308] to-[#CA8A04] text-[#422006] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.18)]"
+      ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#B45309] text-[#422006] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.2)]"
       : rank === 2
-        ? "bg-gradient-to-b from-[#F8FAFC] via-[#CBD5E1] to-[#94A3B8] text-[#0F172A] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.18)]"
-        : "bg-gradient-to-b from-[#FDBA74] via-[#D97706] to-[#9A3412] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_1px_2px_rgba(15,23,42,0.18)]";
+        ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#64748B] text-[#0F172A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(15,23,42,0.18)]"
+        : "bg-gradient-to-b from-[#FED7AA] via-[#D97706] to-[#92400E] text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.55),0_1px_2px_rgba(15,23,42,0.2)]";
 
   // Clamp extreme outlier banners only; 9:16 (0.56), 4:5 (0.8), 1:1 (1.0), 16:9 (1.78) all show 100% uncropped
   const clampedRatio = naturalRatio
@@ -136,7 +136,7 @@ export function AdCard({
             )}
             {rank && rank <= 3 && (
               <span
-                className={`absolute -left-1.5 -top-1.5 inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ring-2 ring-white ${rankBadgeStyle}`}
+                className={`absolute -left-1.5 -top-1.5 inline-flex h-[19px] w-[19px] shrink-0 aspect-square items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ring-2 ring-white ${rankBadgeStyle}`}
               >
                 {rank}
               </span>

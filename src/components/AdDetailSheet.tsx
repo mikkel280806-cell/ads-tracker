@@ -798,17 +798,22 @@ export function AdDetailSheet({
                       <span className="text-[#64748B]">Ad Rank</span>
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 font-mono-num text-[11px] font-bold leading-none ${
+                          title={`Rank #${rankMeta.brandRank} of ${rankMeta.brandTotalAds}`}
+                          className={`inline-flex shrink-0 aspect-square items-center justify-center rounded-full font-sans font-bold leading-none tabular-nums ${
+                            rankMeta.brandRank >= 100
+                              ? "h-7 w-7 text-[10px]"
+                              : "h-6 w-6 text-[11px]"
+                          } ${
                             rankMeta.brandRank === 1
-                              ? "bg-gradient-to-b from-[#FDE047] via-[#EAB308] to-[#CA8A04] text-[#422006]"
+                              ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#B45309] text-[#422006] ring-1 ring-[#CA8A04]/45 shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.16)]"
                               : rankMeta.brandRank === 2
-                                ? "bg-gradient-to-b from-[#F8FAFC] via-[#CBD5E1] to-[#94A3B8] text-[#0F172A]"
+                                ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#64748B] text-[#0F172A] ring-1 ring-[#94A3B8]/55 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(15,23,42,0.14)]"
                                 : rankMeta.brandRank === 3
-                                  ? "bg-gradient-to-b from-[#FDBA74] via-[#D97706] to-[#9A3412] text-white"
-                                  : "bg-[#F1F5F9] text-[#0F172A]"
+                                  ? "bg-gradient-to-b from-[#FED7AA] via-[#D97706] to-[#92400E] text-white ring-1 ring-[#B45309]/45 shadow-[inset_0_1px_1px_rgba(255,255,255,0.55),0_1px_2px_rgba(15,23,42,0.16)]"
+                                  : "bg-[#F1F5F9] text-[#0F172A] ring-1 ring-[#CBD5E1]/70"
                           }`}
                         >
-                          #{rankMeta.brandRank}
+                          {rankMeta.brandRank}
                         </span>
                         <span className="text-[11.5px] text-[#64748B]">
                           of {rankMeta.brandTotalAds} in {ad.brand_name}
