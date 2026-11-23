@@ -35,6 +35,7 @@ export function AdCard({
   const [isHovered, setIsHovered] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
 
   const activeDays = getActiveDays(ad.started_running_at);
   const inFolders = ad.board_ids.length > 0;
@@ -56,12 +57,17 @@ export function AdCard({
     ? ad.fallback_image_url || ""
     : ad.thumbnail_url || ad.fallback_image_url || ad.media_url || "";
 
-  const aspectClass =
+  // Clamp extreme outlier banners only; 9:16 (0.56), 4:5 (0.8), 1:1 (1.0), 16:9 (1.78) all show 100% uncropped
+  const clampedRatio = naturalRatio
+    ? Math.min(1.85, Math.max(0.54, naturalRatio))
+    : null;
+
+  const fallbackRatio =
     ad.aspect_ratio === "1:1"
-      ? "aspect-square"
+      ? 1
       : ad.media_type === "video"
-        ? "aspect-[9/14]"
-        : "aspect-[4/5]";
+        ? 0.72
+        : 0.85;
 
   const copyText = (ad.primary_text || "").trim();
   const hasLongCopy = copyText.length > 105;
@@ -165,7 +171,7 @@ export function AdCard({
         </div>
       )}
 
-      {/* 3. TALL CREATIVE MEDIA VIEWPORT */}
+      {/* 3. TRUE-ASPECT CREATIVE MEDIA VIEWPORT (never crops 1:1, 4:5, or 9:16) */}
       <div className="px-2">
         <div
           role="button"
@@ -177,7 +183,12 @@ export function AdCard({
               onOpen(ad);
             }
           }}
-          className={`relative w-full cursor-pointer overflow-hidden rounded-[10px] bg-[#F3F5F9] ${aspectClass}`}
+          style={{
+            aspectRatio: primaryImg
+              ? String(clampedRatio ?? fallbackRatio)
+              : "1 / 1",
+          }}
+          className="relative w-full cursor-pointer overflow-hidden rounded-[10px] bg-[#F3F5F9]"
         >
           {isVideoFile && isHovered && !imgFailed ? (
             <video
@@ -187,8 +198,14 @@ export function AdCard({
               muted
               loop
               playsInline
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                if (v.videoWidth > 0 && v.videoHeight > 0) {
+                  setNaturalRatio(v.videoWidth / v.videoHeight);
+                }
+              }}
               onError={() => setImgFailed(true)}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain bg-black"
             />
           ) : primaryImg ? (
             <>
@@ -200,12 +217,18 @@ export function AdCard({
                 src={primaryImg}
                 alt={`${ad.brand_name} — ${ad.headline}`}
                 loading="lazy"
-                onLoad={() => setImgLoaded(true)}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    setNaturalRatio(img.naturalWidth / img.naturalHeight);
+                  }
+                  setImgLoaded(true);
+                }}
                 onError={() => {
                   setImgLoaded(true);
                   if (!imgFailed) setImgFailed(true);
                 }}
-                className={`h-full w-full object-cover transition-all duration-300 ease-out group-hover:scale-[1.02] ${
+                className={`h-full w-full object-contain transition-all duration-300 ease-out group-hover:scale-[1.02] ${
                   imgLoaded ? "opacity-100" : "opacity-0"
                 }`}
               />

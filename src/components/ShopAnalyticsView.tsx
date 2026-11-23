@@ -29,6 +29,7 @@ import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/typ
 import { getTechMeta } from "@/lib/tech-catalog";
 import { dedupeAds, formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
+import { MasonryGrid } from "./MasonryGrid";
 import {
   FacebookColorIcon,
   InstagramColorIcon,
@@ -1277,18 +1278,19 @@ export function ShopAnalyticsView({
                 Ingen live Meta Ads hentet for denne shop endnu.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {sortedMetaAds.slice(0, 8).map((ad, idx) => (
+              <MasonryGrid
+                items={sortedMetaAds.slice(0, 8)}
+                getKey={(ad) => ad.id}
+                renderItem={(ad, idx) => (
                   <AdCard
-                    key={ad.id}
                     ad={ad}
                     boards={boards}
-                    rank={idx + 1}
+                    rank={idx < 3 ? idx + 1 : undefined}
                     onOpen={onOpenAd}
                     onToggleBoard={onToggleBoard}
                   />
-                ))}
-              </div>
+                )}
+              />
             )}
           </div>
         </div>
@@ -1504,18 +1506,19 @@ export function ShopAnalyticsView({
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {sortedMetaAds.map((ad, idx) => (
+              <MasonryGrid
+                items={sortedMetaAds}
+                getKey={(ad) => ad.id}
+                renderItem={(ad, idx) => (
                   <AdCard
-                    key={ad.id}
                     ad={ad}
                     boards={boards}
-                    rank={idx + 1}
+                    rank={idx < 3 ? idx + 1 : undefined}
                     onOpen={onOpenAd}
                     onToggleBoard={onToggleBoard}
                   />
-                ))}
-              </div>
+                )}
+              />
             </div>
           )}
 
@@ -1539,18 +1542,20 @@ export function ShopAnalyticsView({
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {filteredCreatives.map((ad) => (
+              <MasonryGrid
+                items={filteredCreatives}
+                maxCols={5}
+                getKey={(ad) => ad.id}
+                renderItem={(ad) => (
                   <AdCard
-                    key={ad.id}
                     ad={ad}
                     boards={boards}
                     compact
                     onOpen={onOpenAd}
                     onToggleBoard={onToggleBoard}
                   />
-                ))}
-              </div>
+                )}
+              />
             </div>
           )}
 

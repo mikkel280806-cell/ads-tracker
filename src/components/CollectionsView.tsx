@@ -13,6 +13,7 @@ import {
 import type { Ad, Board, Brand } from "@/lib/types";
 import { formatReach } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
+import { MasonryGrid } from "./MasonryGrid";
 import { ShopifyBagIcon } from "./BrandIcons";
 
 interface CollectionsViewProps {
@@ -171,18 +172,19 @@ export function CollectionsView({
               <Layers className="h-4 w-4 text-[#64748B]" />
               Gemte Ads ({folderAds.length})
             </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {folderAds.map((ad) => (
+            <MasonryGrid
+              items={folderAds}
+              getKey={(ad) => ad.id}
+              renderItem={(ad) => (
                 <AdCard
-                  key={ad.id}
                   ad={ad}
                   boards={boards}
                   onOpen={onOpenAd}
                   onToggleBoard={onToggleBoard}
                   onOpenBrand={onOpenShop}
                 />
-              ))}
-            </div>
+              )}
+            />
           </div>
         )}
 

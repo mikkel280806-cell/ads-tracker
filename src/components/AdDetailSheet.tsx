@@ -517,7 +517,7 @@ export function AdDetailSheet({
                     onError={() => {
                       if (!mediaFailed) setFailedAdId(ad.id);
                     }}
-                    className="max-h-[480px] w-full bg-[#F3F5F9] object-cover"
+                    className="max-h-[540px] w-full bg-[#F3F5F9] object-contain"
                   />
                 ) : (
                   <div className="flex h-64 flex-col items-center justify-center gap-2 bg-[#F5F7FA] text-center">
