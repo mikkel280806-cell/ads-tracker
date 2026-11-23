@@ -790,7 +790,7 @@ export function ShopsTableView({
 
             const adsSeries =
               brand.ads_timeline && brand.ads_timeline.length >= 2
-                ? brand.ads_timeline.slice(-8).map((p: AdsTimelinePoint) => p.active_ads)
+                ? brand.ads_timeline.slice(-8).map((p: AdsTimelinePoint) => p.count)
                 : [
                     Math.max(1, Math.round((brand.active_ads_count || 10) * 0.55)),
                     Math.max(1, Math.round((brand.active_ads_count || 10) * 0.7)),
