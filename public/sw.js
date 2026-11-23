@@ -1,5 +1,5 @@
 // Minimal Service Worker for Flake PWA installability
-const CACHE_NAME = "flake-shell-v36";
+const CACHE_NAME = "flake-shell-v37";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
