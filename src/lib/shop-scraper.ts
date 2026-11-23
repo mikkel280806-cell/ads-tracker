@@ -792,13 +792,22 @@ export async function scrapeShopifyProducts(
   let earliestMs = Infinity;
   const categoryFreq = new Map<string, number>();
 
+  const JUNK_PRODUCT_TYPE_RE =
+    /\b(shipping|protection|insurance|warranty|service contract|clyde|shipwill|upcart|route|personalization|charge|upgrade|cashback|bundle|bundles|main product|gift card|hidden|add[_ -]?on|upsell|subscription|fee|sample|test|kit|promo|discount|welcome[_ -]?kit|safety keys|merchandise|other|default)\b/i;
+
   for (const p of allList) {
     if (p?.created_at) {
       const t = new Date(p.created_at).getTime();
       if (!Number.isNaN(t) && t < earliestMs) earliestMs = t;
     }
     const pt = typeof p?.product_type === "string" ? p.product_type.trim() : "";
-    if (pt && pt.length > 1 && pt.length < 36) {
+    if (
+      pt &&
+      pt.length > 2 &&
+      pt.length < 34 &&
+      !JUNK_PRODUCT_TYPE_RE.test(pt) &&
+      pt !== pt.toUpperCase()
+    ) {
       categoryFreq.set(pt, (categoryFreq.get(pt) || 0) + 1);
     }
   }
