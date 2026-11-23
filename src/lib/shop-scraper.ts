@@ -607,6 +607,45 @@ export function cleanLandingUrl(rawUrl?: string): string {
   }
 }
 
+function extractCollectionProductHandles(html: string, limit = 30): string[] {
+  if (!html) return [];
+  const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+  let scope = mainMatch
+    ? mainMatch[1]
+    : html
+        .replace(/<header[\s\S]*?<\/header>/gi, "")
+        .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+        .replace(/<footer[\s\S]*?<\/footer>/gi, "");
+  scope = scope
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "");
+
+  const rx = /href=["'][^"']*\/products\/([^"'?#/]+)/gi;
+  const handles: string[] = [];
+  const seen = new Set<string>();
+  let match: RegExpExecArray | null;
+  while ((match = rx.exec(scope)) !== null) {
+    let h = match[1];
+    try {
+      h = decodeURIComponent(h);
+    } catch {
+      // keep raw
+    }
+    h = h.trim().toLowerCase();
+    if (!h || seen.has(h)) continue;
+    seen.add(h);
+    handles.push(h);
+    if (handles.length >= limit) break;
+  }
+  return handles;
+}
+
+function hasPositiveProductPrice(price?: string): boolean {
+  if (!price) return false;
+  const num = parseFloat(String(price).replace(/[^0-9.,]/g, "").replace(",", "."));
+  return Number.isFinite(num) && num > 0;
+}
+
 export async function scrapeShopifyProducts(
   origin: string,
   currency: string
@@ -617,11 +656,9 @@ export async function scrapeShopifyProducts(
   foundedDate?: string;
   categories: string[];
 }> {
-  const [bestRes, allRes] = await Promise.all([
-    fetchWithTimeout(
-      `${origin}/collections/all/products.json?sort_by=best-selling&limit=24`,
-      6500
-    ),
+  const [bestHtmlRes, newestHtmlRes, allRes] = await Promise.all([
+    fetchWithTimeout(`${origin}/collections/all?sort_by=best-selling`, 6500),
+    fetchWithTimeout(`${origin}/collections/all?sort_by=created-descending`, 6500),
     fetchWithTimeout(`${origin}/products.json?limit=250`, 7000),
   ]);
 
@@ -651,34 +688,77 @@ export async function scrapeShopifyProducts(
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let bestList: any[] = [];
-  if (bestRes && bestRes.ok) {
-    try {
-      const json = await bestRes.json();
-      if (Array.isArray(json?.products)) bestList = json.products;
-    } catch {
-      // ignore
+  const bestHandles =
+    bestHtmlRes && bestHtmlRes.ok
+      ? extractCollectionProductHandles(await bestHtmlRes.text().catch(() => ""))
+      : [];
+  const newestHandles =
+    newestHtmlRes && newestHtmlRes.ok
+      ? extractCollectionProductHandles(await newestHtmlRes.text().catch(() => ""))
+      : [];
+
+  // Map full catalog by lowercase handle (filtering out 0-price freebies/add-ons)
+  const pricedProducts = allList
+    .map(mapProd)
+    .filter((p) => hasPositiveProductPrice(p.price));
+
+  const byHandle = new Map<string, ProductPreview>();
+  for (const prod of pricedProducts) {
+    if (prod.handle) {
+      byHandle.set(prod.handle.toLowerCase(), prod);
     }
   }
 
-  const baseList = allList.length > 0 ? allList : bestList;
-  const bestPool = bestList.length > 0 ? bestList : allList;
+  // 1. True Shopify Best-Selling order from /collections/all?sort_by=best-selling
+  const orderedBest: ProductPreview[] = [];
+  const usedBest = new Set<string>();
+  for (const h of bestHandles) {
+    const match = byHandle.get(h);
+    if (match && !usedBest.has(h)) {
+      orderedBest.push(match);
+      usedBest.add(h);
+    }
+  }
+  for (const prod of pricedProducts) {
+    if (orderedBest.length >= 16) break;
+    const h = (prod.handle || prod.title).toLowerCase();
+    if (!usedBest.has(h)) {
+      orderedBest.push(prod);
+      usedBest.add(h);
+    }
+  }
+  const topProducts = orderedBest.slice(0, 16);
 
-  const topProducts = bestPool.slice(0, 16).map(mapProd);
-
-  const sortedByNewest = [...baseList].sort((a, b) => {
-    const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
-    const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
+  // 2. True Shopify Newest order from /collections/all?sort_by=created-descending (fallback: created_at desc)
+  const orderedNewest: ProductPreview[] = [];
+  const usedNewest = new Set<string>();
+  for (const h of newestHandles) {
+    const match = byHandle.get(h);
+    if (match && !usedNewest.has(h)) {
+      orderedNewest.push(match);
+      usedNewest.add(h);
+    }
+  }
+  const sortedByCreated = [...pricedProducts].sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
     return tb - ta;
   });
-  const latestProducts = sortedByNewest.slice(0, 16).map(mapProd);
+  for (const prod of sortedByCreated) {
+    if (orderedNewest.length >= 16) break;
+    const h = (prod.handle || prod.title).toLowerCase();
+    if (!usedNewest.has(h)) {
+      orderedNewest.push(prod);
+      usedNewest.add(h);
+    }
+  }
+  const latestProducts = orderedNewest.slice(0, 16);
 
   // Earliest product date = reliable store catalog age signal
   let earliestMs = Infinity;
   const categoryFreq = new Map<string, number>();
 
-  for (const p of baseList) {
+  for (const p of allList) {
     if (p?.created_at) {
       const t = new Date(p.created_at).getTime();
       if (!Number.isNaN(t) && t < earliestMs) earliestMs = t;
@@ -698,7 +778,7 @@ export async function scrapeShopifyProducts(
     .map(([cat]) => cat);
 
   return {
-    count: baseList.length,
+    count: pricedProducts.length || allList.length,
     topProducts,
     latestProducts,
     foundedDate,
