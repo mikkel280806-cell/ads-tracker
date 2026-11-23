@@ -41,12 +41,12 @@ interface AdVaultAppProps {
   initialStatus: ConnectorStatus;
 }
 
-export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
+export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
+  void _initialStatus;
   const [ads, setAds] = useState<Ad[]>(SEED_ADS);
   const [brands, setBrands] = useState<Brand[]>(SEED_BRANDS);
   const [boards, setBoards] = useState<Board[]>(SEED_BOARDS);
   const [hydrated, setHydrated] = useState(false);
-  const [supabaseSynced, setSupabaseSynced] = useState(initialStatus.supabase);
 
   // Navigation: ONLY Shops, Explore, Folders!
   const [view, setView] = useState<ActiveView>("shops");
@@ -107,11 +107,14 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
           const parsed: Brand[] = JSON.parse(savedBrands);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const seedById = new Map(SEED_BRANDS.map((b) => [b.id, b]));
+            const removedIds = new Set([
+              "brand-mycomfort-dk",
+              "brand-deepstash-com",
+              "brand-barons-dk",
+              "brand-gymshark-com",
+            ]);
             const refreshed = parsed
-              .filter(
-                (b) =>
-                  b.id !== "brand-mycomfort-dk" && b.id !== "brand-deepstash-com"
-              )
+              .filter((b) => !removedIds.has(b.id))
               .map((b) => {
                 const sb = seedById.get(b.id);
                 if (!sb) return b;
@@ -137,10 +140,15 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         if (savedAds) {
           const parsed: Ad[] = JSON.parse(savedAds);
           if (Array.isArray(parsed) && parsed.length > 0) {
+            const removedAdBrandIds = new Set([
+              "brand-mycomfort-dk",
+              "brand-deepstash-com",
+              "brand-barons-dk",
+              "brand-gymshark-com",
+            ]);
             const cleaned = parsed.filter(
               (a) =>
-                a.brand_id !== "brand-mycomfort-dk" &&
-                a.brand_id !== "brand-deepstash-com" &&
+                !removedAdBrandIds.has(a.brand_id) &&
                 !(a.brand_id === "brand-thenap-dk" && !a.landing_page_url?.includes("thenap"))
             );
             const existingIds = new Set(cleaned.map((a) => a.id));
@@ -163,7 +171,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
         .then((data) => {
           if (cancelled || !data) return;
           if (data.synced) {
-            setSupabaseSynced(true);
             if (Array.isArray(data.brands) && data.brands.length > 0) {
               setBrands(data.brands);
             }
@@ -173,8 +180,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             if (Array.isArray(data.folders) && data.folders.length > 0) {
               setBoards(data.folders);
             }
-          } else {
-            setSupabaseSynced(false);
           }
         })
         .catch(() => {});
@@ -346,25 +351,60 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
       return true;
     });
 
-    return [...list].sort((a, b) => {
-      if (sortBy === "longest") {
-        return getActiveDays(b.started_running_at) - getActiveDays(a.started_running_at);
-      }
-      if (sortBy === "duplicated") {
-        return (b.duplicated_count || 1) - (a.duplicated_count || 1);
-      }
-      if (sortBy === "newest") {
+    if (sortBy !== "top") {
+      return [...list].sort((a, b) => {
+        if (sortBy === "longest") {
+          return getActiveDays(b.started_running_at) - getActiveDays(a.started_running_at);
+        }
+        if (sortBy === "duplicated") {
+          return (b.duplicated_count || 1) - (a.duplicated_count || 1);
+        }
         return (
           new Date(b.started_running_at).getTime() -
           new Date(a.started_running_at).getTime()
         );
-      }
-      // Top Performing
-      const scoreA = getActiveDays(a.started_running_at) * 1.2 + (a.duplicated_count || 1) * 16;
-      const scoreB = getActiveDays(b.started_running_at) * 1.2 + (b.duplicated_count || 1) * 16;
-      return scoreB - scoreA;
-    });
-  }, [ads, marketFilter, brandFilter, mediaFilter, search, sortBy]);
+      });
+    }
+
+    // Top Performing: balanced blend of reach/impressions + scaling + longevity,
+    // with per-brand diversity interleaving so no single brand monopolizes Explore.
+    const brandMap = new Map(brands.map((b) => [b.id, b]));
+    const baseScore = (ad: Ad) => {
+      const days = Math.max(1, getActiveDays(ad.started_running_at));
+      const brand = brandMap.get(ad.brand_id);
+      const longevityScore = Math.log1p(Math.min(days, 365)) * 14;
+      const reachScore =
+        ad.eu_reach && ad.eu_reach > 0
+          ? Math.log10(ad.eu_reach + 10) * 18
+          : Math.log10(((brand?.monthly_visits || 0) / 1000) + 10) * 9;
+      const scalingScore =
+        Math.log1p(Math.max(0, (ad.duplicated_count || 1) - 1)) * 26 +
+        Math.log10((ad.brand_live_ads || brand?.active_ads_count || 1) + 1) * 7;
+      const spendBonus =
+        ad.estimated_spend && ad.estimated_spend > 0
+          ? Math.log10(ad.estimated_spend + 10) * 8
+          : 0;
+      return longevityScore + reachScore + scalingScore + spendBonus;
+    };
+
+    const scored = list
+      .map((ad) => ({ ad, raw: baseScore(ad) }))
+      .sort((a, b) => b.raw - a.raw);
+
+    if (brandFilter !== "all") {
+      return scored.map((s) => s.ad);
+    }
+
+    const brandSeenCount = new Map<string, number>();
+    return scored
+      .map((item) => {
+        const rankInBrand = brandSeenCount.get(item.ad.brand_id) || 0;
+        brandSeenCount.set(item.ad.brand_id, rankInBrand + 1);
+        return { ad: item.ad, finalScore: item.raw - rankInBrand * 22 };
+      })
+      .sort((a, b) => b.finalScore - a.finalScore)
+      .map((s) => s.ad);
+  }, [ads, brands, marketFilter, brandFilter, mediaFilter, search, sortBy]);
 
   // Cross-brand winning hooks extracted from visibleAds
   const exploreHooks = useMemo(() => {
@@ -447,21 +487,18 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             setSelectedShopId(null);
             setSelectedFolderId(null);
           }}
-          className="mb-7 flex items-center justify-between px-2 text-left"
+          className="mb-7 flex items-center px-2 text-left"
         >
           <span className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/logo.png"
               alt="Adtrack"
-              className="h-7.5 w-7.5 rounded-[9px] shadow-[0_4px_16px_rgba(0,39,235,0.55)]"
+              className="h-7.5 w-7.5 rounded-[9px]"
             />
             <span className="font-display text-[18px] font-bold tracking-[-0.03em] text-white">
               Adtrack
             </span>
-          </span>
-          <span className="rounded-md border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono-num text-[9.5px] font-semibold tracking-wider text-white/75">
-            META
           </span>
         </button>
 
@@ -478,7 +515,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               setSelectedShopId(null);
               setSelectedFolderId(null);
             }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
+            className="flex w-full items-center rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
             style={
               view === "shops"
                 ? {
@@ -492,12 +529,9 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             <span className="flex items-center gap-2.5">
               <Store
                 className="h-[17px] w-[17px]"
-                style={{ color: view === "shops" ? "#6B8BFF" : undefined }}
+                style={{ color: view === "shops" ? "#60A5FA" : undefined }}
               />
               Shops
-            </span>
-            <span className="rounded-full bg-white/[0.09] px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white/80">
-              {brands.length}
             </span>
           </button>
 
@@ -508,7 +542,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
               setSelectedShopId(null);
               setSelectedFolderId(null);
             }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
+            className="flex w-full items-center rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
             style={
               view === "explore"
                 ? {
@@ -522,12 +556,9 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
             <span className="flex items-center gap-2.5">
               <Compass
                 className="h-[17px] w-[17px]"
-                style={{ color: view === "explore" ? "#6B8BFF" : undefined }}
+                style={{ color: view === "explore" ? "#60A5FA" : undefined }}
               />
               Explore
-            </span>
-            <span className="rounded-full bg-[#0027eb] px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white shadow-[0_2px_10px_rgba(0,39,235,0.55)]">
-              {ads.length}
             </span>
           </button>
         </div>
@@ -638,19 +669,6 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* Quiet Bottom Sync Indicator */}
-        <div className="mt-auto border-t border-white/[0.08] pt-3.5">
-          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] text-white/60">
-            <span className="inline-flex items-center gap-2 font-medium text-white/85">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-              {supabaseSynced ? "Supabase Live" : "Local"}
-            </span>
-            <span className="font-mono-num text-[10.5px] text-white/45">
-              {brands.length} · {ads.length}
-            </span>
           </div>
         </div>
       </aside>
@@ -911,7 +929,7 @@ export function AdVaultApp({ initialStatus }: AdVaultAppProps) {
                   )}
 
                   {visibleAds.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-[#D6DCE8] bg-[#FAFBFD] py-16 text-center">
+                    <div className="py-16 text-center">
                       <p className="font-display text-sm font-bold text-[#0F172A]">
                         Ingen annoncer matcher dit filter
                       </p>

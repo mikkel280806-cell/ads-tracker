@@ -229,83 +229,115 @@ export function ShopsTableView({
           </span>
         </div>
 
-        {/* Mobile Quick "+ Scrape" Trigger */}
+        {/* Clean "+" Icon Trigger (opens Add Shop popup modal) */}
         <button
           type="button"
-          onClick={() => setMobileScraperOpen((v) => !v)}
-          className="adtrack-btn-primary inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-white sm:hidden"
+          onClick={() => {
+            setError(null);
+            setMobileScraperOpen(true);
+          }}
+          aria-label="Tilføj shop"
+          title="Tilføj shop"
+          className="adtrack-btn-primary inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors"
         >
-          {mobileScraperOpen ? (
-            <>
-              <X className="h-3.5 w-3.5" />
-              Luk
-            </>
-          ) : (
-            <>
-              <Plus className="h-3.5 w-3.5" />
-              Tilføj shop
-            </>
-          )}
+          <Plus className="h-4.5 w-4.5" />
         </button>
       </div>
 
-      {/* CLEAN SINGLE-LINE SHOP SCRAPER BAR (Always visible on sm+, toggle on iPhone) */}
-      <div
-        className={`${
-          mobileScraperOpen ? "block animate-sheet-up" : "hidden sm:block"
-        } rounded-2xl border border-[#E6E9F0] bg-white p-2.5 shadow-[0_1px_3px_rgba(15,23,42,0.03)] sm:p-3`}
-      >
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl bg-[#F7F8FB] px-3 py-2 transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0027eb]/20">
-            <Globe className="h-4 w-4 shrink-0 text-[#64748B]" />
-            <input
-              id="brand-magic-input"
-              type="text"
-              value={lookupInput}
-              onChange={(e) => setLookupInput(e.target.value)}
-              placeholder="Indsæt shop-URL eller brandnavn (fx bareen.com)..."
-              className="w-full bg-transparent text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-[13.5px]"
-            />
-          </div>
-
-          <button
-            id="brand-magic-submit"
-            type="submit"
-            disabled={loading || !lookupInput.trim()}
-            className="adtrack-btn-primary inline-flex h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white transition-all disabled:opacity-45 sm:px-5"
+      {/* ADD SHOP POPUP MODAL */}
+      {mobileScraperOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#050811]/45 p-4 backdrop-blur-xs"
+          onClick={() => {
+            if (!loading) setMobileScraperOpen(false);
+          }}
+        >
+          <div
+            className="animate-sheet-up w-full max-w-md rounded-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            <span className="hidden sm:inline">
-              {loading ? "Scraper..." : "Tilføj shop"}
-            </span>
-          </button>
-        </form>
+            <div className="mb-3.5 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-[17px] font-bold text-[#0F172A]">
+                  Tilføj shop
+                </h2>
+                <p className="text-xs text-[#64748B]">
+                  Indsæt shop-URL eller brandnavn for at scrape live Meta Ads og tech stack.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setMobileScraperOpen(false)}
+                aria-label="Luk"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A] disabled:opacity-40"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-        <div className="mt-2 hidden items-center gap-1.5 px-1 text-[11px] sm:flex">
-          <span className="text-[#94A3B8]">Hurtig tilføj:</span>
-          {QUICK_SUGGESTIONS.map((domain) => (
-            <button
-              key={domain}
-              type="button"
-              disabled={loading}
-              onClick={() => runBrandLookup(domain)}
-              className="rounded-lg px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#475569] transition-colors hover:bg-[#F3F5F9] hover:text-[#0027eb] disabled:opacity-40"
-            >
-              + {domain}
-            </button>
-          ))}
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="flex items-center gap-2.5 rounded-xl border border-[#E2E6EF] bg-[#F7F8FB] px-3 py-2.5 transition-all focus-within:border-[#0027eb] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0027eb]/15">
+                <Globe className="h-4 w-4 shrink-0 text-[#64748B]" />
+                <input
+                  id="brand-magic-input"
+                  type="text"
+                  autoFocus
+                  value={lookupInput}
+                  onChange={(e) => setLookupInput(e.target.value)}
+                  placeholder="fx bareen.com eller https://resilia.shop"
+                  className="w-full bg-transparent text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-[13.5px]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="text-[#94A3B8]">Forslag:</span>
+                {QUICK_SUGGESTIONS.map((domain) => (
+                  <button
+                    key={domain}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => runBrandLookup(domain)}
+                    className="rounded-lg bg-[#F5F7FA] px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#475569] transition-colors hover:bg-[#EEF2FF] hover:text-[#0027eb] disabled:opacity-40"
+                  >
+                    + {domain}
+                  </button>
+                ))}
+              </div>
+
+              {error && (
+                <p className="rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs font-medium text-[#E11D48]">
+                  {error}
+                </p>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setMobileScraperOpen(false)}
+                  className="rounded-xl px-3.5 py-2 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A] disabled:opacity-40"
+                >
+                  Annuller
+                </button>
+                <button
+                  id="brand-magic-submit"
+                  type="submit"
+                  disabled={loading || !lookupInput.trim()}
+                  className="adtrack-btn-primary inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-45"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  {loading ? "Scraper..." : "Tilføj shop"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-
-        {error && (
-          <p className="mt-2 rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs font-medium text-[#E11D48]">
-            {error}
-          </p>
-        )}
-      </div>
+      )}
 
       {/* UNIFIED FILTER BAR — Hick's Law: Market · Search · Tech · Sort */}
       <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-3 lg:space-y-0">
@@ -612,7 +644,7 @@ export function ShopsTableView({
         })}
 
         {filteredBrands.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[#D6DCE8] bg-white px-6 py-12 text-center">
+          <div className="px-6 py-12 text-center">
             <p className="font-display text-sm font-semibold text-[#0F172A]">
               Ingen shops matcher dit filter
             </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -105,6 +105,21 @@ function InteractiveAreaChart({
   formatVal: (v: number) => string;
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(560);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const next = Math.round(el.getBoundingClientRect().width);
+      if (next > 0) setContainerWidth(next);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   if (points.length < 2) {
     return (
@@ -114,12 +129,12 @@ function InteractiveAreaChart({
     );
   }
 
-  const w = 540;
-  const h = 195;
-  const padL = 42;
-  const padR = 18;
-  const padT = 24;
-  const padB = 26;
+  const w = Math.max(280, containerWidth);
+  const h = 205;
+  const padL = 36;
+  const padR = 10;
+  const padT = 18;
+  const padB = 24;
 
   const maxVal = Math.max(...points.map((p) => p.value), 1) * 1.15;
 
@@ -138,10 +153,16 @@ function InteractiveAreaChart({
   }));
 
   const activePt = hoveredIdx !== null ? coords[hoveredIdx] : null;
+  const hitBand = Math.max(24, (w - padL - padR) / Math.max(points.length - 1, 1));
 
   return (
-    <div className="relative select-none">
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-[205px] w-full overflow-visible">
+    <div ref={containerRef} className="relative w-full select-none">
+      <svg
+        width={w}
+        height={h}
+        viewBox={`0 0 ${w} ${h}`}
+        className="block h-[205px] w-full overflow-visible"
+      >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.24" />
@@ -212,9 +233,9 @@ function InteractiveAreaChart({
             >
               {/* Invisible generous hit target */}
               <rect
-                x={c.x - 20}
+                x={c.x - hitBand / 2}
                 y={padT - 10}
-                width={40}
+                width={hitBand}
                 height={h - padT}
                 fill="transparent"
               />
@@ -1119,7 +1140,7 @@ export function ShopAnalyticsView({
               </div>
 
               {shownProducts.length === 0 ? (
-                <div className="flex h-44 items-center justify-center rounded-xl border border-dashed border-[#DCE1EC] text-xs text-[#64748B]">
+                <div className="flex h-44 items-center justify-center text-xs text-[#64748B]">
                   Ingen offentlige Shopify-produkter fundet på denne shop.
                 </div>
               ) : (
@@ -1206,7 +1227,7 @@ export function ShopAnalyticsView({
 
               <div className="grid max-h-[340px] flex-1 grid-cols-1 content-start gap-2 overflow-y-auto pr-0.5 sm:grid-cols-2">
                 {(techTab === "pixels" ? pixels : shopifyApps).length === 0 ? (
-                  <div className="col-span-full flex h-36 items-center justify-center rounded-xl border border-dashed border-[#DCE1EC] text-xs text-[#94A3B8]">
+                  <div className="col-span-full flex h-36 items-center justify-center text-xs text-[#94A3B8]">
                     Ingen {techTab === "pixels" ? "pixels" : "Shopify apps"} detekteret i HTML
                   </div>
                 ) : (
@@ -1261,7 +1282,7 @@ export function ShopAnalyticsView({
             </div>
 
             {brandAds.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DCE1EC] bg-[#FAFBFD] p-10 text-center text-xs text-[#64748B]">
+              <div className="p-10 text-center text-xs text-[#64748B]">
                 Ingen live Meta Ads fundet endnu. Klik <strong>Sync Live Data</strong> for at scrape Meta Ad Library.
               </div>
             ) : (

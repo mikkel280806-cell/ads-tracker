@@ -114,7 +114,12 @@ export async function GET() {
     });
 
     // Clean up removed / stale brand rows if present
-    const removedBrandIds = ["brand-mycomfort-dk", "brand-deepstash-com"];
+    const removedBrandIds = [
+      "brand-mycomfort-dk",
+      "brand-deepstash-com",
+      "brand-barons-dk",
+      "brand-gymshark-com",
+    ];
     for (const removedId of removedBrandIds) {
       if (existingById.has(removedId)) {
         await supabase.from("adtrack_brands").delete().eq("id", removedId);

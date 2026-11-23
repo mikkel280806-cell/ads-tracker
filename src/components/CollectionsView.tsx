@@ -187,7 +187,7 @@ export function CollectionsView({
         )}
 
         {folderBrands.length === 0 && folderAds.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[#D6DCE8] bg-[#FAFBFD] px-6 py-14 text-center">
+          <div className="px-6 py-14 text-center">
             <p className="font-display text-sm font-bold text-[#0F172A]">
               Denne folder er tom endnu
             </p>

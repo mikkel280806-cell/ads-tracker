@@ -164,13 +164,34 @@ h3,
   font-variant-numeric: tabular-nums;
 }
 
-/* Signature Adtrack Obsidian Sidebar with Multi-Layer Cobalt #0027eb Depth Glow */
+/* Signature Adtrack Obsidian Sidebar with Pure Blue Aura + Architectural Dot Grid Pattern */
 .adtrack-sidebar {
-  background-color: #05060b;
+  position: relative;
+  overflow: hidden;
+  background-color: #050811;
   background-image:
-    radial-gradient(140% 52% at 15% 100%, rgba(0, 39, 235, 0.56) 0%, rgba(0, 39, 235, 0.16) 44%, transparent 76%),
-    radial-gradient(95% 30% at 85% 0%, rgba(56, 107, 255, 0.14) 0%, transparent 65%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, transparent 28%);
+    radial-gradient(125% 58% at 18% 100%, rgba(0, 72, 255, 0.52) 0%, rgba(0, 56, 224, 0.22) 42%, transparent 74%),
+    radial-gradient(95% 42% at 88% 92%, rgba(14, 116, 255, 0.28) 0%, rgba(0, 68, 235, 0.08) 48%, transparent 72%),
+    radial-gradient(85% 28% at 80% 0%, rgba(30, 136, 255, 0.14) 0%, transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, transparent 30%, rgba(0, 39, 235, 0.08) 100%);
+}
+.adtrack-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle at center, rgba(147, 197, 253, 0.34) 1px, transparent 1px),
+    linear-gradient(to right, rgba(59, 130, 246, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.07) 1px, transparent 1px);
+  background-size: 16px 16px, 32px 32px, 32px 32px;
+  -webkit-mask-image: radial-gradient(135% 68% at 25% 100%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 78%);
+  mask-image: radial-gradient(135% 68% at 25% 100%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 78%);
+}
+.adtrack-sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Signature Adtrack Cobalt Icon Badge with Specular Top Edge */
@@ -179,21 +200,17 @@ h3,
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.34),
     inset 0 -1px 0 rgba(0, 0, 0, 0.25),
-    0 6px 16px -3px rgba(0, 39, 235, 0.38);
+    0 1px 3px rgba(15, 23, 42, 0.16);
 }
 
-/* Primary Electric Cobalt CTA Gradient */
+/* Primary Electric Blue CTA (Clean, crisp, zero glow) */
 .adtrack-btn-primary {
-  background: linear-gradient(180deg, #1b43ff 0%, #0027eb 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.26),
-    0 2px 8px -1px rgba(0, 39, 235, 0.38);
+  background-color: #0027eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 .adtrack-btn-primary:hover {
-  background: linear-gradient(180deg, #0d36ff 0%, #001fc2 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 6px 16px -2px rgba(0, 39, 235, 0.44);
+  background-color: #001fc2;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
 
 /* Subtle Elevated Light Surface Card */
