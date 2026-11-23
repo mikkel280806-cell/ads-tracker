@@ -259,17 +259,17 @@ export function AdDetailSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/55 p-0 backdrop-blur-[4px] lg:items-center lg:p-5"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/60 p-0 pt-10 backdrop-blur-[2px] lg:pt-14"
       onClick={onClose}
     >
       <div
-        className="animate-sheet-up flex h-[94dvh] w-full max-w-[1140px] flex-col overflow-hidden rounded-t-[24px] border border-[#E6E9F0] bg-white text-[#0F172A] shadow-[0_24px_70px_rgba(5,8,17,0.3)] lg:h-[88vh] lg:flex-row lg:rounded-[20px]"
+        className="animate-sheet-up flex h-full w-full flex-col overflow-hidden rounded-t-[18px] border-t border-[#E6E9F0] bg-white text-[#0F172A] shadow-[0_-12px_50px_rgba(5,8,17,0.28)] lg:flex-row"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ===================================================================
-            LEFT PANE: TRENDTRACK-STYLE AD PREVIEW STAGE
+            LEFT PANE: FULL-HEIGHT TRENDTRACK-STYLE AD PREVIEW STAGE
            =================================================================== */}
-        <div className="flex min-h-0 flex-1 flex-col bg-[#F7F8FB] lg:w-[58%] lg:border-r lg:border-[#ECEFF5]">
+        <div className="flex min-h-0 flex-1 flex-col bg-[#FAFBFD] lg:w-[60%] lg:border-r lg:border-[#ECEFF5]">
           {/* Top Toolbar (Prev/Next + Platform Pill + Shop Action + Quick Icons) */}
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#ECEFF5] bg-white px-4 py-2.5">
             <div className="flex min-w-0 items-center gap-2">
@@ -381,8 +381,8 @@ export function AdDetailSheet({
           </div>
 
           {/* Scrollable Centered Authentic Meta Ad Card */}
-          <div className="flex-1 overflow-y-auto px-4 py-5">
-            <div className="mx-auto w-full max-w-[396px] overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
+          <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+            <div className="mx-auto w-full max-w-[490px] overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)]">
               {/* Optional Telemetry Pill Bar (Reach / Est. Spend / Daily Spend) */}
               {(ad.eu_reach || ad.estimated_spend || ad.daily_spend) && (
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F4F9] bg-[#FAFBFD] px-3.5 py-2 font-mono-num text-[11px] font-semibold text-[#334155]">
@@ -507,7 +507,7 @@ export function AdDetailSheet({
                     controls
                     playsInline
                     onError={() => setFailedAdId(ad.id)}
-                    className="max-h-[460px] w-full bg-black object-contain"
+                    className="max-h-[68vh] w-full bg-black object-contain"
                   />
                 ) : displayImage ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -517,7 +517,7 @@ export function AdDetailSheet({
                     onError={() => {
                       if (!mediaFailed) setFailedAdId(ad.id);
                     }}
-                    className="max-h-[540px] w-full bg-[#F3F5F9] object-contain"
+                    className="max-h-[68vh] w-full bg-[#F3F5F9] object-contain"
                   />
                 ) : (
                   <div className="flex h-64 flex-col items-center justify-center gap-2 bg-[#F5F7FA] text-center">
@@ -565,7 +565,7 @@ export function AdDetailSheet({
         {/* ===================================================================
             RIGHT PANE: CLEAN TRENDTRACK DETAILS & SCRIPT INSPECTOR
            =================================================================== */}
-        <div className="flex min-h-0 flex-col bg-white lg:w-[42%]">
+        <div className="flex min-h-0 flex-col bg-white lg:w-[40%]">
           {/* Top Tabs (Details | Script & Notes) + Desktop Close Button */}
           <div className="flex shrink-0 items-center justify-between border-b border-[#ECEFF5] px-5">
             <div className="flex items-center gap-6">
