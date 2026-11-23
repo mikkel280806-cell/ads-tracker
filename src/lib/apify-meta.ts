@@ -107,7 +107,9 @@ export function mapApifyMetaAd(
   const landingUrl = cleanLandingUrl(rawLanding) || rawLanding;
   const landingPath = normalizeLandingPath(landingUrl);
 
-  const { hook, hookCategory } = extractHookAndCategory(primaryText || headline);
+  const { hook, category: hookCategory } = extractHookAndCategory(
+    primaryText || headline
+  );
   const startedAt = parseStartDate(raw.startDate, raw.runningTAT);
   const duplicatedCount =
     typeof raw.similarAdCount === "number" && raw.similarAdCount > 0
