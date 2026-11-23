@@ -1,4 +1,5 @@
 import type { Ad, DisplayFormat, MarketCode, MediaType } from "./types";
+import { fetchCompanyActiveAdsViaApify } from "./apify-meta";
 import {
   cleanLandingUrl,
   extractHookAndCategory,
@@ -322,7 +323,9 @@ export async function fetchCompanyActiveAds(
   }
 ): Promise<CompanyAdsResponse> {
   const apiKey = getApiKey();
-  if (!apiKey) return { ads: [] };
+  if (!apiKey) {
+    return fetchCompanyActiveAdsViaApify(opts);
+  }
 
   const queryParam = opts.pageId
     ? `pageId=${encodeURIComponent(opts.pageId)}`
@@ -340,6 +343,7 @@ export async function fetchCompanyActiveAds(
     const seenIds = new Set<string>();
     let totalActiveAds: number | undefined;
     let cursor: string | null = null;
+    let scrapeCreatorsErrored = false;
 
     for (let page = 0; page < maxPages && allRaw.length < limit; page++) {
       const cursorParam: string = cursor
@@ -352,9 +356,15 @@ export async function fetchCompanyActiveAds(
           cache: "no-store",
         }
       );
-      if (!res.ok) break;
+      if (!res.ok) {
+        scrapeCreatorsErrored = true;
+        break;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = await res.json();
+      if (data?.success === false || data?.credits_remaining === 0) {
+        scrapeCreatorsErrored = true;
+      }
       const pageResults = Array.isArray(data?.results) ? data.results : [];
       if (totalActiveAds === undefined && typeof data?.searchResultsCount === "number") {
         totalActiveAds = data.searchResultsCount;
@@ -376,6 +386,14 @@ export async function fetchCompanyActiveAds(
           : null;
       if (!nextCursor || nextCursor === cursor || addedThisPage === 0) break;
       cursor = nextCursor;
+    }
+
+    if (
+      (allRaw.length === 0 || scrapeCreatorsErrored) &&
+      process.env.APIFY_API_TOKEN
+    ) {
+      const apifyResult = await fetchCompanyActiveAdsViaApify(opts);
+      if (apifyResult.ads.length > allRaw.length) return apifyResult;
     }
 
     if (totalActiveAds === undefined && allRaw.length > 0) {
@@ -409,6 +427,9 @@ export async function fetchCompanyActiveAds(
     };
   } catch (err) {
     console.error("ScrapeCreators fetchCompanyActiveAds failed:", err);
+    if (process.env.APIFY_API_TOKEN) {
+      return fetchCompanyActiveAdsViaApify(opts);
+    }
     return { ads: [] };
   }
 }
