@@ -342,8 +342,10 @@ export async function fetchCompanyActiveAds(
     let cursor: string | null = null;
 
     for (let page = 0; page < maxPages && allRaw.length < limit; page++) {
-      const cursorParam = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
-      const res = await fetch(
+      const cursorParam: string = cursor
+        ? `&cursor=${encodeURIComponent(cursor)}`
+        : "";
+      const res: Response = await fetch(
         `${SC_BASE}/v1/facebook/adLibrary/company/ads?${queryParam}&status=ACTIVE&trim=true${cursorParam}`,
         {
           headers: { "x-api-key": apiKey },
@@ -351,7 +353,8 @@ export async function fetchCompanyActiveAds(
         }
       );
       if (!res.ok) break;
-      const data = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json();
       const pageResults = Array.isArray(data?.results) ? data.results : [];
       if (totalActiveAds === undefined && typeof data?.searchResultsCount === "number") {
         totalActiveAds = data.searchResultsCount;
@@ -367,7 +370,7 @@ export async function fetchCompanyActiveAds(
         if (allRaw.length >= limit) break;
       }
 
-      const nextCursor =
+      const nextCursor: string | null =
         typeof data?.cursor === "string" && data.cursor.trim().length > 0
           ? data.cursor.trim()
           : null;
