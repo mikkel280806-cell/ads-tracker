@@ -64,9 +64,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [quickFolderName, setQuickFolderName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
+  const workspaceScrollRef = useRef<HTMLElement | null>(null);
+
+  const scrollWorkspaceToTop = (smooth = false) => {
+    const behavior: ScrollBehavior = smooth ? "smooth" : "auto";
+    workspaceScrollRef.current?.scrollTo({ top: 0, behavior });
+    window.scrollTo({ top: 0, behavior });
+  };
+
   const navigateWithSkeleton = (fn: () => void) => {
     setViewLoading(true);
     fn();
+    scrollWorkspaceToTop(false);
     setTimeout(() => setViewLoading(false), 180);
   };
 
@@ -377,7 +386,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     navigateWithSkeleton(() => {
       setSelectedShopId(brandId);
       setView("shops");
-      window.scrollTo(0, 0);
     });
   };
 
@@ -483,13 +491,22 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     const node = loadMoreRef.current;
     if (!node) return;
 
+    const scrollCandidate = workspaceScrollRef.current;
+    const overflowY = scrollCandidate
+      ? window.getComputedStyle(scrollCandidate).overflowY
+      : "";
+    const scrollRoot =
+      scrollCandidate && (overflowY === "auto" || overflowY === "scroll")
+        ? scrollCandidate
+        : null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
           setVisibleLimit((prev) => Math.min(visibleAds.length, prev + 32));
         }
       },
-      { rootMargin: "1800px 0px" }
+      { root: scrollRoot, rootMargin: "1800px 0px" }
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -510,11 +527,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   return (
     <>
-    <div className="flex min-h-dvh w-full overflow-x-clip bg-[#F7F8FB] lg:bg-[#050811]">
+    <div className="flex min-h-dvh w-full overflow-x-clip bg-[#F7F8FB] lg:h-dvh lg:overflow-hidden lg:bg-[#050811]">
       {/* =====================================================================
-          ADTRACK OBSIDIAN SIDEBAR — ONLY SHOPS, EXPLORE, AND FOLDERS
+          ADTRACK OBSIDIAN SIDEBAR — FIXED APP SHELL FRAME (EXTENDS 24PX UNDER ROUNDED CORNER)
          ===================================================================== */}
-      <aside className="adtrack-sidebar sticky top-0 hidden h-dvh w-[242px] shrink-0 flex-col px-3.5 py-5 text-white lg:flex">
+      <aside className="adtrack-sidebar relative hidden h-full w-[266px] shrink-0 flex-col py-5 pl-3.5 pr-[38px] text-white lg:flex">
         {/* Brand Wordmark */}
         <button
           type="button"
@@ -606,7 +623,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         </div>
 
         {/* SECTION 2: FOLDERS */}
-        <div className="mt-7 space-y-1">
+        <div className="mt-7 flex min-h-0 flex-1 flex-col space-y-1">
           <div className="flex items-center justify-between px-3 pb-1.5">
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
               Folders
@@ -678,7 +695,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {/* Direct Folder List */}
-          <div className="space-y-0.5 pl-2 pt-1">
+          <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pl-2 pt-1">
             {boards.map((board) => {
               const count =
                 ads.filter((a) => a.board_ids.includes(board.id)).length +
@@ -720,9 +737,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       </aside>
 
       {/* =====================================================================
-          FLUSH WHITE MAIN WORKSPACE WITH ROUNDED TOP-LEFT CORNER
+          STATIONARY WHITE WORKSPACE FRAME — ONLY INNER CONTENT SCROLLS ON DESKTOP
          ===================================================================== */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:rounded-tl-[24px] lg:bg-white">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:h-full lg:overflow-hidden lg:rounded-tl-[24px] lg:bg-white">
         {/* CLEAN SOLID MOBILE TOP BAR */}
         <header className="pt-safe sticky top-0 z-30 flex items-center border-b border-[#ECEFF5] bg-white px-4 py-2.5 text-[#0F172A] lg:hidden">
           <button
@@ -746,8 +763,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           </button>
         </header>
 
-        {/* WORKSPACE CANVAS */}
-        <main className="flex-1 bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:rounded-tl-[24px] lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12">
+        {/* SCROLLABLE WORKSPACE CONTENT VIEWPORT */}
+        <main
+          ref={workspaceScrollRef}
+          data-scroll-root="true"
+          className="workspace-scroll flex-1 bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
+        >
           {/* Global Live Toast */}
           {toast && (
             <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3.5 py-2 text-xs font-semibold text-[#0F172A]">
@@ -780,7 +801,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               onBack={() =>
                 navigateWithSkeleton(() => {
                   setSelectedShopId(null);
-                  window.scrollTo(0, 0);
                 })
               }
               onOpenAd={(ad) => setActiveAdId(ad.id)}
@@ -1204,7 +1224,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               setView(target);
               setSelectedShopId(null);
               if (target !== "folders") setSelectedFolderId(null);
-              window.scrollTo({ top: 0, behavior: "smooth" });
+              scrollWorkspaceToTop(true);
             });
           }}
           className="pointer-events-auto"

@@ -51,6 +51,12 @@ export function AdCard({
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
+    const scrollCandidate = el.closest("[data-scroll-root]") as HTMLElement | null;
+    const overflowY = scrollCandidate ? window.getComputedStyle(scrollCandidate).overflowY : "";
+    const scrollRoot =
+      scrollCandidate && (overflowY === "auto" || overflowY === "scroll")
+        ? scrollCandidate
+        : null;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
@@ -60,7 +66,7 @@ export function AdCard({
           observer.disconnect();
         }
       },
-      { rootMargin: "1200px 0px" }
+      { root: scrollRoot, rootMargin: "1200px 0px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
