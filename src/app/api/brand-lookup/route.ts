@@ -17,6 +17,7 @@ import {
   extractMeta,
   fetchHtmlSmart,
   fetchTrancoRank,
+  fetchTrustpilotRating,
   fetchWithTimeout,
   scrapeShopifyProducts,
 } from "@/lib/shop-scraper";
@@ -217,22 +218,28 @@ export async function POST(request: NextRequest) {
       bareDomain
     )}&sz=128`;
 
-    // 1. Scrape Shopify products + Elevar server-side destinations + Tranco rank + optional SimilarWeb in parallel (0 ScrapeCreators credits)
-    const [productsResult, elevarResult, trancoRank, similarWebTraffic] =
-      await Promise.all([
-        isShopify
-          ? scrapeShopifyProducts(origin, detectedCurrency)
-          : Promise.resolve({
-              count: 0,
-              topProducts: [],
-              latestProducts: [],
-              foundedDate: undefined,
-              categories: [],
-            }),
-        html
-          ? detectElevarDestinations(html)
-          : Promise.resolve({ pixels: [], apps: [] }),
-        fetchTrancoRank(bareDomain),
+    // 1. Scrape Shopify products + Elevar server-side destinations + Tranco rank + Trustpilot + optional SimilarWeb in parallel
+    const [
+      productsResult,
+      elevarResult,
+      trancoRank,
+      trustpilotResult,
+      similarWebTraffic,
+    ] = await Promise.all([
+      isShopify
+        ? scrapeShopifyProducts(origin, detectedCurrency)
+        : Promise.resolve({
+            count: 0,
+            topProducts: [],
+            latestProducts: [],
+            foundedDate: undefined,
+            categories: [],
+          }),
+      html
+        ? detectElevarDestinations(html)
+        : Promise.resolve({ pixels: [], apps: [] }),
+      fetchTrancoRank(bareDomain),
+      fetchTrustpilotRating(bareDomain),
         (async () => {
           if (!process.env.SIMILARWEB_API_KEY && !process.env.RAPIDAPI_KEY) {
             return null;
@@ -417,6 +424,8 @@ export async function POST(request: NextRequest) {
         ? "similarweb"
         : "tranco_estimate",
       tranco_rank: trancoRank || undefined,
+      trustpilot_score: trustpilotResult?.score,
+      trustpilot_reviews: trustpilotResult?.reviews,
       traffic_growth_pct:
         similarWebTraffic?.traffic_growth_pct ??
         calibratedTraffic.traffic_growth_pct,

@@ -837,15 +837,20 @@ export function ShopsTableView({
             return (
               <div
                 key={brand.id}
-                className="group relative grid grid-cols-[2.35fr_1.45fr_0.9fr_1.15fr_1.15fr_1.45fr] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#FAFBFD]"
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenShop(brand.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenShop(brand.id);
+                  }
+                }}
+                className="group relative grid cursor-pointer grid-cols-[2.35fr_1.45fr_0.9fr_1.15fr_1.15fr_1.45fr] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F5F7FA]"
               >
                 {/* 1. SHOP INFOS (Wide Homepage Screenshot + Name + Bookmark + Domain + Founded Date) */}
                 <div className="flex min-w-0 items-center gap-3.5">
-                  <button
-                    type="button"
-                    onClick={() => onOpenShop(brand.id)}
-                    className="skeleton-shimmer relative h-[68px] w-[108px] shrink-0 overflow-hidden rounded-xl border border-[#E2E6EF] text-left shadow-2xs"
-                  >
+                  <div className="skeleton-shimmer relative h-[68px] w-[108px] shrink-0 overflow-hidden rounded-xl border border-[#E2E6EF] text-left shadow-2xs">
                     {homepageShot || brand.storefront_image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
@@ -868,30 +873,25 @@ export function ShopsTableView({
                         {brand.avatar_initials}
                       </div>
                     )}
-                    {/* Subtle hover overlay matching Trendtrack */}
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#050811]/52 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                      See shop analytics
-                    </span>
                     <span
                       title={brand.market}
                       className="absolute bottom-1 right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-white text-[11px] shadow-xs ring-1 ring-black/10"
                     >
                       {marketFlag}
                     </span>
-                  </button>
+                  </div>
 
                   <div className="min-w-0 flex-1 space-y-1">
                     {/* Line 1: Brand Name + Inline Bookmark */}
                     <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onOpenShop(brand.id)}
-                        className="truncate font-display text-[14.5px] font-bold text-[#0F172A] transition-colors hover:text-[#475569]"
-                      >
+                      <span className="truncate font-display text-[14.5px] font-bold text-[#0F172A] transition-colors group-hover:text-[#0027eb]">
                         {brand.name}
-                      </button>
+                      </span>
 
-                      <div className="relative shrink-0">
+                      <div
+                        className="relative shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
                           type="button"
                           onClick={(e) => {
@@ -901,7 +901,7 @@ export function ShopsTableView({
                             );
                           }}
                           title="Gem i folder"
-                          className="flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-[#F1F5F9]"
+                          className="flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-[#E2E8F0]/70"
                           style={{
                             color: savedInFolder ? "#0F172A" : "#94A3B8",
                           }}
@@ -913,7 +913,10 @@ export function ShopsTableView({
                         </button>
 
                         {openFolderMenuId === brand.id && (
-                          <div className="absolute left-0 top-7 z-40 w-52 rounded-2xl border border-[#E2E6EF] bg-white p-1.5 shadow-xl">
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute left-0 top-7 z-40 w-52 rounded-2xl border border-[#E2E6EF] bg-white p-1.5 shadow-xl"
+                          >
                             <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
                               Gem shop i folder
                             </p>
@@ -925,7 +928,8 @@ export function ShopsTableView({
                                 <button
                                   key={board.id}
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     onToggleBrandFolder(brand.id, board.id);
                                     setOpenFolderMenuId(null);
                                   }}
@@ -952,24 +956,16 @@ export function ShopsTableView({
                     </div>
 
                     {/* Line 2: Globe + Domain + Shopify Icon */}
-                    <button
-                      type="button"
-                      onClick={() => onOpenShop(brand.id)}
-                      className="flex max-w-full items-center gap-1.5 text-[12px] text-[#64748B]"
-                    >
+                    <div className="flex max-w-full items-center gap-1.5 text-[12px] text-[#64748B]">
                       <Globe className="h-3.5 w-3.5 shrink-0 text-[#94A3B8]" />
                       <span className="truncate font-mono-num">{domain}</span>
                       {brand.is_shopify && (
                         <ShopifyBagIcon className="h-3.5 w-3.5 shrink-0" />
                       )}
-                    </button>
+                    </div>
 
                     {/* Line 3: Founded Date & Age */}
-                    <button
-                      type="button"
-                      onClick={() => onOpenShop(brand.id)}
-                      className="flex max-w-full items-center gap-1.5 text-[11.5px] text-[#64748B]"
-                    >
+                    <div className="flex max-w-full items-center gap-1.5 text-[11.5px] text-[#64748B]">
                       <Calendar className="h-3 w-3 shrink-0 text-[#94A3B8]" />
                       {founded ? (
                         <span className="truncate font-mono-num">
@@ -981,16 +977,12 @@ export function ShopsTableView({
                           {brand.shopify_theme || brand.currency || "Active Store"}
                         </span>
                       )}
-                    </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* 2. BEST-SELLING PRODUCTS (3 Square Thumbnails + Package Count Below) */}
-                <button
-                  type="button"
-                  onClick={() => onOpenShop(brand.id)}
-                  className="flex flex-col items-center gap-1.5 text-left"
-                >
+                <div className="flex flex-col items-center gap-1.5 text-left">
                   {products.length > 0 ? (
                     <>
                       <div className="flex items-center gap-1.5">
@@ -1027,25 +1019,17 @@ export function ShopsTableView({
                       {brand.products_count || "—"}
                     </span>
                   )}
-                </button>
+                </div>
 
                 {/* 3. CATEGORY PILL */}
                 <div className="flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => onOpenShop(brand.id)}
-                    className="max-w-full truncate rounded-full bg-[#F3F5F9] px-3 py-1 text-[11.5px] font-medium text-[#475569] transition-colors hover:bg-[#E2E8F0] hover:text-[#0F172A]"
-                  >
+                  <span className="max-w-full truncate rounded-full bg-[#F3F5F9] px-3 py-1 text-[11.5px] font-medium text-[#475569] transition-colors group-hover:bg-[#E2E8F0] group-hover:text-[#0F172A]">
                     {brand.category}
-                  </button>
+                  </span>
                 </div>
 
                 {/* 4. MONTHLY VISITS + FLAGS + AREA SPARKLINE */}
-                <button
-                  type="button"
-                  onClick={() => onOpenShop(brand.id)}
-                  className="flex flex-col gap-1.5 text-left"
-                >
+                <div className="flex flex-col gap-1.5 text-left">
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1 font-display text-[13.5px] font-bold text-[#0F172A]">
                       <Users className="h-3.5 w-3.5 text-[#64748B]" />
@@ -1063,14 +1047,10 @@ export function ShopsTableView({
                     width={126}
                     height={34}
                   />
-                </button>
+                </div>
 
                 {/* 5. META ADS + FLAGS + AREA SPARKLINE */}
-                <button
-                  type="button"
-                  onClick={() => onOpenShop(brand.id)}
-                  className="flex flex-col gap-1.5 text-left"
-                >
+                <div className="flex flex-col gap-1.5 text-left">
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 font-display text-[13.5px] font-bold text-[#0F172A]">
                       <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
@@ -1088,14 +1068,10 @@ export function ShopsTableView({
                     width={126}
                     height={34}
                   />
-                </button>
+                </div>
 
                 {/* 6. ADS CREATIVES PREVIEW (3 Square Ad Thumbnails with Video Play Icon) */}
-                <button
-                  type="button"
-                  onClick={() => onOpenShop(brand.id)}
-                  className="flex items-center justify-end gap-1.5"
-                >
+                <div className="flex items-center justify-end gap-1.5">
                   {brandAds.slice(0, 3).map((ad) => {
                     const thumb =
                       ad.thumbnail_url ||
@@ -1132,7 +1108,7 @@ export function ShopsTableView({
                   {brandAds.length === 0 && (
                     <span className="text-xs text-[#94A3B8]">—</span>
                   )}
-                </button>
+                </div>
               </div>
             );
           })}

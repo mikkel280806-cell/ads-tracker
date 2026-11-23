@@ -19,6 +19,7 @@ import {
   Package,
   Search,
   Sparkles,
+  Star,
   Tag,
   TrendingDown,
   TrendingUp,
@@ -850,8 +851,8 @@ export function ShopAnalyticsView({
          ===================================================================== */}
       {!tabTransitioning && mainTab === "analytics" && (
         <div className="animate-view-in space-y-5">
-          {/* TOP 3 KPI CARDS */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {/* TOP 4 KPI CARDS */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {/* 1. Monthly Visits */}
             <div className="adtrack-kpi-card rounded-2xl p-4">
               <div className="flex items-center justify-between">
@@ -927,7 +928,83 @@ export function ShopAnalyticsView({
               </div>
             </div>
 
-            {/* 3. Socials */}
+            {/* 3. Trustpilot Rating */}
+            {(() => {
+              const tpScore = brand.trustpilot_score;
+              const tpReviews = brand.trustpilot_reviews;
+              const tpUrl = `https://www.trustpilot.com/review/${domain}`;
+              const tpColor =
+                !tpScore
+                  ? "#CBD5E1"
+                  : tpScore >= 4.3
+                    ? "#00B67A"
+                    : tpScore >= 3.8
+                      ? "#73CF11"
+                      : tpScore >= 3.0
+                        ? "#FFCE00"
+                        : tpScore >= 2.0
+                          ? "#FF8622"
+                          : "#FF3722";
+              const filledStars = tpScore ? Math.round(tpScore) : 0;
+              return (
+                <a
+                  href={tpUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="adtrack-kpi-card group block rounded-2xl p-4 transition-colors hover:border-[#CBD5E1]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B]">
+                      <Star
+                        className="h-3.5 w-3.5"
+                        style={{ color: "#00B67A", fill: "#00B67A" }}
+                      />
+                      Trustpilot
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[#64748B] transition-colors group-hover:text-[#0F172A]">
+                      Reviews
+                      <ArrowUpRight className="h-3 w-3" />
+                    </span>
+                  </div>
+                  {typeof tpScore === "number" ? (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                      <span className="font-display text-[26px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
+                        {tpScore.toFixed(1)}
+                      </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((idx) => (
+                            <span
+                              key={idx}
+                              className="flex h-4 w-4 items-center justify-center rounded-[3px]"
+                              style={{
+                                backgroundColor:
+                                  idx <= filledStars ? tpColor : "#E2E8F0",
+                              }}
+                            >
+                              <Star className="h-2.5 w-2.5 fill-white text-white" />
+                            </span>
+                          ))}
+                        </div>
+                        <span className="font-mono-num text-[11px] font-medium text-[#64748B]">
+                          {typeof tpReviews === "number" && tpReviews > 0
+                            ? `${tpReviews.toLocaleString("en-US")} reviews`
+                            : "TrustScore / 5"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2.5 flex items-center justify-between">
+                      <span className="font-display text-[15px] font-semibold text-[#94A3B8]">
+                        Ingen profil fundet
+                      </span>
+                    </div>
+                  )}
+                </a>
+              );
+            })()}
+
+            {/* 4. Socials */}
             <div className="adtrack-kpi-card rounded-2xl p-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-[#64748B]">Socials</span>

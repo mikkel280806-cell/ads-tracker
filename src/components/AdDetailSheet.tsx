@@ -226,19 +226,88 @@ export function AdDetailSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/60 p-0 pt-10 backdrop-blur-[2px] lg:pt-14"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/60 p-0 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-[2px] lg:pt-14"
       onClick={onClose}
     >
       <div
-        className="animate-sheet-up flex h-full w-full flex-col overflow-hidden rounded-t-[18px] border-t border-[#E6E9F0] bg-white text-[#0F172A] shadow-[0_-12px_50px_rgba(5,8,17,0.28)] lg:flex-row"
+        className="animate-sheet-up flex h-full w-full flex-col overflow-hidden rounded-t-[18px] border-t border-[#E6E9F0] bg-white text-[#0F172A] shadow-[0_-12px_50px_rgba(5,8,17,0.28)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ===================================================================
+            PINNED MOBILE TOP BAR (always visible so user can easily close/nav)
+           =================================================================== */}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#ECEFF5] bg-white px-3.5 py-2.5 lg:hidden">
+          <div className="flex min-w-0 items-center gap-2">
+            {adsList.length > 1 && currentIdx >= 0 && onSelectAd && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={!hasPrev}
+                  onClick={() =>
+                    hasPrev && onSelectAd(adsList[currentIdx - 1].id)
+                  }
+                  aria-label="Forrige annonce"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E6E9F0] bg-white text-[#475569] active:bg-[#F5F7FA] disabled:opacity-35"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="px-1 font-mono-num text-[11.5px] font-medium text-[#64748B]">
+                  {currentIdx + 1}/{adsList.length}
+                </span>
+                <button
+                  type="button"
+                  disabled={!hasNext}
+                  onClick={() =>
+                    hasNext && onSelectAd(adsList[currentIdx + 1].id)
+                  }
+                  aria-label="Næste annonce"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E6E9F0] bg-white text-[#475569] active:bg-[#F5F7FA] disabled:opacity-35"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-lg bg-[#F5F7FA] px-2.5 py-1 text-[11.5px] font-medium text-[#334155]">
+              <FacebookColorIcon className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{formatLabel}</span>
+            </span>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            {downloadUrl && (
+              <a
+                href={downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                download
+                title="Download medie"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#475569] active:bg-[#F3F5F9]"
+              >
+                <Download className="h-4 w-4" />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Luk"
+              className="inline-flex h-8 items-center gap-1 rounded-full bg-[#F1F5F9] px-3 text-[12px] font-semibold text-[#0F172A] active:bg-[#E2E8F0]"
+            >
+              <X className="h-3.5 w-3.5" />
+              Luk
+            </button>
+          </div>
+        </div>
+
+        {/* ===================================================================
+            BODY: SINGLE VERTICAL SCROLL ON MOBILE · 60/40 SPLIT ON DESKTOP
+           =================================================================== */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain lg:flex-row lg:overflow-hidden">
+        {/* ===================================================================
             LEFT PANE: FULL-HEIGHT TRENDTRACK-STYLE AD PREVIEW STAGE
            =================================================================== */}
-        <div className="flex min-h-0 flex-1 flex-col bg-[#FAFBFD] lg:w-[60%] lg:border-r lg:border-[#ECEFF5]">
-          {/* Top Toolbar (Prev/Next + Platform Pill + Shop Action + Quick Icons) */}
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#ECEFF5] bg-white px-4 py-2.5">
+        <div className="flex shrink-0 flex-col bg-[#FAFBFD] lg:min-h-0 lg:w-[60%] lg:shrink lg:border-r lg:border-[#ECEFF5]">
+          {/* Desktop Top Toolbar (Prev/Next + Platform Pill + Shop Action + Quick Icons) */}
+          <div className="hidden shrink-0 items-center justify-between gap-2 border-b border-[#ECEFF5] bg-white px-4 py-2.5 lg:flex">
             <div className="flex min-w-0 items-center gap-2">
               {adsList.length > 1 && currentIdx >= 0 && onSelectAd && (
                 <div className="flex items-center gap-1">
@@ -348,7 +417,7 @@ export function AdDetailSheet({
           </div>
 
           {/* Scrollable Centered Authentic Meta Ad Card */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+          <div className="px-3.5 py-4 lg:flex-1 lg:overflow-y-auto lg:px-8 lg:py-6">
             <div className="mx-auto w-full max-w-[490px] overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)]">
               {/* Optional Telemetry Pill Bar (Reach / Est. Spend / Daily Spend) */}
               {(ad.eu_reach || ad.estimated_spend || ad.daily_spend) && (
@@ -474,7 +543,7 @@ export function AdDetailSheet({
                     controls
                     playsInline
                     onError={() => setFailedAdId(ad.id)}
-                    className="max-h-[68vh] w-full bg-black object-contain"
+                    className="max-h-[58vh] w-full bg-black object-contain lg:max-h-[68vh]"
                   />
                 ) : displayImage ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -484,7 +553,7 @@ export function AdDetailSheet({
                     onError={() => {
                       if (!mediaFailed) setFailedAdId(ad.id);
                     }}
-                    className="max-h-[68vh] w-full bg-[#F3F5F9] object-contain"
+                    className="max-h-[58vh] w-full bg-[#F3F5F9] object-contain lg:max-h-[68vh]"
                   />
                 ) : (
                   <div className="flex h-64 flex-col items-center justify-center gap-2 bg-[#F5F7FA] text-center">
@@ -532,7 +601,7 @@ export function AdDetailSheet({
         {/* ===================================================================
             RIGHT PANE: CLEAN TRENDTRACK DETAILS & SCRIPT INSPECTOR
            =================================================================== */}
-        <div className="flex min-h-0 flex-col bg-white lg:w-[40%]">
+        <div className="flex shrink-0 flex-col border-t border-[#ECEFF5] bg-white lg:min-h-0 lg:w-[40%] lg:shrink lg:border-t-0">
           {/* Top 2 Big Equal Tabs (Ad Details | Copy & Notes) + Desktop Close Button */}
           <div className="flex shrink-0 items-center border-b border-[#ECEFF5]">
             <div className="grid flex-1 grid-cols-2">
@@ -574,7 +643,7 @@ export function AdDetailSheet({
           </div>
 
           {/* Scrollable Right Inspector Content */}
-          <div className="pb-safe flex-1 space-y-4 overflow-y-auto p-5">
+          <div className="pb-safe space-y-4 p-4 lg:flex-1 lg:overflow-y-auto lg:p-5">
             {/* Full-Width "Save to Folder" Button + Inline Selector */}
             <div className="relative">
               <button
@@ -949,6 +1018,7 @@ export function AdDetailSheet({
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>

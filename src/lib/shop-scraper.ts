@@ -837,6 +837,88 @@ export async function fetchTrancoRank(domain: string): Promise<number | null> {
   }
 }
 
+export async function fetchTrustpilotRating(domain: string): Promise<{
+  score?: number;
+  reviews?: number;
+} | null> {
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  if (!apiKey) return null;
+  const bare = domain
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/.*$/, "")
+    .toLowerCase();
+  if (!bare) return null;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: `https://www.trustpilot.com/review/${bare}`,
+        formats: ["markdown"],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const md: string = json?.data?.markdown || "";
+    const desc: string = json?.data?.metadata?.description || "";
+    if (!md || /We couldn.?t find that page|Page not found|404/i.test(md.slice(0, 500))) {
+      return null;
+    }
+
+    let score: number | undefined;
+    let reviews: number | undefined;
+
+    const afterStar = md.match(
+      /!\[TrustScore\s+([\d.]+)\s+out of 5\][^\n]*\n+\s*([\d.]{1,3})\b/
+    );
+    if (afterStar) {
+      const exact = parseFloat(afterStar[2]);
+      if (Number.isFinite(exact) && exact >= 1 && exact <= 5) {
+        score = exact;
+      } else {
+        const approx = parseFloat(afterStar[1]);
+        if (Number.isFinite(approx) && approx >= 1 && approx <= 5) score = approx;
+      }
+    }
+    if (score === undefined) {
+      const ts = md.match(/TrustScore\s+([\d.]+)\s+out of 5/i);
+      if (ts) {
+        const n = parseFloat(ts[1]);
+        if (Number.isFinite(n) && n >= 1 && n <= 5) score = n;
+      }
+    }
+
+    const mdCount = md.match(/#[^\n]+Reviews\s*\n+\s*([\d,.\s]+)\s*\n+\s*[•·]/i);
+    if (mdCount) {
+      const n = parseInt(mdCount[1].replace(/[^\d]/g, ""), 10);
+      if (Number.isFinite(n) && n > 0) reviews = n;
+    }
+    if (reviews === undefined && desc) {
+      const dm =
+        desc.match(/what\s+([\d,.\s]+)\s+(?:people|customers)/i) ||
+        desc.match(/([\d,.\s]+)\s+(?:people|customers)\s+have\s+already/i);
+      if (dm) {
+        const n = parseInt(dm[1].replace(/[^\d]/g, ""), 10);
+        if (Number.isFinite(n) && n > 0) reviews = n;
+      }
+    }
+
+    if (score === undefined) return null;
+    return { score, reviews };
+  } catch {
+    return null;
+  }
+}
+
 function hashSeed(input: string): number {
   let h = 2166136261;
   for (let i = 0; i < input.length; i++) {
