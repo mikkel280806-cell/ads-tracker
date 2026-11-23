@@ -889,38 +889,6 @@ export function AdDetailSheet({
                     </div>
                   )}
                 </div>
-
-                {/* Video Script Preview inside Details */}
-                {ad.media_type === "video" && (ad.ai_transcript || transcribing) && (
-                  <div className="mt-4 border-t border-[#F1F4F9] pt-3.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F172A]">
-                        <Captions className="h-3.5 w-3.5 text-[#64748B]" />
-                        Video Script
-                      </span>
-                      {ad.ai_transcript && (
-                        <button
-                          type="button"
-                          onClick={() => setRightTab("script")}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-                        >
-                          Se hele scriptet
-                          <ArrowUpRight className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                    {transcribing && !ad.ai_transcript ? (
-                      <div className="mt-2.5 space-y-2">
-                        <div className="skeleton-shimmer h-3 w-full rounded" />
-                        <div className="skeleton-shimmer h-3 w-4/5 rounded" />
-                      </div>
-                    ) : ad.ai_transcript ? (
-                      <p className="mt-2 line-clamp-3 rounded-xl bg-[#FAFBFD] p-2.5 text-[12px] leading-relaxed text-[#334155]">
-                        {ad.ai_transcript}
-                      </p>
-                    ) : null}
-                  </div>
-                )}
               </div>
             )}
 
