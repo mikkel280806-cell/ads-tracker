@@ -26,6 +26,7 @@ import { AdDetailSheet } from "./AdDetailSheet";
 import { CollectionsView } from "./CollectionsView";
 import { ShopsTableView } from "./ShopsTableView";
 import { ShopAnalyticsView } from "./ShopAnalyticsView";
+import { SidebarPixelWave } from "./SidebarPixelWave";
 import {
   ExploreSkeleton,
   FoldersSkeleton,
@@ -544,6 +545,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           ADTRACK OBSIDIAN SIDEBAR — FIXED APP SHELL FRAME (EXTENDS 24PX UNDER ROUNDED CORNER)
          ===================================================================== */}
       <aside className="adtrack-sidebar relative hidden h-full w-[266px] shrink-0 flex-col py-5 pl-3.5 pr-[38px] text-white lg:flex">
+        <SidebarPixelWave />
         {/* Brand Wordmark */}
         <button
           type="button"

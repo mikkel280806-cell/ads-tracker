@@ -194,30 +194,12 @@ h3,
   font-variant-numeric: tabular-nums;
 }
 
-/* Signature Adtrack Obsidian Sidebar with Pure Blue Aura + Architectural Dot Grid Pattern */
+/* Signature Flake Obsidian Sidebar with Detailed Pixel-Wave Canvas at Bottom */
 .adtrack-sidebar {
   overflow: hidden;
   background-color: #050811;
-  background-image:
-    radial-gradient(125% 58% at 18% 100%, rgba(0, 72, 255, 0.52) 0%, rgba(0, 56, 224, 0.22) 42%, transparent 74%),
-    radial-gradient(95% 42% at 88% 92%, rgba(14, 116, 255, 0.28) 0%, rgba(0, 68, 235, 0.08) 48%, transparent 72%),
-    linear-gradient(180deg, transparent 0%, transparent 45%, rgba(0, 39, 235, 0.08) 100%);
 }
-.adtrack-sidebar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image:
-    radial-gradient(circle at center, rgba(147, 197, 253, 0.34) 1px, transparent 1px),
-    linear-gradient(to right, rgba(59, 130, 246, 0.07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(59, 130, 246, 0.07) 1px, transparent 1px);
-  background-size: 16px 16px, 32px 32px, 32px 32px;
-  -webkit-mask-image: radial-gradient(135% 68% at 25% 100%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 78%);
-  mask-image: radial-gradient(135% 68% at 25% 100%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 78%);
-}
-.adtrack-sidebar > * {
+.adtrack-sidebar > :not(canvas) {
   position: relative;
   z-index: 1;
 }
