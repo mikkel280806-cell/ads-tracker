@@ -125,6 +125,11 @@ export async function GET() {
       "brand-nordgreen-com",
       "brand-shapingnewtomorrow-com",
       "brand-eyda-com",
+      "brand-trueclassictees-com",
+      "brand-us-dollarshaveclub-com",
+      "brand-theoodie-com",
+      "brand-loopearplugs-com",
+      "brand-jonesroadbeauty-com",
     ];
     for (const removedId of removedBrandIds) {
       if (existingById.has(removedId)) {

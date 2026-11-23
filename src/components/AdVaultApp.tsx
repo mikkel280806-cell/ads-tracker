@@ -118,6 +118,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               "brand-nordgreen-com",
               "brand-shapingnewtomorrow-com",
               "brand-eyda-com",
+              "brand-trueclassictees-com",
+              "brand-us-dollarshaveclub-com",
+              "brand-theoodie-com",
+              "brand-loopearplugs-com",
+              "brand-jonesroadbeauty-com",
             ]);
             const refreshed = parsed
               .filter((b) => !removedIds.has(b.id))
@@ -157,6 +162,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               "brand-nordgreen-com",
               "brand-shapingnewtomorrow-com",
               "brand-eyda-com",
+              "brand-trueclassictees-com",
+              "brand-us-dollarshaveclub-com",
+              "brand-theoodie-com",
+              "brand-loopearplugs-com",
+              "brand-jonesroadbeauty-com",
             ]);
             const cleaned = parsed.filter(
               (a) =>
