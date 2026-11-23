@@ -56,7 +56,7 @@ export const SidebarPixelWave = React.memo(function SidebarPixelWave() {
 
     // Render crisp 3px pixel grid directly via ImageData (zero fillRect/string allocations -> <0.3ms/frame)
     const width = 266;
-    const height = 405;
+    const height = 410;
     const cell = 3;
     const cols = Math.ceil(width / cell);
     const rows = Math.ceil(height / cell);
@@ -222,7 +222,7 @@ export const SidebarPixelWave = React.memo(function SidebarPixelWave() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[405px] w-full select-none [image-rendering:pixelated]"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[410px] w-full select-none [image-rendering:pixelated]"
     />
   );
 });
