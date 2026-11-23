@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Calendar,
@@ -76,6 +76,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [sortBy, setSortBy] = useState<SortOption>("top");
   const [visibleLimit, setVisibleLimit] = useState(24);
   const [masonryCols, setMasonryCols] = useState(4);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const updateCols = () => {
@@ -466,6 +467,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   const activeFilterCount =
     (marketFilter !== "ALL" ? 1 : 0) + (mediaFilter !== "all" ? 1 : 0);
+
+  // Automatic seamless infinite scroll for Explore (loads next 24 ads 650px before bottom)
+  useEffect(() => {
+    if (view !== "explore") return;
+    if (visibleAds.length <= visibleLimit) return;
+    const node = loadMoreRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleLimit((prev) => Math.min(visibleAds.length, prev + 24));
+        }
+      },
+      { rootMargin: "650px 0px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [view, visibleAds.length, visibleLimit]);
 
   const activeAd = useMemo(
     () => ads.find((a) => a.id === activeAdId) || null,
@@ -993,15 +1013,28 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 ))}
               </div>
 
+              {/* Automatic Infinite Scroll Sentinel with Clean Shimmer Cards */}
               {visibleAds.length > visibleLimit && (
-                <div className="flex justify-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setVisibleLimit((n) => n + 24)}
-                    className="rounded-xl border border-[#DCE1EC] bg-white px-5 py-2.5 font-display text-xs font-semibold text-[#0F172A] shadow-xs transition-all hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-                  >
-                    Vis flere annoncer ({visibleAds.length - visibleLimit} tilbage)
-                  </button>
+                <div
+                  ref={loadMoreRef}
+                  className="grid grid-cols-1 gap-3.5 pt-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  aria-hidden="true"
+                >
+                  {Array.from({ length: masonryCols }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col overflow-hidden rounded-[14px] border border-[#EAECEF] bg-white p-3"
+                    >
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="skeleton-shimmer h-7 w-7 rounded-full" />
+                          <div className="skeleton-shimmer h-3.5 w-24 rounded" />
+                        </div>
+                        <div className="skeleton-shimmer h-5 w-10 rounded-md" />
+                      </div>
+                      <div className="skeleton-shimmer aspect-[4/5] w-full rounded-[10px]" />
+                    </div>
+                  ))}
                 </div>
               )}
 
