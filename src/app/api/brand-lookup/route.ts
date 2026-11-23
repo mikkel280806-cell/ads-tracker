@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import type { Ad, Brand, MarketCode } from "@/lib/types";
 import {
   fetchCompanyActiveAds,
@@ -287,7 +289,7 @@ export async function POST(request: NextRequest) {
             productImagesByHandle,
             defaultFallbackImage,
           },
-          limit: 24,
+          limit: 300,
         })
       : { ads: [] as Ad[] };
 
@@ -335,7 +337,7 @@ export async function POST(request: NextRequest) {
             productImagesByHandle,
             defaultFallbackImage,
           },
-          limit: 24,
+          limit: 300,
         });
       }
     }

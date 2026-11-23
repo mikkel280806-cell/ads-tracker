@@ -75,7 +75,7 @@ export async function GET() {
         .from("adtrack_ads")
         .select("payload")
         .order("started_running_at", { ascending: false })
-        .limit(1000),
+        .limit(5000),
       supabase
         .from("adtrack_folders")
         .select("id, name, description, accent_color, created_at")

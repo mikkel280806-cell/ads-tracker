@@ -333,26 +333,56 @@ export async function fetchCompanyActiveAds(
   if (!queryParam) return { ads: [] };
 
   try {
-    const res = await fetch(
-      `${SC_BASE}/v1/facebook/adLibrary/company/ads?${queryParam}&status=ACTIVE&trim=true`,
-      {
-        headers: { "x-api-key": apiKey },
-        cache: "no-store",
+    const limit = opts.limit ?? 300;
+    const maxPages = Math.min(15, Math.max(1, Math.ceil(limit / 25) + 1));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allRaw: any[] = [];
+    const seenIds = new Set<string>();
+    let totalActiveAds: number | undefined;
+    let cursor: string | null = null;
+
+    for (let page = 0; page < maxPages && allRaw.length < limit; page++) {
+      const cursorParam = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
+      const res = await fetch(
+        `${SC_BASE}/v1/facebook/adLibrary/company/ads?${queryParam}&status=ACTIVE&trim=true${cursorParam}`,
+        {
+          headers: { "x-api-key": apiKey },
+          cache: "no-store",
+        }
+      );
+      if (!res.ok) break;
+      const data = await res.json();
+      const pageResults = Array.isArray(data?.results) ? data.results : [];
+      if (totalActiveAds === undefined && typeof data?.searchResultsCount === "number") {
+        totalActiveAds = data.searchResultsCount;
       }
-    );
-    if (!res.ok) return { ads: [] };
-    const data = await res.json();
-    const rawResults = Array.isArray(data?.results) ? data.results : [];
-    const totalActiveAds =
-      typeof data?.searchResultsCount === "number"
-        ? data.searchResultsCount
-        : rawResults.length || undefined;
 
-    const first = rawResults[0];
+      let addedThisPage = 0;
+      for (const item of pageResults) {
+        const key = String(item?.ad_archive_id || item?.adArchiveID || item?.id || "");
+        if (key && seenIds.has(key)) continue;
+        if (key) seenIds.add(key);
+        allRaw.push(item);
+        addedThisPage++;
+        if (allRaw.length >= limit) break;
+      }
+
+      const nextCursor =
+        typeof data?.cursor === "string" && data.cursor.trim().length > 0
+          ? data.cursor.trim()
+          : null;
+      if (!nextCursor || nextCursor === cursor || addedThisPage === 0) break;
+      cursor = nextCursor;
+    }
+
+    if (totalActiveAds === undefined && allRaw.length > 0) {
+      totalActiveAds = allRaw.length;
+    }
+
+    const first = allRaw[0];
     const snap = first?.snapshot || {};
-    const limit = opts.limit ?? 24;
 
-    const ads = rawResults.slice(0, limit).map((item: unknown) =>
+    const ads = allRaw.slice(0, limit).map((item: unknown) =>
       mapScrapeCreatorsAd(item, opts.brandId, {
         ...opts.fallbackBrand,
         liveAdsCount: totalActiveAds,

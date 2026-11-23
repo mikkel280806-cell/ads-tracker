@@ -689,8 +689,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           FLOATING ELEVATED WHITE MAIN WORKSPACE
          ===================================================================== */}
       <div className="flex min-w-0 flex-1 flex-col lg:p-2.5 lg:pl-0">
-        {/* NATIVE iOS FROSTED TOP BAR */}
-        <header className="pt-safe sticky top-0 z-30 flex items-center justify-between border-b border-[#ECEFF5] bg-white/88 px-4 py-2.5 text-[#0F172A] backdrop-blur-xl lg:hidden">
+        {/* CLEAN SOLID MOBILE TOP BAR */}
+        <header className="pt-safe sticky top-0 z-30 flex items-center border-b border-[#ECEFF5] bg-white px-4 py-2.5 text-[#0F172A] lg:hidden">
           <button
             type="button"
             onClick={() => {
@@ -704,17 +704,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             <img
               src="/icons/logo.png"
               alt="Adtrack"
-              className="h-7 w-7 rounded-[8px] shadow-[0_2px_8px_rgba(0,39,235,0.22)]"
+              className="h-7 w-7 rounded-[8px]"
             />
             <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-[#0F172A]">
               Adtrack
             </span>
           </button>
-
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F5F7FA] px-2.5 py-1 font-mono-num text-[11px] font-semibold text-[#475569]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
-            {brands.length} · {ads.length}
-          </span>
         </header>
 
         {/* WORKSPACE CANVAS */}
@@ -1113,11 +1108,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           FLOATING iOS 26 LIQUID GLASS TAB BAR — SHOPS, EXPLORE, FOLDERS
          ===================================================================== */}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-4 lg:hidden"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-1 lg:hidden"
         style={{
-          paddingBottom: "max(0.85rem, env(safe-area-inset-bottom))",
-          background:
-            "linear-gradient(180deg, rgba(247,248,251,0) 0%, rgba(247,248,251,0.34) 68%, rgba(247,248,251,0.62) 100%)",
+          paddingBottom: "max(0.35rem, calc(env(safe-area-inset-bottom) * 0.45))",
         }}
       >
         <GlassTabBar
@@ -1153,8 +1146,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       {/* AD DETAIL SHEET */}
       <AdDetailSheet
         ad={activeAd}
+        adsList={
+          selectedShop
+            ? ads.filter((a) => a.brand_id === selectedShop.id)
+            : visibleAds
+        }
         boards={boards}
         onClose={() => setActiveAdId(null)}
+        onSelectAd={(id) => setActiveAdId(id)}
         onUpdateAd={handleUpdateAd}
         onToggleBoard={handleToggleBoard}
         onOpenBrand={openShopAnalytics}

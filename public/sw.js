@@ -1,5 +1,5 @@
 // Minimal Service Worker for Adtrack PWA installability
-const CACHE_NAME = "adtrack-shell-v8";
+const CACHE_NAME = "adtrack-shell-v9";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
