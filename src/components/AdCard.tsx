@@ -6,6 +6,7 @@ import {
   BookmarkPlus,
   Check,
   ChevronDown,
+  Layers,
   Play,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
@@ -281,6 +282,17 @@ export function AdCard({
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-black/55">
                 <Play className="ml-0.5 h-4 w-4 fill-current" />
+              </span>
+            </div>
+          )}
+
+          {/* Subtle Carousel Badge for genuine multi-card carousels */}
+          {(ad.display_format === "CAROUSEL" ||
+            (ad.media_type === "carousel" && ad.display_format !== "DCO")) && (
+            <div className="pointer-events-none absolute right-2 top-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/45 px-2 py-0.5 text-[10.5px] font-semibold text-white shadow-sm backdrop-blur-md">
+                <Layers className="h-3 w-3" />
+                Carousel
               </span>
             </div>
           )}

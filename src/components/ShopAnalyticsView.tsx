@@ -533,7 +533,16 @@ export function ShopAnalyticsView({
 
   const filteredCreatives = useMemo(() => {
     if (creativeFormat === "all") return sortedMetaAds;
-    return sortedMetaAds.filter((a) => a.media_type === creativeFormat);
+    return sortedMetaAds.filter((a) => {
+      const isRealCarousel =
+        a.display_format === "CAROUSEL" ||
+        (a.media_type === "carousel" && a.display_format !== "DCO");
+      if (creativeFormat === "carousel") return isRealCarousel;
+      if (creativeFormat === "video") return a.media_type === "video";
+      if (creativeFormat === "image")
+        return a.media_type !== "video" && !isRealCarousel;
+      return true;
+    });
   }, [sortedMetaAds, creativeFormat]);
 
   // Slice chart points by range

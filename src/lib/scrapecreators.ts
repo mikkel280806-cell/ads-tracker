@@ -154,16 +154,22 @@ export function mapScrapeCreatorsAd(
     firstCard?.resized_image_url ||
     "";
 
+  const rawFmt =
+    typeof snap.display_format === "string"
+      ? snap.display_format.toUpperCase()
+      : "";
+  const isDco = rawFmt === "DCO" || rawFmt === "DPA";
+
   const mediaType: MediaType = videoUrl
     ? "video"
-    : cards.length > 1
+    : !isDco && (rawFmt === "CAROUSEL" || rawFmt === "MULTI_IMAGES" || cards.length > 1)
       ? "carousel"
       : "image";
 
   const displayFormat = mapDisplayFormat(
     snap.display_format,
     mediaType,
-    cards.length
+    isDco ? 0 : cards.length
   );
 
   const archiveId = String(

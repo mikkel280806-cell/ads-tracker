@@ -96,10 +96,13 @@ export function mapApifyMetaAd(
   let displayFormat: DisplayFormat = "IMAGE";
   if (videoUrl || fmt === "video") {
     mediaType = "video";
-    displayFormat = "VIDEO";
-  } else if (cards.length > 1 || fmt === "carousel" || fmt === "dco") {
+    displayFormat = fmt === "dco" || fmt === "dpa" ? "DCO" : "VIDEO";
+  } else if (fmt === "dco" || fmt === "dpa") {
+    mediaType = "image";
+    displayFormat = "DCO";
+  } else if (fmt === "carousel" || fmt === "multi_images" || cards.length > 1) {
     mediaType = "carousel";
-    displayFormat = fmt === "dco" ? "DCO" : "CAROUSEL";
+    displayFormat = "CAROUSEL";
   }
 
   const archiveId = String(raw.libraryID || `apify-${Math.random().toString(36).slice(2, 10)}`);
