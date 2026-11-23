@@ -50,6 +50,14 @@ export function AdCard({
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const rankBadgeStyle =
+    rank === 1
+      ? "bg-gradient-to-b from-[#FDE047] via-[#EAB308] to-[#CA8A04] text-[#422006] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.18)]"
+      : rank === 2
+        ? "bg-gradient-to-b from-[#F8FAFC] via-[#CBD5E1] to-[#94A3B8] text-[#0F172A] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.18)]"
+        : "bg-gradient-to-b from-[#FDBA74] via-[#D97706] to-[#9A3412] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_1px_2px_rgba(15,23,42,0.18)]";
 
   const activeDays = getActiveDays(ad.started_running_at);
   const inFolders = ad.board_ids.length > 0;
@@ -101,7 +109,9 @@ export function AdCard({
               </span>
             )}
             {rank && rank <= 3 && (
-              <span className="absolute -left-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[9px] font-bold text-white ring-2 ring-white">
+              <span
+                className={`absolute -left-1.5 -top-1.5 inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ring-2 ring-white ${rankBadgeStyle}`}
+              >
                 {rank}
               </span>
             )}
@@ -109,7 +119,7 @@ export function AdCard({
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="truncate font-display text-[13.5px] font-semibold leading-tight text-[#0F172A] transition-colors group-hover:text-[#0027eb]">
+              <span className="truncate font-display text-[13.5px] font-semibold leading-tight text-[#0F172A]">
                 {ad.brand_name}
               </span>
               <span className="shrink-0 rounded bg-[#F1F5F9] px-1.5 py-px font-mono-num text-[9.5px] font-semibold text-[#64748B]">
@@ -122,8 +132,8 @@ export function AdCard({
                 {activeDays}d
               </span>
               {ad.duplicated_count && ad.duplicated_count > 1 && (
-                <span className="inline-flex items-center gap-0.5 font-medium text-[#334155]">
-                  <Layers className="h-3 w-3 text-[#0027eb]" />
+                <span className="inline-flex items-center gap-0.5 font-medium text-[#475569]">
+                  <Layers className="h-3 w-3 text-[#64748B]" />
                   ×{ad.duplicated_count}
                 </span>
               )}
@@ -146,7 +156,7 @@ export function AdCard({
             title="Gem i folder"
             className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
               inFolders
-                ? "bg-[#EEF2FF] text-[#0027eb]"
+                ? "bg-[#F1F5F9] text-[#0F172A]"
                 : "text-[#94A3B8] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
             }`}
           >
@@ -178,7 +188,7 @@ export function AdCard({
                       <span className="truncate">{board.name}</span>
                     </span>
                     {selected && (
-                      <Check className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />
+                      <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />
                     )}
                   </button>
                 );
@@ -227,19 +237,28 @@ export function AdCard({
               className="h-full w-full object-cover"
             />
           ) : primaryImg ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={primaryImg}
-              alt={`${ad.brand_name} — ${ad.headline}`}
-              loading="lazy"
-              onError={() => {
-                if (!imgFailed) setImgFailed(true);
-              }}
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-            />
+            <>
+              {!imgLoaded && (
+                <div className="skeleton-shimmer absolute inset-0" aria-hidden="true" />
+              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={primaryImg}
+                alt={`${ad.brand_name} — ${ad.headline}`}
+                loading="lazy"
+                onLoad={() => setImgLoaded(true)}
+                onError={() => {
+                  setImgLoaded(true);
+                  if (!imgFailed) setImgFailed(true);
+                }}
+                className={`h-full w-full object-cover transition-all duration-300 ease-out group-hover:scale-[1.03] ${
+                  imgLoaded ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            </>
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#F5F7FA] p-5 text-center">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0027eb] font-display text-xs font-bold text-white">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0F172A] font-display text-xs font-bold text-white">
                 {ad.brand_avatar_initials}
               </span>
               <p className="line-clamp-2 max-w-[180px] text-xs font-medium text-[#475569]">
@@ -251,7 +270,7 @@ export function AdCard({
           {/* Frosted Glass Play Button */}
           {ad.media_type === "video" && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-[#05060B]/45 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-[#0027eb]/90">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-[#05060B]/45 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-[#0F172A]/85">
                 <Play className="ml-0.5 h-4 w-4 fill-current" />
               </span>
             </div>
@@ -282,7 +301,7 @@ export function AdCard({
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
           >
             {ad.cta_text || "Shop"}
             <ArrowUpRight className="h-3 w-3" />

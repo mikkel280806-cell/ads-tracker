@@ -284,6 +284,41 @@ h3,
   animation: sheetUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f1f4f9 0%,
+    #e6ebf3 45%,
+    #f1f4f9 90%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.35s ease-in-out infinite;
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-view-in {
+  animation: viewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* iOS 26 Liquid Glass Optical Surface & Specular Lensing */
 .liquid-glass-surface {
   backdrop-filter: blur(24px) saturate(195%) brightness(1.03);

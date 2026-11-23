@@ -1,5 +1,6 @@
 import type { Ad, DisplayFormat, MarketCode, MediaType } from "./types";
 import type { CompanyAdsResponse } from "./scrapecreators";
+import { dedupeAds } from "./url-parser";
 import {
   cleanLandingUrl,
   extractHookAndCategory,
@@ -248,11 +249,14 @@ export async function fetchCompanyActiveAdsViaApify(opts: {
     if (!Array.isArray(items) || items.length === 0) return { ads: [] };
 
     const first = items[0];
-    const ads = items.slice(0, maxAds).map((item) =>
+    const rawMapped = items.slice(0, maxAds).map((item) =>
       mapApifyMetaAd(item, opts.brandId, {
         ...opts.fallbackBrand,
         liveAdsCount: items.length,
       })
+    );
+    const ads = dedupeAds(
+      rawMapped.filter((a) => Boolean(a.media_url || a.thumbnail_url || a.fallback_image_url))
     );
 
     return {

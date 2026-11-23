@@ -9,7 +9,6 @@ import {
   Check,
   Copy,
   ExternalLink,
-  FileText,
   Film,
   Globe,
   Hash,
@@ -17,9 +16,7 @@ import {
   Layers,
   LineChart,
   Link2,
-  Loader2,
   Package,
-  RefreshCw,
   Search,
   Sparkles,
   Tag,
@@ -30,7 +27,7 @@ import {
 } from "lucide-react";
 import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/types";
 import { getTechMeta } from "@/lib/tech-catalog";
-import { formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
+import { dedupeAds, formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import {
   FacebookColorIcon,
@@ -293,8 +290,9 @@ export function ShopAnalyticsView({
   onOpenAd,
   onToggleBoard,
   onToggleBrandFolder,
-  onUpdateBrand,
+  onUpdateBrand: _onUpdateBrand,
 }: ShopAnalyticsViewProps) {
+  void _onUpdateBrand;
   const [mainTab, setMainTab] = useState<MainTab>("analytics");
   const [metaSubTab, setMetaSubTab] = useState<MetaSubTab>("library");
   const [metaSort, setMetaSort] = useState<"top" | "longest" | "duplicated">("top");
@@ -309,11 +307,17 @@ export function ShopAnalyticsView({
 
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [rescanning, setRescanning] = useState(false);
-  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [tabTransitioning, setTabTransitioning] = useState(false);
+
+  const switchMainTab = (next: MainTab) => {
+    if (next === mainTab) return;
+    setTabTransitioning(true);
+    setMainTab(next);
+    setTimeout(() => setTabTransitioning(false), 160);
+  };
 
   const brandAds = useMemo(
-    () => ads.filter((a) => a.brand_id === brand.id),
+    () => dedupeAds(ads.filter((a) => a.brand_id === brand.id)),
     [ads, brand.id]
   );
 
@@ -537,39 +541,6 @@ export function ShopAnalyticsView({
     }
   };
 
-  const handleRescanBrand = async () => {
-    setRescanning(true);
-    setStatusMsg(null);
-    try {
-      const res = await fetch("/api/brand-lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: brand.website_url,
-          market: brand.market,
-          companyNameOverride: brand.name,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.ok && data.brand) {
-        onUpdateBrand(
-          brand.id,
-          { ...data.brand, id: brand.id, folder_ids: brand.folder_ids },
-          Array.isArray(data.ads) ? data.ads : undefined
-        );
-        setStatusMsg(
-          `Live synkroniseret: ${data.discovered?.activeAdsCount || 0} aktive ads, ${data.discovered?.productsFound || 0} produkter og ${data.discovered?.pixelsFound || 0} pixels.`
-        );
-      } else {
-        setStatusMsg(data.error || "Kunne ikke opdatere shoppen lige nu.");
-      }
-    } catch {
-      setStatusMsg("Netværksfejl under live opdatering.");
-    } finally {
-      setRescanning(false);
-    }
-  };
-
   const marketFlag =
     brand.country_code === "FR"
       ? "🇫🇷"
@@ -580,7 +551,7 @@ export function ShopAnalyticsView({
           : "🇺🇸";
 
   return (
-    <div className="space-y-5">
+    <div className="animate-view-in space-y-5">
       {/* =====================================================================
           TRENDTRACK SHOP HEADER + METADATA STRIP
          ===================================================================== */}
@@ -591,7 +562,7 @@ export function ShopAnalyticsView({
               type="button"
               onClick={onBack}
               aria-label="Tilbage til Shops"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E2E6EF] bg-white text-[#475569] shadow-xs transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E2E6EF] bg-white text-[#475569] shadow-xs transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -605,7 +576,7 @@ export function ShopAnalyticsView({
                   className="h-7 w-7 object-contain"
                 />
               ) : (
-                <span className="font-display text-sm font-bold text-[#0027eb]">
+                <span className="font-display text-sm font-bold text-[#334155]">
                   {brand.avatar_initials}
                 </span>
               )}
@@ -636,9 +607,9 @@ export function ShopAnalyticsView({
                   style={
                     savedInFolders
                       ? {
-                          backgroundColor: "#EEF2FF",
-                          borderColor: "rgba(0,39,235,0.28)",
-                          color: "#0027eb",
+                          backgroundColor: "#F1F5F9",
+                          borderColor: "#CBD5E1",
+                          color: "#0F172A",
                         }
                       : {
                           backgroundColor: "#FFFFFF",
@@ -674,7 +645,7 @@ export function ShopAnalyticsView({
                             />
                             <span className="truncate">{board.name}</span>
                           </span>
-                          {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
+                          {active && <Check className="h-3.5 w-3.5 text-[#0F172A]" />}
                         </button>
                       );
                     })}
@@ -686,7 +657,7 @@ export function ShopAnalyticsView({
                 type="button"
                 onClick={() => copyText("domain", brand.website_url)}
                 title="Kopiér URL"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E6EF] bg-white text-[#64748B] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E6EF] bg-white text-[#64748B] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
               >
                 {copiedKey === "domain" ? (
                   <Check className="h-3.5 w-3.5 text-[#16A34A]" />
@@ -699,20 +670,6 @@ export function ShopAnalyticsView({
 
           {/* Right Action Controls */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRescanBrand}
-              disabled={rescanning}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-3.5 py-2 text-xs font-semibold text-[#334155] shadow-xs transition-all hover:border-[#0027eb] hover:text-[#0027eb] disabled:opacity-50"
-            >
-              {rescanning ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0027eb]" />
-              ) : (
-                <RefreshCw className="h-3.5 w-3.5" />
-              )}
-              {rescanning ? "Scraper live..." : "Sync Live Data"}
-            </button>
-
             {brand.meta_ad_library_url && (
               <a
                 href={brand.meta_ad_library_url}
@@ -733,9 +690,9 @@ export function ShopAnalyticsView({
             href={brand.website_url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-[#0F172A] hover:text-[#0027eb]"
+            className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-[#0F172A] hover:underline"
           >
-            <Globe className="h-3.5 w-3.5 text-[#0027eb]" />
+            <Globe className="h-3.5 w-3.5 text-[#64748B]" />
             {domain}
             <ExternalLink className="h-3 w-3 text-[#94A3B8]" />
           </a>
@@ -780,17 +737,11 @@ export function ShopAnalyticsView({
           </span>
 
           {brand.shopify_theme && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#0027eb]">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155]">
               {brand.shopify_theme}
             </span>
           )}
         </div>
-
-        {statusMsg && (
-          <div className="rounded-xl border border-[#0027eb]/20 bg-[#EEF2FF] px-3.5 py-2 text-xs font-medium text-[#0027eb]">
-            {statusMsg}
-          </div>
-        )}
 
         {/* PRIMARY SHOP TABS (Clean iOS 3-col bar on mobile, inline on desktop) */}
         <div className="grid grid-cols-3 gap-1 rounded-xl border border-[#E6E9F0] bg-[#EFEFF4] p-1 sm:flex sm:w-fit sm:items-center sm:border-0 sm:bg-transparent sm:p-0 sm:pt-1">
@@ -831,11 +782,11 @@ export function ShopAnalyticsView({
               <button
                 key={tabItem.id}
                 type="button"
-                onClick={() => setMainTab(tabItem.id)}
+                onClick={() => switchMainTab(tabItem.id)}
                 className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-2 font-display text-[12px] font-semibold transition-all sm:rounded-xl sm:px-3.5 sm:text-[13px] ${
                   active
-                    ? "bg-white text-[#0027eb] shadow-xs sm:bg-[#EEF2FF] sm:ring-1 sm:ring-[#0027eb]/15"
-                    : "text-[#64748B] hover:text-[#0F172A] sm:hover:bg-[#F3F5F9]"
+                    ? "bg-white text-[#0F172A] shadow-xs sm:bg-[#F1F5F9] sm:text-[#0F172A] sm:ring-1 sm:ring-[#E2E8F0]"
+                    : "text-[#64748B] hover:text-[#0F172A] sm:hover:bg-[#F7F8FB]"
                 }`}
               >
                 {tabItem.icon}
@@ -848,11 +799,28 @@ export function ShopAnalyticsView({
         </div>
       </div>
 
+      {/* UNIFIED TAB SKELETON TRANSITION */}
+      {tabTransitioning && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="skeleton-shimmer h-24 rounded-2xl" />
+            <div className="skeleton-shimmer h-24 rounded-2xl" />
+            <div className="skeleton-shimmer h-24 rounded-2xl" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="skeleton-shimmer aspect-[4/5] rounded-2xl" />
+            <div className="skeleton-shimmer aspect-[4/5] rounded-2xl" />
+            <div className="skeleton-shimmer aspect-[4/5] rounded-2xl" />
+            <div className="skeleton-shimmer aspect-[4/5] rounded-2xl" />
+          </div>
+        </div>
+      )}
+
       {/* =====================================================================
           TAB 1: SHOP ANALYTICS (EXACT TRENDTRACK DASHBOARD)
          ===================================================================== */}
-      {mainTab === "analytics" && (
-        <div className="space-y-5">
+      {!tabTransitioning && mainTab === "analytics" && (
+        <div className="animate-view-in space-y-5">
           {/* TOP 3 KPI CARDS */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* 1. Monthly Visits */}
@@ -870,7 +838,7 @@ export function ShopAnalyticsView({
                 </span>
               </div>
               <div className="mt-2.5 flex items-center gap-2.5">
-                <Users className="h-5 w-5 text-[#0027eb]" />
+                <Users className="h-5 w-5 text-[#475569]" />
                 <span className="font-display text-[26px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
                   {formatReach(brand.monthly_visits)}
                 </span>
@@ -902,8 +870,8 @@ export function ShopAnalyticsView({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setMainTab("meta_ads")}
-                  className="text-[11px] font-semibold text-[#0027eb] hover:underline"
+                  onClick={() => switchMainTab("meta_ads")}
+                  className="text-[11px] font-semibold text-[#475569] hover:text-[#0F172A]"
                 >
                   Open Ad Library →
                 </button>
@@ -1020,7 +988,7 @@ export function ShopAnalyticsView({
 
               <InteractiveAreaChart
                 points={trafficPoints}
-                color="#0027eb"
+                color="#0F172A"
                 gradientId="adtrackTrafficGrad"
                 valuePrefix="Visitors: "
                 formatVal={(v) => formatReach(v)}
@@ -1215,7 +1183,7 @@ export function ShopAnalyticsView({
                   }`}
                 >
                   <span>Pixels</span>
-                  <span className="rounded-md bg-[#EEF2FF] px-1.5 py-0.5 font-mono-num text-[10px] font-bold text-[#0027eb]">
+                  <span className="rounded-md bg-[#F1F5F9] px-1.5 py-0.5 font-mono-num text-[10px] font-bold text-[#475569]">
                     {pixels.length}
                   </span>
                 </button>
@@ -1270,21 +1238,21 @@ export function ShopAnalyticsView({
             </div>
           </div>
 
-          {/* BOTTOM SECTION: LAST ADS (Exact Screenshot 19.50.39!) */}
+          {/* BOTTOM SECTION: LAST ADS */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="font-display text-base font-bold text-[#0F172A]">
                   Last Ads
                 </h2>
-                <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-semibold text-[#0027eb]">
+                <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 font-mono-num text-[11px] font-semibold text-[#475569]">
                   {brandAds.length} scraped
                 </span>
               </div>
               <button
                 type="button"
-                onClick={() => setMainTab("meta_ads")}
-                className="inline-flex items-center gap-1 rounded-xl border border-[#E2E6EF] bg-white px-3 py-1.5 text-xs font-semibold text-[#334155] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+                onClick={() => switchMainTab("meta_ads")}
+                className="inline-flex items-center gap-1 rounded-xl border border-[#E2E6EF] bg-white px-3 py-1.5 text-xs font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
               >
                 See more
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -1293,7 +1261,7 @@ export function ShopAnalyticsView({
 
             {brandAds.length === 0 ? (
               <div className="p-10 text-center text-xs text-[#64748B]">
-                Ingen live Meta Ads fundet endnu. Klik <strong>Sync Live Data</strong> for at scrape Meta Ad Library.
+                Ingen live Meta Ads hentet for denne shop endnu.
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1314,11 +1282,11 @@ export function ShopAnalyticsView({
       )}
 
       {/* =====================================================================
-          TAB 2: META ADS DEEP DIVE (Exact image_6.png + Skærmbillede 19.56.28!)
+          TAB 2: META ADS DEEP DIVE
           Ad Library | Creatives | Ad Copies | Headlines | Hooks & Scripts | LP
          ===================================================================== */}
-      {mainTab === "meta_ads" && (
-        <div className="space-y-5">
+      {!tabTransitioning && mainTab === "meta_ads" && (
+        <div className="animate-view-in space-y-5">
           {/* Sub-Navigation Bar */}
           <div className="no-scrollbar flex items-center gap-1 overflow-x-auto border-b border-[#E6E9F0]">
             {[
@@ -1337,7 +1305,7 @@ export function ShopAnalyticsView({
                   onClick={() => setMetaSubTab(st.id)}
                   className={`inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3.5 py-2.5 font-display text-[13px] font-semibold transition-colors ${
                     active
-                      ? "border-[#0027eb] text-[#0027eb]"
+                      ? "border-[#0F172A] text-[#0F172A]"
                       : "border-transparent text-[#64748B] hover:text-[#0F172A]"
                   }`}
                 >
@@ -1345,7 +1313,7 @@ export function ShopAnalyticsView({
                   <span
                     className={`rounded-md px-1.5 py-0.5 font-mono-num text-[10px] font-bold ${
                       active
-                        ? "bg-[#EEF2FF] text-[#0027eb]"
+                        ? "bg-[#0F172A] text-white"
                         : "bg-[#F1F5F9] text-[#64748B]"
                     }`}
                   >
@@ -1366,7 +1334,7 @@ export function ShopAnalyticsView({
                     <div>
                       <h2 className="font-display text-[15px] font-bold text-[#0F172A]">
                         Historic of Live Ads{" "}
-                        <span className="font-mono-num text-[#0027eb]">
+                        <span className="font-mono-num text-[#475569]">
                           {formatReach(brand.active_ads_count ?? brandAds.length)}
                         </span>
                       </h2>
@@ -1393,7 +1361,7 @@ export function ShopAnalyticsView({
                   </div>
                   <InteractiveAreaChart
                     points={adsTimelinePoints}
-                    color="#0027eb"
+                    color="#16A34A"
                     gradientId="adtrackHistoricAdsGrad"
                     valuePrefix="Active Ads: "
                     formatVal={(v) => formatReach(v)}
@@ -1456,7 +1424,7 @@ export function ShopAnalyticsView({
                       <button
                         type="button"
                         onClick={() => setMetaSubTab("lp")}
-                        className="text-[11px] font-semibold text-[#0027eb] hover:underline"
+                        className="text-[11px] font-semibold text-[#475569] hover:text-[#0F172A]"
                       >
                         Alle ({landingPages.length}) ↗
                       </button>
@@ -1468,11 +1436,11 @@ export function ShopAnalyticsView({
                           href={lp.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="group flex items-center justify-between gap-2 rounded-xl border border-[#EFF2F6] bg-[#FAFBFD] px-3 py-2 text-xs transition-colors hover:border-[#0027eb]/30 hover:bg-white"
+                          className="group flex items-center justify-between gap-2 rounded-xl border border-[#EFF2F6] bg-[#FAFBFD] px-3 py-2 text-xs transition-colors hover:border-[#CBD5E1] hover:bg-white"
                         >
                           <span className="flex min-w-0 items-center gap-2">
                             <ShopifyBagIcon className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate font-mono-num text-[11.5px] font-medium text-[#0F172A] group-hover:text-[#0027eb]">
+                            <span className="truncate font-mono-num text-[11.5px] font-medium text-[#0F172A]">
                               {lp.path}
                             </span>
                           </span>
@@ -1480,7 +1448,7 @@ export function ShopAnalyticsView({
                             <span className="font-bold text-[#0F172A]">
                               {lp.count}
                             </span>
-                            <span className="rounded bg-[#EEF2FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#0027eb]">
+                            <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
                               {lp.pct}%
                             </span>
                           </span>
@@ -1549,7 +1517,7 @@ export function ShopAnalyticsView({
                     onClick={() => setCreativeFormat(fmt)}
                     className={`rounded-xl border px-3.5 py-1.5 text-xs font-semibold capitalize transition-all ${
                       creativeFormat === fmt
-                        ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                        ? "border-[#0F172A] bg-[#0F172A] text-white"
                         : "border-[#E6E9F0] bg-white text-[#475569] hover:border-[#CBD5E1]"
                     }`}
                   >
@@ -1583,7 +1551,7 @@ export function ShopAnalyticsView({
                 >
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                      <span className="rounded-md bg-[#EEF2FF] px-2 py-0.5 font-mono-num font-bold text-[#0027eb]">
+                      <span className="rounded-md bg-[#F1F5F9] px-2 py-0.5 font-mono-num font-bold text-[#334155]">
                         #{idx + 1}
                       </span>
                       <span className="rounded-md bg-[#ECFDF3] px-2 py-0.5 font-mono-num font-semibold text-[#15803D]">
@@ -1700,7 +1668,7 @@ export function ShopAnalyticsView({
                   onClick={() => setHookCategoryFilter("all")}
                   className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
                     hookCategoryFilter === "all"
-                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      ? "border-[#0F172A] bg-[#0F172A] text-white"
                       : "border-[#E6E9F0] bg-white text-[#475569]"
                   }`}
                 >
@@ -1713,7 +1681,7 @@ export function ShopAnalyticsView({
                     onClick={() => setHookCategoryFilter(cat)}
                     className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
                       hookCategoryFilter === cat
-                        ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                        ? "border-[#0F172A] bg-[#0F172A] text-white"
                         : "border-[#E6E9F0] bg-white text-[#475569]"
                     }`}
                   >
@@ -1736,8 +1704,8 @@ export function ShopAnalyticsView({
                     >
                       <div className="space-y-2.5">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
-                            <Sparkles className="h-3 w-3" />
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#334155]">
+                            <Sparkles className="h-3 w-3 text-[#64748B]" />
                             {item.category}
                           </span>
                           <div className="flex items-center gap-1.5 font-mono-num text-[11px]">
@@ -1806,7 +1774,7 @@ export function ShopAnalyticsView({
                       >
                         {lp.path}
                       </a>
-                      <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
+                      <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155]">
                         {lp.count} ads ({lp.pct}%)
                       </span>
                     </div>
@@ -1815,7 +1783,7 @@ export function ShopAnalyticsView({
                     </p>
                     <div className="h-1.5 w-full max-w-md overflow-hidden rounded-full bg-[#EFF2F6]">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#0027eb] to-[#4D6BFF]"
+                        className="h-full rounded-full bg-[#0F172A]"
                         style={{ width: `${lp.pct}%` }}
                       />
                     </div>
@@ -1862,8 +1830,8 @@ export function ShopAnalyticsView({
       {/* =====================================================================
           TAB 3: FULL PRODUCTS CATALOG
          ===================================================================== */}
-      {mainTab === "products" && (
-        <div className="space-y-4">
+      {!tabTransitioning && mainTab === "products" && (
+        <div className="animate-view-in space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="relative w-full sm:w-72">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
@@ -1872,7 +1840,7 @@ export function ShopAnalyticsView({
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="Søg produkter..."
-                className="w-full rounded-xl border border-[#E2E6EF] bg-white py-2 pl-9 pr-3 text-xs text-[#0F172A] outline-none focus:border-[#0027eb]"
+                className="w-full rounded-xl border border-[#E2E6EF] bg-white py-2 pl-9 pr-3 text-xs text-[#0F172A] outline-none focus:border-[#94A3B8]"
               />
             </div>
 
@@ -1917,7 +1885,7 @@ export function ShopAnalyticsView({
                   rel="noreferrer"
                   className="adtrack-card-interactive group overflow-hidden rounded-2xl"
                 >
-                  <div className="relative aspect-square w-full overflow-hidden bg-[#F7F8FB]">
+                  <div className="skeleton-shimmer relative aspect-square w-full overflow-hidden">
                     {prod.image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
@@ -1927,7 +1895,7 @@ export function ShopAnalyticsView({
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
+                      <div className="flex h-full w-full items-center justify-center bg-[#F7F8FB] text-[#94A3B8]">
                         <Package className="h-8 w-8" />
                       </div>
                     )}
@@ -1936,12 +1904,12 @@ export function ShopAnalyticsView({
                     </span>
                   </div>
                   <div className="p-3">
-                    <p className="line-clamp-2 font-display text-[13px] font-semibold text-[#0F172A] group-hover:text-[#0027eb]">
+                    <p className="line-clamp-2 font-display text-[13px] font-semibold text-[#0F172A]">
                       {prod.title}
                     </p>
                     <div className="mt-1.5 flex items-center justify-between gap-2">
                       {prod.price && (
-                        <span className="font-mono-num text-xs font-bold text-[#0027eb]">
+                        <span className="font-mono-num text-xs font-bold text-[#0F172A]">
                           {prod.price} {prod.currency || brand.currency || ""}
                         </span>
                       )}
@@ -1955,28 +1923,6 @@ export function ShopAnalyticsView({
                 </a>
               ))}
           </div>
-        </div>
-      )}
-
-      {/* Subtle footer hint */}
-      {brandAds.length > 0 && mainTab === "analytics" && (
-        <div className="flex items-center justify-between rounded-2xl border border-[#E6E9F0] bg-[#FAFBFD] px-4 py-3 text-xs text-[#64748B]">
-          <span className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-[#0027eb]" />
-            Udforsk <strong className="text-[#0F172A]">{uniqueHooks.length} hooks</strong>,{" "}
-            <strong className="text-[#0F172A]">{uniqueCopies.length} ad copies</strong> og{" "}
-            <strong className="text-[#0F172A]">{landingPages.length} landing pages</strong> for {brand.name}.
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              setMainTab("meta_ads");
-              setMetaSubTab("hooks");
-            }}
-            className="font-semibold text-[#0027eb] hover:underline"
-          >
-            Åbn Hooks &amp; LP →
-          </button>
         </div>
       )}
     </div>

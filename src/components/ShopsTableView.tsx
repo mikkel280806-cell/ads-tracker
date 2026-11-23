@@ -5,6 +5,7 @@ import {
   Bookmark,
   Calendar,
   Check,
+  ChevronDown,
   ChevronRight,
   Globe,
   Loader2,
@@ -12,8 +13,6 @@ import {
   Play,
   Plus,
   Search,
-  TrendingDown,
-  TrendingUp,
   Users,
   X,
 } from "lucide-react";
@@ -290,15 +289,6 @@ export function ShopsTableView({
     });
   }, [brands, marketFilter, techFilter, searchQuery, sortBy]);
 
-  const totalLiveAdsAcrossIndex = useMemo(
-    () =>
-      filteredBrands.reduce(
-        (sum, b) => sum + (b.active_ads_count || 0),
-        0
-      ),
-    [filteredBrands]
-  );
-
   const getFlag = (brand: Brand) =>
     brand.country_code === "FR"
       ? "🇫🇷"
@@ -309,20 +299,12 @@ export function ShopsTableView({
           : "🇺🇸";
 
   return (
-    <div className="space-y-4 lg:space-y-5">
-      {/* HEADER — KISS: Single clear title + compact count + primary action */}
+    <div className="animate-view-in space-y-4 lg:space-y-5">
+      {/* HEADER — Clean minimal title + primary add action */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
-            Shops
-          </h1>
-          <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
-            {brands.length}
-          </span>
-          <span className="hidden font-mono-num text-xs text-[#64748B] sm:inline">
-            · {totalLiveAdsAcrossIndex.toLocaleString("en-US")} live ads
-          </span>
-        </div>
+        <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+          Shops
+        </h1>
 
         {/* Clean "+" Icon Trigger (opens Add Shop popup modal) */}
         <button
@@ -393,12 +375,29 @@ export function ShopsTableView({
                     type="button"
                     disabled={loading}
                     onClick={() => runBrandLookup(domain)}
-                    className="rounded-lg bg-[#F5F7FA] px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#475569] transition-colors hover:bg-[#EEF2FF] hover:text-[#0027eb] disabled:opacity-40"
+                    className="rounded-lg bg-[#F5F7FA] px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#475569] transition-colors hover:bg-[#E2E8F0] hover:text-[#0F172A] disabled:opacity-40"
                   >
                     + {domain}
                   </button>
                 ))}
               </div>
+
+              {loading && (
+                <div className="space-y-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="skeleton-shimmer h-9 w-9 shrink-0 rounded-lg" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="skeleton-shimmer h-3 w-28 rounded" />
+                      <div className="skeleton-shimmer h-2.5 w-40 rounded" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="skeleton-shimmer h-10 rounded-lg" />
+                    <div className="skeleton-shimmer h-10 rounded-lg" />
+                    <div className="skeleton-shimmer h-10 rounded-lg" />
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <p className="rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs font-medium text-[#E11D48]">
@@ -458,7 +457,7 @@ export function ShopsTableView({
                 <span>{m.label}</span>
                 <span
                   className={`font-mono-num text-[10.5px] font-semibold ${
-                    active ? "text-[#0027eb]" : "text-[#94A3B8]"
+                    active ? "text-[#475569]" : "text-[#94A3B8]"
                   }`}
                 >
                   {m.count}
@@ -477,36 +476,42 @@ export function ShopsTableView({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Søg shop eller app..."
-              className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#0027eb] sm:text-xs"
+              className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#94A3B8] sm:text-xs"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-            <select
-              aria-label="Filtrer efter pixel eller Shopify app"
-              value={techFilter}
-              onChange={(e) => setTechFilter(e.target.value)}
-              className="w-full truncate rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 text-[14px] font-medium text-[#334155] outline-none focus:border-[#0027eb] sm:w-auto sm:text-xs"
-            >
-              <option value="all">Alle pixels &amp; apps</option>
-              {allTechTools.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                aria-label="Filtrer efter pixel eller Shopify app"
+                value={techFilter}
+                onChange={(e) => setTechFilter(e.target.value)}
+                className="w-full cursor-pointer appearance-none truncate rounded-xl border border-[#E6E9F0] bg-white py-2 pl-3 pr-9 text-[14px] font-medium text-[#334155] outline-none transition-colors focus:border-[#94A3B8] sm:w-auto sm:text-xs"
+              >
+                <option value="all">Alle pixels &amp; apps</option>
+                {allTechTools.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748B]" />
+            </div>
 
-            <select
-              aria-label="Sortér shops"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortKey)}
-              className="w-full truncate rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 text-[14px] font-semibold text-[#0F172A] outline-none focus:border-[#0027eb] sm:w-auto sm:text-xs"
-            >
-              <option value="ads">Flest Live Ads</option>
-              <option value="visits">Højest Visits</option>
-              <option value="products">Flest Produkter</option>
-              <option value="tech">Flest Apps</option>
-            </select>
+            <div className="relative">
+              <select
+                aria-label="Sortér shops"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortKey)}
+                className="w-full cursor-pointer appearance-none truncate rounded-xl border border-[#E6E9F0] bg-white py-2 pl-3 pr-9 text-[14px] font-semibold text-[#0F172A] outline-none transition-colors focus:border-[#94A3B8] sm:w-auto sm:text-xs"
+              >
+                <option value="ads">Flest Live Ads</option>
+                <option value="visits">Højest Visits</option>
+                <option value="products">Flest Produkter</option>
+                <option value="tech">Flest Apps</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748B]" />
+            </div>
           </div>
         </div>
       </div>
@@ -541,7 +546,7 @@ export function ShopsTableView({
                   onClick={() => onOpenShop(brand.id)}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
-                  <div className="relative h-[52px] w-[84px] shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0] bg-[#F7F8FB]">
+                  <div className="skeleton-shimmer relative h-[52px] w-[84px] shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0]">
                     {getHomepageScreenshotUrl(brand.website_url, brand.storefront_image_url) || brand.storefront_image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
@@ -564,7 +569,7 @@ export function ShopsTableView({
                         className="h-full w-full object-cover object-top"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold text-[#0027eb]">
+                      <div className="flex h-full w-full items-center justify-center bg-[#F7F8FB] font-display text-xs font-bold text-[#334155]">
                         {brand.avatar_initials}
                       </div>
                     )}
@@ -600,9 +605,9 @@ export function ShopsTableView({
                     style={
                       savedInFolder
                         ? {
-                            backgroundColor: "#EEF2FF",
-                            borderColor: "rgba(0,39,235,0.28)",
-                            color: "#0027eb",
+                            backgroundColor: "#F1F5F9",
+                            borderColor: "#CBD5E1",
+                            color: "#0F172A",
                           }
                         : {
                             backgroundColor: "#FAFBFD",
@@ -742,7 +747,7 @@ export function ShopsTableView({
                       </span>
                     ))}
                     {allTech.length > 3 && (
-                      <span className="rounded-md bg-[#EEF2FF] px-1.5 py-0.5 font-mono-num text-[10px] font-bold text-[#0027eb]">
+                      <span className="rounded-md bg-[#F1F5F9] px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#475569]">
                         +{allTech.length - 3}
                       </span>
                     )}
@@ -839,7 +844,7 @@ export function ShopsTableView({
                   <button
                     type="button"
                     onClick={() => onOpenShop(brand.id)}
-                    className="relative h-[68px] w-[108px] shrink-0 overflow-hidden rounded-xl border border-[#E2E6EF] bg-[#F7F8FB] text-left shadow-2xs"
+                    className="skeleton-shimmer relative h-[68px] w-[108px] shrink-0 overflow-hidden rounded-xl border border-[#E2E6EF] text-left shadow-2xs"
                   >
                     {homepageShot || brand.storefront_image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -859,7 +864,7 @@ export function ShopsTableView({
                         className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold text-[#0027eb]">
+                      <div className="flex h-full w-full items-center justify-center bg-[#F7F8FB] font-display text-xs font-bold text-[#334155]">
                         {brand.avatar_initials}
                       </div>
                     )}
@@ -881,7 +886,7 @@ export function ShopsTableView({
                       <button
                         type="button"
                         onClick={() => onOpenShop(brand.id)}
-                        className="truncate font-display text-[14.5px] font-bold text-[#0F172A] transition-colors hover:text-[#0027eb]"
+                        className="truncate font-display text-[14.5px] font-bold text-[#0F172A] transition-colors hover:text-[#475569]"
                       >
                         {brand.name}
                       </button>
@@ -896,9 +901,9 @@ export function ShopsTableView({
                             );
                           }}
                           title="Gem i folder"
-                          className="flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-[#EEF2FF]"
+                          className="flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-[#F1F5F9]"
                           style={{
-                            color: savedInFolder ? "#0027eb" : "#94A3B8",
+                            color: savedInFolder ? "#0F172A" : "#94A3B8",
                           }}
                         >
                           <Bookmark
@@ -1029,7 +1034,7 @@ export function ShopsTableView({
                   <button
                     type="button"
                     onClick={() => onOpenShop(brand.id)}
-                    className="max-w-full truncate rounded-full bg-[#F3F5F9] px-3 py-1 text-[11.5px] font-medium text-[#475569] transition-colors hover:bg-[#EEF2FF] hover:text-[#0027eb]"
+                    className="max-w-full truncate rounded-full bg-[#F3F5F9] px-3 py-1 text-[11.5px] font-medium text-[#475569] transition-colors hover:bg-[#E2E8F0] hover:text-[#0F172A]"
                   >
                     {brand.category}
                   </button>

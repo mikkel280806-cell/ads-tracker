@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Bookmark,
@@ -88,16 +88,73 @@ export function AdDetailSheet({
   >({});
   const [lpErrorByAdId, setLpErrorByAdId] = useState<Record<string, string>>({});
 
-  // Video transcription state (Groq Whisper / Deepgram API)
+  // Video transcription state (Deepgram Nova-2 — automatic on video open)
   const [transcribing, setTranscribing] = useState(false);
   const [transcribeErrorByAdId, setTranscribeErrorByAdId] = useState<
     Record<string, string>
   >({});
+  const autoTranscribedRef = useRef<Set<string>>(new Set());
 
   const localAnalysis = useMemo(
     () => (ad ? analyzeAdLocally(ad) : null),
     [ad]
   );
+
+  // Automatically transcribe video ads via Deepgram when opened (no button click needed)
+  useEffect(() => {
+    if (!ad) return;
+    if (ad.media_type !== "video") return;
+    if (!ad.media_url || !/\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url)) return;
+    if (ad.ai_transcript) return;
+    if (autoTranscribedRef.current.has(ad.id)) return;
+
+    autoTranscribedRef.current.add(ad.id);
+    let cancelled = false;
+
+    const runAutoTranscribe = async () => {
+      setTranscribing(true);
+      try {
+        const res = await fetch("/api/transcribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ad,
+            adId: ad.id,
+            videoUrl: ad.media_url,
+            market: ad.market,
+          }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.ok && data.transcript) {
+          onUpdateAd(ad.id, {
+            ai_transcript: data.transcript,
+            ai_hook_verbal: data.hook || ad.ai_hook_verbal,
+            duration_seconds: data.durationSec || ad.duration_seconds,
+          });
+        } else if (data.message) {
+          setTranscribeErrorByAdId((prev) => ({
+            ...prev,
+            [ad.id]: data.message,
+          }));
+        }
+      } catch {
+        if (!cancelled) {
+          setTranscribeErrorByAdId((prev) => ({
+            ...prev,
+            [ad.id]: "Netværksfejl ved automatisk transskription.",
+          }));
+        }
+      } finally {
+        if (!cancelled) setTranscribing(false);
+      }
+    };
+
+    runAutoTranscribe();
+    return () => {
+      cancelled = true;
+    };
+  }, [ad, onUpdateAd]);
 
   const currentIdx = useMemo(() => {
     if (!ad || adsList.length === 0) return -1;
@@ -371,7 +428,7 @@ export function AdDetailSheet({
               {/* Optional Telemetry Pill Bar (Reach / Est. Spend / Daily Spend) */}
               {(ad.eu_reach || ad.estimated_spend || ad.daily_spend) && (
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F4F9] bg-[#FAFBFD] px-3.5 py-2 font-mono-num text-[11px] font-semibold text-[#334155]">
-                  <span className="inline-flex items-center gap-1 text-[#0027eb]">
+                  <span className="inline-flex items-center gap-1 text-[#0F172A]">
                     <MetaInfinityIcon className="h-3.5 w-3.5" />
                     Meta Ad
                   </span>
@@ -576,7 +633,7 @@ export function AdDetailSheet({
               >
                 <span>Script &amp; Notes</span>
                 {(ad.ai_transcript || ad.user_notes) && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#0027eb]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
                 )}
               </button>
             </div>
@@ -600,7 +657,7 @@ export function AdDetailSheet({
                 onClick={() => setFolderMenuOpen((v) => !v)}
                 className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
                   savedFoldersCount > 0
-                    ? "border-[#0027eb]/30 bg-[#F5F8FF] text-[#0027eb]"
+                    ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
                     : "border-[#E6E9F0] bg-white text-[#0F172A] hover:bg-[#FAFBFD]"
                 }`}
               >
@@ -796,9 +853,9 @@ export function AdDetailSheet({
                             href={ad.landing_page_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-lg bg-[#EEF4FF] px-2.5 py-1.5 font-mono-num text-[11.5px] font-medium text-[#0027eb] transition-colors hover:bg-[#DCE7FF]"
+                            className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-lg bg-[#F1F5F9] px-2.5 py-1.5 font-mono-num text-[11.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#E2E8F0]"
                           >
-                            <ExternalLink className="h-3 w-3 shrink-0" />
+                            <ExternalLink className="h-3 w-3 shrink-0 text-[#64748B]" />
                             <span className="truncate">{ad.landing_page_url}</span>
                           </a>
                         </div>
@@ -813,7 +870,7 @@ export function AdDetailSheet({
                               href={ad.source_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
                             >
                               <ExternalLink className="h-3 w-3" />
                               Open in Facebook
@@ -823,35 +880,38 @@ export function AdDetailSheet({
                       )}
                     </div>
 
-                    {/* Quick Video Transcribe Shortcut right under Details for videos */}
+                    {/* Automatic Video Transcript Preview right inside Details */}
                     {ad.media_type === "video" && (
                       <div className="mt-4 border-t border-[#F1F4F9] pt-3.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F172A]">
-                            <Captions className="h-3.5 w-3.5 text-[#0027eb]" />
+                            <Captions className="h-3.5 w-3.5 text-[#64748B]" />
                             Video Script
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRightTab("script");
-                              if (!ad.ai_transcript) handleTranscribeVideo();
-                            }}
-                            disabled={transcribing}
-                            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold text-white transition-colors disabled:opacity-50"
-                          >
-                            {transcribing ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Captions className="h-3.5 w-3.5" />
-                            )}
-                            {ad.ai_transcript
-                              ? "Se transcript"
-                              : transcribing
-                                ? "Transskriberer..."
-                                : "Transskribér video"}
-                          </button>
+                          {ad.ai_transcript && (
+                            <button
+                              type="button"
+                              onClick={() => setRightTab("script")}
+                              className="text-[11.5px] font-semibold text-[#475569] hover:text-[#0F172A]"
+                            >
+                              Se fuldt script →
+                            </button>
+                          )}
                         </div>
+                        {transcribing && !ad.ai_transcript ? (
+                          <div className="mt-2.5 space-y-2">
+                            <div className="skeleton-shimmer h-3 w-full rounded" />
+                            <div className="skeleton-shimmer h-3 w-4/5 rounded" />
+                          </div>
+                        ) : ad.ai_transcript ? (
+                          <p className="mt-2 line-clamp-3 rounded-xl bg-[#FAFBFD] p-2.5 text-[12px] leading-relaxed text-[#334155]">
+                            {ad.ai_transcript}
+                          </p>
+                        ) : transcribeError ? (
+                          <p className="mt-2 text-[11.5px] text-[#94A3B8]">
+                            {transcribeError}
+                          </p>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -861,7 +921,7 @@ export function AdDetailSheet({
                   <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-[#0027eb]" />
+                        <Globe className="h-4 w-4 text-[#64748B]" />
                         <h3 className="font-display text-[14px] font-bold text-[#0F172A]">
                           Landing Page Inspector
                         </h3>
@@ -873,10 +933,10 @@ export function AdDetailSheet({
                             type="button"
                             onClick={handleInspectLandingPage}
                             disabled={inspectingLp}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb] disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC] disabled:opacity-50"
                           >
                             {inspectingLp ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0027eb]" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#475569]" />
                             ) : (
                               <Search className="h-3.5 w-3.5" />
                             )}
@@ -913,9 +973,9 @@ export function AdDetailSheet({
                           {localAnalysis.offers.map((offer) => (
                             <span
                               key={offer}
-                              className="inline-flex items-center gap-1 rounded-md bg-[#EEF4FF] px-2.5 py-1 text-[11px] font-medium text-[#0027eb]"
+                              className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-medium text-[#334155]"
                             >
-                              <Tag className="h-3 w-3" />
+                              <Tag className="h-3 w-3 text-[#64748B]" />
                               {offer}
                             </span>
                           ))}
@@ -930,13 +990,21 @@ export function AdDetailSheet({
                           ))}
                         </div>
 
+                        {inspectingLp && (
+                          <div className="mt-4 space-y-2.5 border-t border-[#F1F4F9] pt-3">
+                            <div className="skeleton-shimmer h-4 w-3/4 rounded" />
+                            <div className="skeleton-shimmer h-3 w-full rounded" />
+                            <div className="skeleton-shimmer h-3 w-2/3 rounded" />
+                          </div>
+                        )}
+
                         {lpError && (
                           <p className="mt-3 rounded-xl bg-[#FFF1F2] px-3 py-2 text-xs text-[#9F1239]">
                             {lpError}
                           </p>
                         )}
 
-                        {lpAudit && (
+                        {!inspectingLp && lpAudit && (
                           <div className="mt-4 space-y-3 border-t border-[#F1F4F9] pt-3 text-xs">
                             {(lpAudit.title || lpAudit.h1) && (
                               <div className="rounded-xl bg-[#FAFBFD] p-3">
@@ -990,12 +1058,12 @@ export function AdDetailSheet({
 
             {rightTab === "script" && (
               <div className="space-y-4">
-                {/* Video Script / Deepgram Transcription */}
+                {/* Video Script / Automatic Deepgram Transcription */}
                 {ad.media_type === "video" && (
                   <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Captions className="h-4 w-4 text-[#0027eb]" />
+                        <Captions className="h-4 w-4 text-[#64748B]" />
                         <h3 className="font-display text-[13.5px] font-bold text-[#0F172A]">
                           Video Transcript
                         </h3>
@@ -1013,7 +1081,7 @@ export function AdDetailSheet({
                             onClick={() =>
                               copyText("transcript", ad.ai_transcript || "")
                             }
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#475569] hover:text-[#0027eb]"
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#475569] hover:text-[#0F172A]"
                           >
                             {copiedKey === "transcript" ? (
                               <Check className="h-3.5 w-3.5 text-[#16A34A]" />
@@ -1023,29 +1091,30 @@ export function AdDetailSheet({
                             Kopiér
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={handleTranscribeVideo}
-                          disabled={transcribing}
-                          className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-55"
-                        >
-                          {transcribing ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Captions className="h-3.5 w-3.5" />
-                          )}
-                          {transcribing
-                            ? "Transskriberer..."
-                            : ad.ai_transcript
-                              ? "Opdatér"
-                              : "Transskribér"}
-                        </button>
+                        {transcribeError && !transcribing && (
+                          <button
+                            type="button"
+                            onClick={handleTranscribeVideo}
+                            className="rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-[#0F172A] hover:bg-[#F8FAFC]"
+                          >
+                            Prøv igen
+                          </button>
+                        )}
                       </div>
                     </div>
 
+                    {transcribing && !ad.ai_transcript && (
+                      <div className="mt-3 space-y-2.5">
+                        <div className="skeleton-shimmer h-14 w-full rounded-xl" />
+                        <div className="skeleton-shimmer h-3.5 w-full rounded" />
+                        <div className="skeleton-shimmer h-3.5 w-5/6 rounded" />
+                        <div className="skeleton-shimmer h-3.5 w-3/4 rounded" />
+                      </div>
+                    )}
+
                     {ad.ai_hook_verbal && ad.ai_transcript && (
-                      <div className="mt-3 rounded-xl bg-[#F5F8FF] p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#0027eb]">
+                      <div className="mt-3 rounded-xl bg-[#F8FAFC] p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
                           Spoken Hook (0–3 sek.)
                         </p>
                         <p className="mt-1 text-[13px] font-medium text-[#0F172A]">
@@ -1054,16 +1123,10 @@ export function AdDetailSheet({
                       </div>
                     )}
 
-                    {ad.ai_transcript ? (
+                    {ad.ai_transcript && (
                       <p className="mt-3 whitespace-pre-wrap rounded-xl bg-[#FAFBFD] p-3 text-[12.5px] leading-relaxed text-[#334155]">
                         {ad.ai_transcript}
                       </p>
-                    ) : (
-                      !transcribing && (
-                        <p className="mt-2.5 text-xs text-[#64748B]">
-                          Klik på Transskribér for at udtrække det fulde video-script og spoken hook.
-                        </p>
-                      )
                     )}
 
                     {transcribeError && (

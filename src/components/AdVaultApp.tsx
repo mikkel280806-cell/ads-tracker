@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   Building2,
   Check,
+  ChevronDown,
   Clock,
   Compass,
   Copy,
@@ -18,12 +19,18 @@ import {
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
-import { getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
+import { dedupeAds, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
 import { CollectionsView } from "./CollectionsView";
 import { ShopsTableView } from "./ShopsTableView";
 import { ShopAnalyticsView } from "./ShopAnalyticsView";
+import {
+  ExploreSkeleton,
+  FoldersSkeleton,
+  ShopAnalyticsSkeleton,
+  ShopsSkeleton,
+} from "./Skeletons";
 import { ShopifyBagIcon } from "./BrandIcons";
 import { GlassTabBar, GlassTabBarItem } from "@/components/ui/glass-tab-bar";
 
@@ -43,10 +50,12 @@ interface AdVaultAppProps {
 
 export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   void _initialStatus;
-  const [ads, setAds] = useState<Ad[]>(SEED_ADS);
+  const [ads, setAds] = useState<Ad[]>(() => dedupeAds(SEED_ADS));
   const [brands, setBrands] = useState<Brand[]>(SEED_BRANDS);
   const [boards, setBoards] = useState<Board[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [viewLoading, setViewLoading] = useState(false);
 
   // Navigation: ONLY Shops, Explore, Folders!
   const [view, setView] = useState<ActiveView>("shops");
@@ -55,6 +64,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [quickFolderOpen, setQuickFolderOpen] = useState(false);
   const [quickFolderName, setQuickFolderName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+
+  const navigateWithSkeleton = (fn: () => void) => {
+    setViewLoading(true);
+    fn();
+    setTimeout(() => setViewLoading(false), 180);
+  };
 
   // Explore state
   const [exploreSubView, setExploreSubView] = useState<ExploreSubView>("ads");
@@ -123,6 +138,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               "brand-theoodie-com",
               "brand-loopearplugs-com",
               "brand-jonesroadbeauty-com",
+              "brand-groovelife-com",
             ]);
             const refreshed = parsed
               .filter((b) => !removedIds.has(b.id))
@@ -167,6 +183,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               "brand-theoodie-com",
               "brand-loopearplugs-com",
               "brand-jonesroadbeauty-com",
+              "brand-groovelife-com",
             ]);
             const cleaned = parsed.filter(
               (a) =>
@@ -175,7 +192,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             );
             const existingIds = new Set(cleaned.map((a) => a.id));
             const newSeedAds = SEED_ADS.filter((a) => !existingIds.has(a.id));
-            setAds([...newSeedAds, ...cleaned]);
+            setAds(dedupeAds([...newSeedAds, ...cleaned]));
           }
         }
         if (savedBoards) {
@@ -197,14 +214,17 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               setBrands(data.brands);
             }
             if (Array.isArray(data.ads) && data.ads.length > 0) {
-              setAds(data.ads);
+              setAds(dedupeAds(data.ads));
             }
             if (Array.isArray(data.folders)) {
               setBoards(data.folders);
             }
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setCatalogLoaded(true);
+        });
     });
 
     return () => {
@@ -266,7 +286,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     if (freshAds && freshAds.length > 0) {
       setAds((prev) => {
         const otherAds = prev.filter((a) => a.brand_id !== brandId);
-        return [...freshAds, ...otherAds];
+        return dedupeAds([...freshAds, ...otherAds]);
       });
     }
     syncCatalog({
@@ -277,15 +297,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   };
 
   const handleAddBrandWithAds = (brand: Brand, discoveredAds: Ad[] = []) => {
+    const cleanDiscovered = dedupeAds(discoveredAds);
     setBrands((prev) => [brand, ...prev.filter((b) => b.id !== brand.id)]);
-    if (discoveredAds.length > 0) {
-      setAds((prev) => {
-        const existingIds = new Set(prev.map((a) => a.id));
-        const fresh = discoveredAds.filter((a) => !existingIds.has(a.id));
-        return [...fresh, ...prev];
-      });
+    if (cleanDiscovered.length > 0) {
+      setAds((prev) => dedupeAds([...cleanDiscovered, ...prev]));
       showToast(
-        `${brand.name} scrapet + ${discoveredAds.length} live Meta-annoncer tilføjet!`
+        `${brand.name} scrapet + ${cleanDiscovered.length} live Meta-annoncer tilføjet!`
       );
     } else {
       showToast(`${brand.name} scrapet og tilføjet til Shops!`);
@@ -293,7 +310,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     syncCatalog({
       action: "upsert_brand_and_ads",
       brand,
-      ads: discoveredAds,
+      ads: cleanDiscovered,
     });
   };
 
@@ -332,8 +349,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const openShopAnalytics = (brandId: string) => {
     const exists = brands.some((b) => b.id === brandId);
     if (!exists) return;
-    setSelectedShopId(brandId);
-    setView("shops");
+    navigateWithSkeleton(() => {
+      setSelectedShopId(brandId);
+      setView("shops");
+      window.scrollTo(0, 0);
+    });
   };
 
   const copyText = async (key: string, val: string) => {
@@ -349,7 +369,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   // Filtered & sorted Explore ads
   const visibleAds = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = ads.filter((ad) => {
+    const list = dedupeAds(ads).filter((ad) => {
       if (marketFilter === "DK" && ad.market !== "DK") return false;
       if (marketFilter === "US" && ad.market === "DK") return false;
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
@@ -506,9 +526,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         <button
           type="button"
           onClick={() => {
-            setView("shops");
-            setSelectedShopId(null);
-            setSelectedFolderId(null);
+            navigateWithSkeleton(() => {
+              setView("shops");
+              setSelectedShopId(null);
+              setSelectedFolderId(null);
+            });
           }}
           className="mb-7 flex items-center px-2 text-left"
         >
@@ -534,9 +556,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           <button
             type="button"
             onClick={() => {
-              setView("shops");
-              setSelectedShopId(null);
-              setSelectedFolderId(null);
+              navigateWithSkeleton(() => {
+                setView("shops");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
             }}
             className="flex w-full items-center rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
             style={
@@ -561,9 +585,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           <button
             type="button"
             onClick={() => {
-              setView("explore");
-              setSelectedShopId(null);
-              setSelectedFolderId(null);
+              navigateWithSkeleton(() => {
+                setView("explore");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
             }}
             className="flex w-full items-center rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
             style={
@@ -605,9 +631,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           <button
             type="button"
             onClick={() => {
-              setView("folders");
-              setSelectedFolderId(null);
-              setSelectedShopId(null);
+              navigateWithSkeleton(() => {
+                setView("folders");
+                setSelectedFolderId(null);
+                setSelectedShopId(null);
+              });
             }}
             className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
             style={
@@ -668,9 +696,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   key={board.id}
                   type="button"
                   onClick={() => {
-                    setSelectedFolderId(board.id);
-                    setSelectedShopId(null);
-                    setView("folders");
+                    navigateWithSkeleton(() => {
+                      setSelectedFolderId(board.id);
+                      setSelectedShopId(null);
+                      setView("folders");
+                    });
                   }}
                   className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-white/[0.06]"
                   style={
@@ -727,12 +757,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         <main className="flex-1 bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:bg-white lg:px-7 lg:py-6 lg:pb-12">
           {/* Global Live Toast */}
           {toast && (
-            <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-[#0027eb]/20 bg-[#EEF2FF] px-3.5 py-2 text-xs font-semibold text-[#0027eb]">
-              <Check className="h-3.5 w-3.5" />
+            <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3.5 py-2 text-xs font-semibold text-[#0F172A]">
+              <Check className="h-3.5 w-3.5 text-[#16A34A]" />
               {toast}
             </div>
           )}
 
+          {/* UNIFORM SKELETON LOADING ON INITIAL HYDRATION & VIEW TRANSITIONS */}
+          {(!catalogLoaded || viewLoading) ? (
+            view === "explore" ? (
+              <ExploreSkeleton />
+            ) : view === "folders" ? (
+              <FoldersSkeleton />
+            ) : selectedShop ? (
+              <ShopAnalyticsSkeleton />
+            ) : (
+              <ShopsSkeleton />
+            )
+          ) : (
+            <>
           {/* =================================================================
               VIEW 1: SHOPS (Table Explorer + Full Trendtrack Shop Analytics)
              ================================================================= */}
@@ -741,7 +784,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               brand={selectedShop}
               ads={ads}
               boards={boards}
-              onBack={() => setSelectedShopId(null)}
+              onBack={() =>
+                navigateWithSkeleton(() => {
+                  setSelectedShopId(null);
+                  window.scrollTo(0, 0);
+                })
+              }
               onOpenAd={(ad) => setActiveAdId(ad.id)}
               onToggleBoard={handleToggleBoard}
               onToggleBrandFolder={handleToggleBrandFolder}
@@ -754,10 +802,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               brands={brands}
               ads={ads}
               boards={boards}
-              onOpenShop={(brandId) => {
-                setSelectedShopId(brandId);
-                window.scrollTo(0, 0);
-              }}
+              onOpenShop={openShopAnalytics}
               onAddBrand={handleAddBrandWithAds}
               onToggleBrandFolder={handleToggleBrandFolder}
             />
@@ -767,17 +812,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               VIEW 2: EXPLORE (Global Scraped Meta Ad Library + Hooks + LP)
              ================================================================= */}
           {view === "explore" && (
-            <div className="space-y-4 lg:space-y-5">
-              {/* Explore Header — KISS */}
+            <div className="animate-view-in space-y-4 lg:space-y-5">
+              {/* Explore Header — Clean minimal */}
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2.5">
-                  <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
-                    Explore
-                  </h1>
-                  <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
-                    {visibleAds.length}
-                  </span>
-                </div>
+                <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+                  Explore
+                </h1>
 
                 {/* Sub-mode switcher: Ads | Hooks | Landing Pages */}
                 <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold sm:inline-flex">
@@ -800,7 +840,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       <span className="hidden sm:inline">{m.label}</span>
                       <span
                         className={`font-mono-num text-[10.5px] font-semibold ${
-                          exploreSubView === m.id ? "text-[#0027eb]" : "text-[#94A3B8]"
+                          exploreSubView === m.id ? "text-[#475569]" : "text-[#94A3B8]"
                         }`}
                       >
                         {m.count}
@@ -825,7 +865,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         setVisibleLimit(24);
                       }}
                       placeholder="Søg brands, hooks, copy..."
-                      className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#0027eb] sm:text-xs"
+                      className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#94A3B8] sm:text-xs"
                     />
                   </div>
 
@@ -852,7 +892,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         <span>{m.label}</span>
                         <span
                           className={`font-mono-num text-[10px] ${
-                            marketFilter === m.id ? "text-[#0027eb]" : "text-[#94A3B8]"
+                            marketFilter === m.id ? "text-[#475569]" : "text-[#94A3B8]"
                           }`}
                         >
                           {m.count}
@@ -864,8 +904,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
                 {/* Format + Brand + Sort */}
                 <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-0.5 text-xs">
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 sm:py-1.5">
-                    <Film className="h-3.5 w-3.5 text-[#64748B]" />
+                  <div className="relative inline-flex shrink-0 items-center rounded-xl border border-[#E6E9F0] bg-white">
+                    <Film className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Format"
                       value={mediaFilter}
@@ -874,22 +914,23 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           e.target.value as "all" | "video" | "image" | "carousel"
                         )
                       }
-                      className="cursor-pointer bg-transparent text-[13px] font-medium text-[#334155] outline-none sm:text-xs"
+                      className="cursor-pointer appearance-none bg-transparent py-2 pl-8 pr-8 text-[13px] font-medium text-[#334155] outline-none sm:py-1.5 sm:text-xs"
                     >
                       <option value="all">Alle formater</option>
                       <option value="video">Video</option>
                       <option value="image">Image</option>
                       <option value="carousel">Carousel</option>
                     </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#64748B]" />
                   </div>
 
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 sm:py-1.5">
-                    <Building2 className="h-3.5 w-3.5 text-[#64748B]" />
+                  <div className="relative inline-flex shrink-0 items-center rounded-xl border border-[#E6E9F0] bg-white">
+                    <Building2 className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Vælg shop"
                       value={brandFilter}
                       onChange={(e) => setBrandFilter(e.target.value)}
-                      className="max-w-[140px] cursor-pointer truncate bg-transparent text-[13px] font-medium text-[#334155] outline-none sm:max-w-none sm:text-xs"
+                      className="max-w-[165px] cursor-pointer appearance-none truncate bg-transparent py-2 pl-8 pr-8 text-[13px] font-medium text-[#334155] outline-none sm:max-w-none sm:py-1.5 sm:text-xs"
                     >
                       <option value="all">Alle shops ({brands.length})</option>
                       {brands.map((b) => (
@@ -898,21 +939,23 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         </option>
                       ))}
                     </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#64748B]" />
                   </div>
 
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 sm:py-1.5">
-                    <Clock className="h-3.5 w-3.5 text-[#64748B]" />
+                  <div className="relative inline-flex shrink-0 items-center rounded-xl border border-[#E6E9F0] bg-white">
+                    <Clock className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#64748B]" />
                     <select
                       aria-label="Sortér"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="cursor-pointer bg-transparent text-[13px] font-semibold text-[#0F172A] outline-none sm:text-xs"
+                      className="cursor-pointer appearance-none bg-transparent py-2 pl-8 pr-8 text-[13px] font-semibold text-[#0F172A] outline-none sm:py-1.5 sm:text-xs"
                     >
                       <option value="top">Top Performing</option>
                       <option value="longest">Longest Active</option>
                       <option value="duplicated">Most Duplicated</option>
                       <option value="newest">Newest</option>
                     </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#64748B]" />
                   </div>
                 </div>
               </div>
@@ -979,8 +1022,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           </button>
 
                           <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10.5px] font-semibold text-[#0027eb]">
-                              <Sparkles className="h-2.5 w-2.5" />
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10.5px] font-semibold text-[#334155]">
+                              <Sparkles className="h-2.5 w-2.5 text-[#64748B]" />
                               {item.category}
                             </span>
                             <span className="rounded-md bg-[#ECFDF3] px-2 py-0.5 font-mono-num text-[10.5px] font-bold text-[#15803D]">
@@ -1039,7 +1082,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           <button
                             type="button"
                             onClick={() => openShopAnalytics(lp.brandId)}
-                            className="font-display text-xs font-bold text-[#0027eb] hover:underline"
+                            className="font-display text-xs font-bold text-[#334155] hover:text-[#0F172A] hover:underline"
                           >
                             {lp.market === "DK" ? "🇩🇰 " : "🇺🇸 "}
                             {lp.brandName}
@@ -1047,7 +1090,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           <span className="truncate font-display text-sm font-bold text-[#0F172A]">
                             {lp.path}
                           </span>
-                          <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
+                          <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155]">
                             {lp.count} active ads
                           </span>
                         </div>
@@ -1098,18 +1141,24 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               VIEW 3: FOLDERS
              ================================================================= */}
           {view === "folders" && (
-            <CollectionsView
-              boards={boards}
-              ads={ads}
-              brands={brands}
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={(id) => setSelectedFolderId(id)}
-              onCreateBoard={handleCreateBoard}
-              onDeleteBoard={handleDeleteBoard}
-              onOpenShop={openShopAnalytics}
-              onOpenAd={(ad) => setActiveAdId(ad.id)}
-              onToggleBoard={handleToggleBoard}
-            />
+            <div className="animate-view-in">
+              <CollectionsView
+                boards={boards}
+                ads={ads}
+                brands={brands}
+                selectedFolderId={selectedFolderId}
+                onSelectFolder={(id) =>
+                  navigateWithSkeleton(() => setSelectedFolderId(id))
+                }
+                onCreateBoard={handleCreateBoard}
+                onDeleteBoard={handleDeleteBoard}
+                onOpenShop={openShopAnalytics}
+                onOpenAd={(ad) => setActiveAdId(ad.id)}
+                onToggleBoard={handleToggleBoard}
+              />
+            </div>
+          )}
+            </>
           )}
         </main>
       </div>
@@ -1129,10 +1178,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           value={view}
           onValueChange={(next) => {
             const target = next as ActiveView;
-            setView(target);
-            setSelectedShopId(null);
-            if (target !== "folders") setSelectedFolderId(null);
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            navigateWithSkeleton(() => {
+              setView(target);
+              setSelectedShopId(null);
+              if (target !== "folders") setSelectedFolderId(null);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            });
           }}
           className="pointer-events-auto"
         >

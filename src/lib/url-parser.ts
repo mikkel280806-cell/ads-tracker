@@ -126,6 +126,75 @@ export function isDedicatedLandingPage(
   return true;
 }
 
+function normalizeMediaFingerprint(url?: string): string {
+  if (!url) return "";
+  try {
+    const u = new URL(url);
+    // Facebook/Instagram CDN URLs rotate query tokens (oh, oe, _nc_*) while pathname file ID stays stable
+    return u.pathname.toLowerCase().replace(/\/+$/, "");
+  } catch {
+    return url.split("?")[0].toLowerCase().trim();
+  }
+}
+
+/**
+ * Deduplicates ads per brand by creative media fingerprint or identical copy+headline,
+ * keeping the longest-running/richest ad and combining duplicated_count & saved folders.
+ */
+export function dedupeAds(ads: Ad[]): Ad[] {
+  const byKey = new Map<string, Ad>();
+
+  for (const ad of ads) {
+    const mediaFp =
+      normalizeMediaFingerprint(ad.media_url) ||
+      normalizeMediaFingerprint(ad.thumbnail_url);
+    const copyFp = `${(ad.headline || "").trim().toLowerCase()}|${(ad.primary_text || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .slice(0, 140)}`;
+
+    const key = mediaFp
+      ? `${ad.brand_id}|m|${mediaFp}`
+      : copyFp.length > 5
+        ? `${ad.brand_id}|c|${copyFp}`
+        : ad.id;
+
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, ad);
+      continue;
+    }
+
+    const existingDays = getActiveDays(existing.started_running_at);
+    const nextDays = getActiveDays(ad.started_running_at);
+    const keepNext =
+      nextDays > existingDays ||
+      (!existing.ai_transcript && Boolean(ad.ai_transcript)) ||
+      (!existing.media_url && Boolean(ad.media_url));
+
+    const primary = keepNext ? ad : existing;
+    const secondary = keepNext ? existing : ad;
+
+    const mergedBoards = Array.from(
+      new Set([...(primary.board_ids || []), ...(secondary.board_ids || [])])
+    );
+    const combinedCount =
+      (primary.duplicated_count || 1) + (secondary.duplicated_count || 1);
+
+    byKey.set(key, {
+      ...primary,
+      duplicated_count: combinedCount > 1 ? combinedCount : undefined,
+      board_ids: mergedBoards,
+      ai_transcript: primary.ai_transcript || secondary.ai_transcript,
+      ai_hook_verbal: primary.ai_hook_verbal || secondary.ai_hook_verbal,
+      user_notes: primary.user_notes || secondary.user_notes,
+    });
+  }
+
+  return Array.from(byKey.values());
+}
+
 export function buildGeminiPrompt(ad: Ad): string {
   return [
     "Analyser denne e-commerce annonce som en senior performance creative strategist.",

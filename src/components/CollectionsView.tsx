@@ -114,7 +114,7 @@ export function CollectionsView({
         {(folderTab === "all" || folderTab === "shops") && folderBrands.length > 0 && (
           <div className="space-y-3">
             <h2 className="flex items-center gap-2 font-display text-sm font-bold text-[#0F172A]">
-              <Store className="h-4 w-4 text-[#0027eb]" />
+              <Store className="h-4 w-4 text-[#64748B]" />
               Gemte Shops ({folderBrands.length})
             </h2>
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -135,7 +135,7 @@ export function CollectionsView({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold text-[#0027eb]">
+                        <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold text-[#334155]">
                           {b.avatar_initials}
                         </div>
                       )}
@@ -168,7 +168,7 @@ export function CollectionsView({
         {(folderTab === "all" || folderTab === "ads") && folderAds.length > 0 && (
           <div className="space-y-3">
             <h2 className="flex items-center gap-2 font-display text-sm font-bold text-[#0F172A]">
-              <Layers className="h-4 w-4 text-[#0027eb]" />
+              <Layers className="h-4 w-4 text-[#64748B]" />
               Gemte Ads ({folderAds.length})
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -204,14 +204,9 @@ export function CollectionsView({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
-            Folders
-          </h1>
-          <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[11px] font-bold text-[#0027eb]">
-            {boards.length}
-          </span>
-        </div>
+        <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+          Folders
+        </h1>
 
         <button
           type="button"
@@ -337,7 +332,7 @@ export function CollectionsView({
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: board.accent_color }}
                     />
-                    <span className="truncate font-display text-[14.5px] font-bold text-[#0F172A] group-hover:text-[#0027eb]">
+                    <span className="truncate font-display text-[14.5px] font-bold text-[#0F172A]">
                       {board.name}
                     </span>
                   </div>
