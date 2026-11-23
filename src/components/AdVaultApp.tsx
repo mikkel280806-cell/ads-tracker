@@ -722,7 +722,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       {/* =====================================================================
           FLUSH WHITE MAIN WORKSPACE WITH ROUNDED TOP-LEFT CORNER
          ===================================================================== */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:mt-2 lg:overflow-x-clip lg:rounded-tl-[22px] lg:bg-white">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:rounded-tl-[24px] lg:bg-white">
         {/* CLEAN SOLID MOBILE TOP BAR */}
         <header className="pt-safe sticky top-0 z-30 flex items-center border-b border-[#ECEFF5] bg-white px-4 py-2.5 text-[#0F172A] lg:hidden">
           <button
@@ -747,7 +747,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         </header>
 
         {/* WORKSPACE CANVAS */}
-        <main className="flex-1 bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:bg-white lg:px-7 lg:py-6 lg:pb-12">
+        <main className="flex-1 bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:rounded-tl-[24px] lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12">
           {/* Global Live Toast */}
           {toast && (
             <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3.5 py-2 text-xs font-semibold text-[#0F172A]">
