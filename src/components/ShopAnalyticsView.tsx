@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/types";
 import { getTechMeta } from "@/lib/tech-catalog";
-import { formatReach, getActiveDays } from "@/lib/url-parser";
+import { formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import {
   FacebookColorIcon,
@@ -371,6 +371,7 @@ export function ShopAnalyticsView({
     >();
     for (const ad of brandAds) {
       if (!ad.landing_page_url) continue;
+      if (!isDedicatedLandingPage(ad.landing_page_path, ad.landing_page_url)) continue;
       const p = ad.landing_page_path || "/";
       const existing = map.get(p);
       if (existing) {

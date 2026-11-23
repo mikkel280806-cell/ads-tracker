@@ -84,6 +84,48 @@ export function formatDuration(seconds?: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+/**
+ * Returns true ONLY for dedicated landing pages (listicles, advertorials, quizzes,
+ * /pages/..., /lp/..., /offer/..., custom funnels) — excluding standard Homepages (/),
+ * Product Pages (/products/...), Collection Pages (/collections/...), and Cart/Checkout.
+ */
+export function isDedicatedLandingPage(
+  pathOrUrl?: string,
+  fallbackUrl?: string
+): boolean {
+  let pathname = (pathOrUrl || "").trim();
+  if (!pathname && fallbackUrl) {
+    try {
+      pathname = new URL(fallbackUrl).pathname;
+    } catch {
+      pathname = "";
+    }
+  } else if (pathname.startsWith("http")) {
+    try {
+      pathname = new URL(pathname).pathname;
+    } catch {
+      // keep as-is
+    }
+  }
+
+  pathname = pathname.split("?")[0].split("#")[0].replace(/\/+$/, "").toLowerCase();
+
+  // Strip optional leading locale segment (e.g. /en, /da, /en-us, /de-de, /fr-fr)
+  pathname = pathname.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/|$)/, "");
+
+  if (!pathname || pathname === "/") return false;
+
+  if (
+    /^\/(products?|produkt(?:er)?|collections?|kategorier?|category|categories|shop|store|cart|checkout|account|search)(\/|$)/.test(
+      pathname
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export function buildGeminiPrompt(ad: Ad): string {
   return [
     "Analyser denne e-commerce annonce som en senior performance creative strategist.",

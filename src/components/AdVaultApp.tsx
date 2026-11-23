@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
-import { getActiveDays } from "@/lib/url-parser";
+import { getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
 import { CollectionsView } from "./CollectionsView";
@@ -451,6 +451,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     >();
     for (const ad of visibleAds) {
       if (!ad.landing_page_url) continue;
+      if (!isDedicatedLandingPage(ad.landing_page_path, ad.landing_page_url)) continue;
       const key = `${ad.brand_id}|${ad.landing_page_path || "/"}`;
       const ex = map.get(key);
       if (ex) {
