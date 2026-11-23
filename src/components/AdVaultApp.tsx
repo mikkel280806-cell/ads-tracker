@@ -2,25 +2,21 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ArrowUpRight,
   Building2,
   Calendar,
   Check,
   ChevronDown,
   Clock,
   Compass,
-  Copy,
   FolderKanban,
-  Link2,
   ListFilter,
   Plus,
   Search,
-  Sparkles,
   Store,
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
-import { dedupeAds, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
+import { dedupeAds, getActiveDays } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
 import { CollectionsView } from "./CollectionsView";
@@ -32,11 +28,9 @@ import {
   ShopAnalyticsSkeleton,
   ShopsSkeleton,
 } from "./Skeletons";
-import { ShopifyBagIcon } from "./BrandIcons";
 import { GlassTabBar, GlassTabBarItem } from "@/components/ui/glass-tab-bar";
 
 type ActiveView = "shops" | "explore" | "folders";
-type ExploreSubView = "ads" | "hooks" | "lp";
 type SortOption = "top" | "longest" | "duplicated" | "newest";
 
 const STORAGE_KEYS = {
@@ -73,7 +67,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   };
 
   // Explore state
-  const [exploreSubView, setExploreSubView] = useState<ExploreSubView>("ads");
   const [search, setSearch] = useState("");
   const [marketFilter, setMarketFilter] = useState<"ALL" | MarketCode>("ALL");
   const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image" | "carousel">("all");
@@ -82,7 +75,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("top");
   const [visibleLimit, setVisibleLimit] = useState(24);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [masonryCols, setMasonryCols] = useState(4);
 
   useEffect(() => {
@@ -373,16 +365,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     });
   };
 
-  const copyText = async (key: string, val: string) => {
-    try {
-      await navigator.clipboard.writeText(val);
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 1600);
-    } catch {
-      // ignore
-    }
-  };
-
   // Filtered & sorted Explore ads
   const visibleAds = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -484,60 +466,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   const activeFilterCount =
     (marketFilter !== "ALL" ? 1 : 0) + (mediaFilter !== "all" ? 1 : 0);
-
-  // Cross-brand winning hooks extracted from visibleAds
-  const exploreHooks = useMemo(() => {
-    const seen = new Set<string>();
-    const out: {
-      hook: string;
-      category: string;
-      days: number;
-      ad: Ad;
-    }[] = [];
-    for (const ad of visibleAds) {
-      const hook = (ad.extracted_hook || "").trim();
-      if (hook.length < 10) continue;
-      const k = hook.toLowerCase();
-      if (seen.has(k)) continue;
-      seen.add(k);
-      out.push({
-        hook,
-        category: ad.hook_category || "Product Benefit",
-        days: getActiveDays(ad.started_running_at),
-        ad,
-      });
-    }
-    return out;
-  }, [visibleAds]);
-
-  // Cross-brand top landing pages extracted from visibleAds
-  const exploreLandingPages = useMemo(() => {
-    const map = new Map<
-      string,
-      { url: string; path: string; brandName: string; brandId: string; market: MarketCode; count: number; ads: Ad[] }
-    >();
-    for (const ad of visibleAds) {
-      if (!ad.landing_page_url) continue;
-      if (!isDedicatedLandingPage(ad.landing_page_path, ad.landing_page_url)) continue;
-      const key = `${ad.brand_id}|${ad.landing_page_path || "/"}`;
-      const ex = map.get(key);
-      if (ex) {
-        ex.count++;
-        ex.ads.push(ad);
-      } else {
-        map.set(key, {
-          url: ad.landing_page_url,
-          path: ad.landing_page_path || "/",
-          brandName: ad.brand_name,
-          brandId: ad.brand_id,
-          market: ad.market,
-          count: 1,
-          ads: [ad],
-        });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [visibleAds]);
 
   const activeAd = useMemo(
     () => ads.find((a) => a.id === activeAdId) || null,
@@ -850,50 +778,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
              ================================================================= */}
           {view === "explore" && (
             <div className="animate-view-in space-y-4">
-              {/* Konvert-style Explore Header: Icon Badge + Title + Subtitle (no Manage Plan / Display / Pin) */}
-              <div className="flex flex-col justify-between gap-3 border-b border-[#EFEFF4] pb-4 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-3">
-                  <span className="adtrack-icon-badge flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
-                    <Compass className="h-[18px] w-[18px]" />
-                  </span>
-                  <div className="min-w-0">
-                    <h1 className="font-display text-[18px] font-bold leading-tight text-[#0F172A]">
-                      Explore
-                    </h1>
-                    <p className="mt-0.5 truncate text-[12px] text-[#64748B]">
-                      Browse through new and winning ads from top performing brands
-                    </p>
-                  </div>
-                </div>
-
-                {/* Clean Sub-mode switcher: Ads | Hooks | Landing Pages */}
-                <div className="grid grid-cols-3 rounded-xl bg-[#F3F4F6] p-1 text-xs font-semibold sm:inline-flex">
-                  {[
-                    { id: "ads" as const, short: "Ads", label: "Ads", count: visibleAds.length },
-                    { id: "hooks" as const, short: "Hooks", label: "Hooks", count: exploreHooks.length },
-                    { id: "lp" as const, short: "LP", label: "Landing Pages", count: exploreLandingPages.length },
-                  ].map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setExploreSubView(m.id)}
-                      className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-all sm:px-3 ${
-                        exploreSubView === m.id
-                          ? "bg-white text-[#0F172A] shadow-xs"
-                          : "text-[#64748B] hover:text-[#0F172A]"
-                      }`}
-                    >
-                      <span className="sm:hidden">{m.short}</span>
-                      <span className="hidden sm:inline">{m.label}</span>
-                      <span
-                        className={`font-mono-num text-[10.5px] font-semibold ${
-                          exploreSubView === m.id ? "text-[#475569]" : "text-[#94A3B8]"
-                        }`}
-                      >
-                        {m.count}
-                      </span>
-                    </button>
-                  ))}
+              {/* Konvert-style Explore Header: Icon Badge + Title + Subtitle */}
+              <div className="flex items-center gap-3 border-b border-[#EFEFF4] pb-4">
+                <span className="adtrack-icon-badge flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
+                  <Compass className="h-[18px] w-[18px]" />
+                </span>
+                <div className="min-w-0">
+                  <h1 className="font-display text-[18px] font-bold leading-tight text-[#0F172A]">
+                    Explore
+                  </h1>
+                  <p className="mt-0.5 truncate text-[12px] text-[#64748B]">
+                    Browse through new and winning ads from top performing brands
+                  </p>
                 </div>
               </div>
 
@@ -1078,182 +974,45 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 </div>
               </div>
 
-              {/* SUB-VIEW A: KONVERT-STYLE 4-COLUMN HORIZONTAL MASONRY FEED */}
-              {exploreSubView === "ads" && (
-                <>
-                  <div className="grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {exploreMasonryColumns.map((col, colIdx) => (
-                      <div key={colIdx} className="flex flex-col gap-3.5">
-                        {col.map(({ ad, idx }) => (
-                          <AdCard
-                            key={ad.id}
-                            ad={ad}
-                            boards={boards}
-                            rank={idx < 3 ? idx + 1 : undefined}
-                            onOpen={(item) => setActiveAdId(item.id)}
-                            onToggleBoard={handleToggleBoard}
-                            onOpenBrand={openShopAnalytics}
-                          />
-                        ))}
-                      </div>
+              {/* KONVERT-STYLE 4-COLUMN HORIZONTAL MASONRY FEED */}
+              <div className="grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {exploreMasonryColumns.map((col, colIdx) => (
+                  <div key={colIdx} className="flex flex-col gap-3.5">
+                    {col.map(({ ad, idx }) => (
+                      <AdCard
+                        key={ad.id}
+                        ad={ad}
+                        boards={boards}
+                        rank={idx < 3 ? idx + 1 : undefined}
+                        onOpen={(item) => setActiveAdId(item.id)}
+                        onToggleBoard={handleToggleBoard}
+                        onOpenBrand={openShopAnalytics}
+                      />
                     ))}
                   </div>
+                ))}
+              </div>
 
-                  {visibleAds.length > visibleLimit && (
-                    <div className="flex justify-center pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setVisibleLimit((n) => n + 24)}
-                        className="rounded-xl border border-[#DCE1EC] bg-white px-5 py-2.5 font-display text-xs font-semibold text-[#0F172A] shadow-xs transition-all hover:border-[#0027eb] hover:text-[#0027eb]"
-                      >
-                        Vis flere annoncer ({visibleAds.length - visibleLimit} tilbage)
-                      </button>
-                    </div>
-                  )}
-
-                  {visibleAds.length === 0 && (
-                    <div className="py-16 text-center">
-                      <p className="font-display text-sm font-bold text-[#0F172A]">
-                        Ingen annoncer matcher dit filter
-                      </p>
-                      <p className="mt-1 text-xs text-[#64748B]">
-                        Prøv at skifte marked, format eller ryd søgefeltet.
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* SUB-VIEW B: CROSS-BRAND HOOKS & COPY LIBRARY */}
-              {exploreSubView === "hooks" && (
-                <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-                  {exploreHooks.slice(0, 48).map((item, idx) => (
-                    <div
-                      key={`${item.ad.id}-${idx}`}
-                      className="adtrack-card-interactive flex flex-col justify-between gap-3 rounded-2xl p-4"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openShopAnalytics(item.ad.brand_id)}
-                            className="inline-flex items-center gap-1.5 font-display text-xs font-bold text-[#0F172A] hover:text-[#0027eb]"
-                          >
-                            <span>{item.ad.market === "DK" ? "🇩🇰" : "🇺🇸"}</span>
-                            {item.ad.brand_name}
-                          </button>
-
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10.5px] font-semibold text-[#334155]">
-                              <Sparkles className="h-2.5 w-2.5 text-[#64748B]" />
-                              {item.category}
-                            </span>
-                            <span className="rounded-md bg-[#ECFDF3] px-2 py-0.5 font-mono-num text-[10.5px] font-bold text-[#15803D]">
-                              {item.days}d
-                            </span>
-                          </div>
-                        </div>
-
-                        <p className="font-display text-[14.5px] font-semibold leading-snug text-[#0F172A]">
-                          &ldquo;{item.hook}&rdquo;
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-[#EFF2F6] pt-2.5">
-                        <span className="truncate font-mono-num text-[11px] text-[#64748B]">
-                          {item.ad.landing_page_path || "/"}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => copyText(`exhook-${idx}`, item.hook)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#DCE1EC] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#334155] hover:border-[#0027eb] hover:text-[#0027eb]"
-                          >
-                            {copiedKey === `exhook-${idx}` ? (
-                              <Check className="h-3 w-3 text-[#16A34A]" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                            Kopiér
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setActiveAdId(item.ad.id)}
-                            className="rounded-lg bg-[#0F172A] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#0027eb]"
-                          >
-                            Se ad
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              {visibleAds.length > visibleLimit && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleLimit((n) => n + 24)}
+                    className="rounded-xl border border-[#DCE1EC] bg-white px-5 py-2.5 font-display text-xs font-semibold text-[#0F172A] shadow-xs transition-all hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+                  >
+                    Vis flere annoncer ({visibleAds.length - visibleLimit} tilbage)
+                  </button>
                 </div>
               )}
 
-              {/* SUB-VIEW C: CROSS-BRAND TOP LANDING PAGES */}
-              {exploreSubView === "lp" && (
-                <div className="space-y-3">
-                  {exploreLandingPages.slice(0, 40).map((lp, idx) => (
-                    <div
-                      key={`${lp.brandId}-${lp.path}-${idx}`}
-                      className="adtrack-card flex flex-col justify-between gap-3 rounded-2xl p-4 sm:flex-row sm:items-center"
-                    >
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <ShopifyBagIcon className="h-4 w-4 shrink-0" />
-                          <button
-                            type="button"
-                            onClick={() => openShopAnalytics(lp.brandId)}
-                            className="font-display text-xs font-bold text-[#334155] hover:text-[#0F172A] hover:underline"
-                          >
-                            {lp.market === "DK" ? "🇩🇰 " : "🇺🇸 "}
-                            {lp.brandName}
-                          </button>
-                          <span className="truncate font-display text-sm font-bold text-[#0F172A]">
-                            {lp.path}
-                          </span>
-                          <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155]">
-                            {lp.count} active ads
-                          </span>
-                        </div>
-                        <p className="flex items-center gap-1 truncate font-mono-num text-[11.5px] text-[#64748B]">
-                          <Link2 className="h-3 w-3 shrink-0" />
-                          {lp.url}
-                        </p>
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-2.5">
-                        <div className="flex -space-x-2">
-                          {lp.ads.slice(0, 3).map((a) => (
-                            <button
-                              key={a.id}
-                              type="button"
-                              onClick={() => setActiveAdId(a.id)}
-                              className="h-9 w-9 overflow-hidden rounded-lg border-2 border-white bg-[#F3F5F9] shadow-xs"
-                            >
-                              {(a.fallback_image_url || a.thumbnail_url) && (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img
-                                  src={a.fallback_image_url || a.thumbnail_url}
-                                  alt=""
-                                  className="h-full w-full object-cover"
-                                />
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                        <a
-                          href={lp.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-xl border border-[#DCE1EC] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb] hover:text-[#0027eb]"
-                        >
-                          Åbn LP
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+              {visibleAds.length === 0 && (
+                <div className="py-16 text-center">
+                  <p className="font-display text-sm font-bold text-[#0F172A]">
+                    Ingen annoncer matcher dit filter
+                  </p>
+                  <p className="mt-1 text-xs text-[#64748B]">
+                    Prøv at skifte marked, format eller ryd søgefeltet.
+                  </p>
                 </div>
               )}
             </div>

@@ -189,14 +189,23 @@ async function transcribeWithDeepgram(
     metadata?: { duration?: number };
     results?: {
       channels?: Array<{
-        alternatives?: Array<{ transcript?: string }>;
+        alternatives?: Array<{
+          transcript?: string;
+          words?: Array<{
+            word?: string;
+            punctuated_word?: string;
+            start?: number;
+            end?: number;
+          }>;
+        }>;
       }>;
       utterances?: Array<{ start?: number; end?: number; transcript?: string }>;
     };
   };
 
-  const transcript =
-    json.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() || "";
+  const alt = json.results?.channels?.[0]?.alternatives?.[0];
+  const transcript = alt?.transcript?.trim() || "";
+  const words = Array.isArray(alt?.words) ? alt.words : [];
   const segments: TranscriptSegment[] = (json.results?.utterances || [])
     .filter((u) => u.transcript?.trim())
     .map((u) => ({
@@ -209,9 +218,23 @@ async function transcribeWithDeepgram(
     throw new Error("Ingen tale fundet i denne video (kun musik eller tekst).");
   }
 
+  // Exact first 3 seconds of spoken words using Deepgram word-level timestamps
+  let spokenThreeSecHook = "";
+  if (words.length > 0) {
+    const firstWordStart = Number(words[0]?.start || 0);
+    const cutoff = firstWordStart + 3.2;
+    spokenThreeSecHook = words
+      .filter((w) => Number(w.start || 0) <= cutoff)
+      .map((w) => (w.punctuated_word || w.word || "").trim())
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   return {
     transcript,
-    hook: extractSpokenHook(transcript, segments),
+    hook: spokenThreeSecHook || extractSpokenHook(transcript, segments),
     segments,
     durationSec: json.metadata?.duration
       ? Math.round(json.metadata.duration)

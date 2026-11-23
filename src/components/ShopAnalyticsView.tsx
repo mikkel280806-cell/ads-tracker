@@ -454,7 +454,7 @@ export function ShopAnalyticsView({
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [brandAds]);
 
-  // Extracted Hooks
+  // Extracted Spoken Video Hooks (ONLY first ~3 seconds of real video transcription)
   const uniqueHooks = useMemo(() => {
     const map = new Map<
       string,
@@ -466,8 +466,21 @@ export function ShopAnalyticsView({
         ad: Ad;
       }
     >();
+    const trimToThreeSeconds = (raw: string): string => {
+      const cleaned = raw.replace(/\s+/g, " ").trim();
+      if (!cleaned) return "";
+      const firstSentence = cleaned.split(/(?<=[.!?])\s+/)[0]?.trim() || cleaned;
+      if (firstSentence.length >= 12 && firstSentence.length <= 105) {
+        return firstSentence;
+      }
+      const words = cleaned.split(" ");
+      if (words.length <= 13) return cleaned;
+      return `${words.slice(0, 12).join(" ").replace(/[,;:\-]+$/, "")}…`;
+    };
+
     for (const ad of brandAds) {
-      const hook = (ad.extracted_hook || ad.ai_hook_verbal || "").trim();
+      if (!ad.ai_transcript || ad.ai_transcript.trim().length < 6) continue;
+      const hook = trimToThreeSeconds(ad.ai_hook_verbal || ad.ai_transcript);
       if (hook.length < 6) continue;
       const key = hook.toLowerCase();
       const days = getActiveDays(ad.started_running_at);
@@ -478,7 +491,7 @@ export function ShopAnalyticsView({
       } else {
         map.set(key, {
           hook,
-          category: ad.hook_category || "Product Benefit",
+          category: ad.hook_category || "Spoken Hook",
           count: ad.duplicated_count || 1,
           maxDays: days,
           ad,
@@ -1709,11 +1722,11 @@ export function ShopAnalyticsView({
                             {item.category}
                           </span>
                           <div className="flex items-center gap-1.5 font-mono-num text-[11px]">
+                            <span className="rounded-md bg-[#F1F5F9] px-2 py-0.5 font-semibold text-[#334155]">
+                              0–3s
+                            </span>
                             <span className="rounded-md bg-[#ECFDF3] px-2 py-0.5 font-semibold text-[#15803D]">
                               {item.maxDays}d live
-                            </span>
-                            <span className="rounded-md bg-[#F1F5F9] px-2 py-0.5 font-medium text-[#475569]">
-                              {item.ad.media_type.toUpperCase()}
                             </span>
                           </div>
                         </div>
@@ -1752,6 +1765,11 @@ export function ShopAnalyticsView({
                     </div>
                   ))}
               </div>
+              {uniqueHooks.length === 0 && (
+                <p className="py-10 text-center text-xs text-[#94A3B8]">
+                  Ingen transskriberede video-hooks for dette brand endnu.
+                </p>
+              )}
             </div>
           )}
 

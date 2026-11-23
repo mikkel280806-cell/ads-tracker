@@ -112,15 +112,12 @@ export function ExploreSkeleton() {
   return (
     <div className="space-y-4" aria-busy="true" aria-label="Indlæser annoncer">
       {/* Konvert-style Header */}
-      <div className="flex flex-col justify-between gap-3 border-b border-[#EFEFF4] pb-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-3 w-64" />
-          </div>
+      <div className="flex items-center gap-3 border-b border-[#EFEFF4] pb-4">
+        <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
+        <div className="space-y-1.5">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-3 w-64" />
         </div>
-        <Skeleton className="h-9 w-full rounded-xl sm:w-64" />
       </div>
 
       {/* Single Clean Toolbar Row */}
