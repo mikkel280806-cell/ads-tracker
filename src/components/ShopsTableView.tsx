@@ -50,7 +50,13 @@ const QUICK_SUGGESTIONS = [
   "carawayhome.com",
 ];
 
-function getHomepageScreenshotUrl(websiteUrl?: string): string | null {
+function getHomepageScreenshotUrl(
+  websiteUrl?: string,
+  storedScreenshotUrl?: string
+): string | null {
+  if (storedScreenshotUrl && storedScreenshotUrl.includes("/ad-media/homepages/")) {
+    return storedScreenshotUrl;
+  }
   if (!websiteUrl) return null;
   const clean = websiteUrl.trim().startsWith("http")
     ? websiteUrl.trim()
@@ -536,11 +542,11 @@ export function ShopsTableView({
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
                   <div className="relative h-[52px] w-[84px] shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0] bg-[#F7F8FB]">
-                    {getHomepageScreenshotUrl(brand.website_url) || brand.storefront_image_url ? (
+                    {getHomepageScreenshotUrl(brand.website_url, brand.storefront_image_url) || brand.storefront_image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={
-                          getHomepageScreenshotUrl(brand.website_url) ||
+                          getHomepageScreenshotUrl(brand.website_url, brand.storefront_image_url) ||
                           brand.storefront_image_url ||
                           ""
                         }
@@ -785,7 +791,10 @@ export function ShopsTableView({
             const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
             const marketFlag = getFlag(brand);
             const savedInFolder = (brand.folder_ids || []).length > 0;
-            const homepageShot = getHomepageScreenshotUrl(brand.website_url);
+            const homepageShot = getHomepageScreenshotUrl(
+              brand.website_url,
+              brand.storefront_image_url
+            );
             const founded = formatFoundedAge(brand.founded_date);
 
             const visitSeries =
