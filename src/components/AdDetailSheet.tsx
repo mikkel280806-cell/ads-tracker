@@ -19,6 +19,7 @@ import {
   Link2,
   MousePointerClick,
   StickyNote,
+  VolumeX,
   X,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
@@ -86,7 +87,9 @@ export function AdDetailSheet({
     Record<string, string>
   >({});
   const autoTranscribedRef = useRef<Set<string>>(new Set());
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [autoplayMuted, setAutoplayMuted] = useState(false);
 
   const isOrganic = Boolean(
     ad &&
@@ -114,6 +117,44 @@ export function AdDetailSheet({
       }
     };
   }, [ad?.id]);
+
+  // Smart autoplay on desktop & iPhone: try with sound first, instantly fall back to muted inline autoplay if iOS/browser blocks unmuted
+  useEffect(() => {
+    if (!ad) return;
+    const isVid =
+      ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
+    if (!isVid) return;
+
+    let cancelled = false;
+    setAutoplayMuted(false);
+
+    const startPlayback = async () => {
+      const videoEl = videoRef.current;
+      if (!videoEl || cancelled) return;
+      try {
+        videoEl.muted = false;
+        await videoEl.play();
+        if (!cancelled) setAutoplayMuted(false);
+      } catch {
+        if (cancelled || !videoRef.current) return;
+        try {
+          videoRef.current.muted = true;
+          await videoRef.current.play();
+          if (!cancelled) setAutoplayMuted(true);
+        } catch {
+          // Browser blocked even muted autoplay; user can tap play manually
+        }
+      }
+    };
+
+    const raf = requestAnimationFrame(() => {
+      void startPlayback();
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [ad]);
 
   // Automatically transcribe video ads/organic videos via Deepgram when opened
   useEffect(() => {
@@ -625,11 +666,15 @@ export function AdDetailSheet({
                 {isVideoFile ? (
                   <>
                     <video
+                      ref={videoRef}
                       key={ad.id}
                       src={ad.media_url}
                       poster={displayImage}
+                      autoPlay
+                      loop
                       controls
                       playsInline
+                      preload="auto"
                       onPlay={(e) => {
                         const a = audioRef.current;
                         if (!a) return;
@@ -647,6 +692,7 @@ export function AdDetailSheet({
                         if (a) a.currentTime = e.currentTarget.currentTime;
                       }}
                       onVolumeChange={(e) => {
+                        if (!e.currentTarget.muted) setAutoplayMuted(false);
                         const a = audioRef.current;
                         if (!a) return;
                         a.muted = e.currentTarget.muted;
@@ -682,6 +728,32 @@ export function AdDetailSheet({
                       onError={() => setFailedAdId(ad.id)}
                       className="max-h-[58vh] w-full bg-black object-contain lg:max-h-[68vh]"
                     />
+                    {autoplayMuted && (
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => {
+                          const v = videoRef.current;
+                          const a = audioRef.current;
+                          if (v) {
+                            v.muted = false;
+                            v.volume = 1;
+                            v.play().catch(() => {});
+                          }
+                          if (a) {
+                            a.muted = false;
+                            a.volume = 1;
+                            if (v) a.currentTime = v.currentTime;
+                            a.play().catch(() => {});
+                          }
+                          setAutoplayMuted(false);
+                        }}
+                        className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[11.5px] font-semibold text-white backdrop-blur-md transition-transform active:scale-95"
+                      >
+                        <VolumeX className="h-3.5 w-3.5" />
+                        Slå lyd til
+                      </button>
+                    )}
                     {ad.audio_url && (
                       <audio
                         ref={audioRef}
