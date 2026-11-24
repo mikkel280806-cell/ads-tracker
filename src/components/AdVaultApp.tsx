@@ -677,7 +677,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   return (
     <>
-    <div className="flex min-h-dvh w-full overflow-x-clip bg-[#F7F8FB] lg:h-dvh lg:overflow-hidden lg:bg-[#050811]">
+    <div className="flex h-dvh w-full overflow-hidden bg-white lg:bg-[#050811]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — FIXED APP SHELL FRAME (EXTENDS 24PX UNDER ROUNDED CORNER)
          ===================================================================== */}
@@ -886,24 +886,22 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       </aside>
 
       {/* =====================================================================
-          STATIONARY WHITE WORKSPACE FRAME — ONLY INNER CONTENT SCROLLS ON DESKTOP
+          STATIONARY WORKSPACE FRAME — ONLY INNER <main> SCROLLS (MOBILE + DESKTOP)
          ===================================================================== */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:h-full lg:overflow-hidden lg:rounded-tl-[24px] lg:bg-white">
-        {/* SOLID WHITE iOS STATUS BAR ANCHOR (keeps iOS 26 top blur sampling pure white) */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-x-0 top-0 z-30 bg-white lg:hidden"
-          style={{ height: "env(safe-area-inset-top, 0px)" }}
-        />
-
-        {/* CLEAN SOLID MOBILE TOP BAR (sits cleanly below iOS 26 standalone top blur zone) */}
-        <header className="mobile-pwa-header relative z-10 flex items-center border-b border-[#ECEFF5] bg-white px-4 pb-3 text-[#0F172A] lg:hidden">
+      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white lg:relative lg:z-10 lg:-ml-6 lg:rounded-tl-[24px]">
+        {/* STATIONARY SOLID WHITE MOBILE TOP BAR
+            Locks the status bar + Flake brand bar above the scroll container so content
+            never scrolls behind the iOS 26 Dynamic Island / top scroll-edge blur zone. */}
+        <header className="mobile-pwa-header relative z-20 flex shrink-0 items-center border-b border-[#ECEFF5] bg-white px-4 pb-3 text-[#0F172A] lg:hidden">
           <button
             type="button"
+            data-no-glass="true"
             onClick={() => {
-              setView("shops");
-              setSelectedShopId(null);
-              setSelectedFolderId(null);
+              navigateWithSkeleton(() => {
+                setView("shops");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
             }}
             className="flex items-center"
           >
@@ -920,7 +918,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         <main
           ref={workspaceScrollRef}
           data-scroll-root="true"
-          className="workspace-scroll flex-1 bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
+          className="workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
         >
           {/* Global Live Toast */}
           {toast && (

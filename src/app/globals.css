@@ -140,15 +140,15 @@
 
 html,
 body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
   font-family: var(--font-sans);
   letter-spacing: -0.008em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
-}
-
-body {
-  overflow-x: clip;
 }
 
 @media (max-width: 1023px) {
@@ -158,16 +158,8 @@ body {
   }
 }
 
-@media (min-width: 1024px) {
-  html,
-  body {
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
-}
-
 .workspace-scroll {
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: rgba(15, 23, 42, 0.14) transparent;
 }
@@ -414,15 +406,15 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   padding-top: env(safe-area-inset-top);
 }
 
-/* iOS 26 standalone PWA renders a system progressive blur ~30px below safe-area-inset-top.
-   Push the mobile header below that blur zone in standalone mode so the Flake logo stays 100% sharp
-   and the blur only sits over solid white (making it completely invisible). */
+/* iOS 26 standalone PWA renders a system blur edge near safe-area-inset-top.
+   Combined with the locked h-dvh shell and stationary solid white header, this keeps
+   the status bar pure white and the Flake logo 100% sharp with zero blurred scroll bleed. */
 .mobile-pwa-header {
   padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
 }
 @media (display-mode: standalone) {
   .mobile-pwa-header {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
   }
 }
 
