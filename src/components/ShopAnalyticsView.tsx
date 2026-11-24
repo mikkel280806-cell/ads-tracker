@@ -57,6 +57,30 @@ interface ShopAnalyticsViewProps {
 type MainTab = "analytics" | "meta_ads" | "products";
 type MetaSubTab = "library" | "creatives" | "copies" | "headlines" | "hooks" | "lp";
 
+function formatProductPrice(rawPrice?: string, rawCurrency?: string): string {
+  if (!rawPrice) return "";
+  const trimmed = rawPrice.trim();
+  if (!trimmed) return "";
+
+  // Strip currency codes/symbols already embedded in price string
+  const numericOnly = trimmed
+    .replace(/^(USD|EUR|GBP|DKK|SEK|NOK|CAD|AUD|\$|€|£)\s*/i, "")
+    .replace(/\s*(USD|EUR|GBP|DKK|SEK|NOK|CAD|AUD|kr\.?)$/i, "")
+    .trim();
+
+  // Remove redundant .00 / ,00 decimals (e.g. 49.00 -> 49)
+  const cleanNum = numericOnly.replace(/([.,])00$/, "");
+  const cur = (rawCurrency || "").trim().toUpperCase();
+
+  if (cur === "USD" || trimmed.startsWith("$")) return `$${cleanNum}`;
+  if (cur === "EUR" || trimmed.startsWith("€")) return `€${cleanNum}`;
+  if (cur === "GBP" || trimmed.startsWith("£")) return `£${cleanNum}`;
+  if (cur === "DKK" || cur === "SEK" || cur === "NOK") return `${cleanNum} kr.`;
+  if (cur === "CAD") return `CA$${cleanNum}`;
+  if (cur === "AUD") return `A$${cleanNum}`;
+  return cur ? `${cleanNum} ${cur}` : cleanNum;
+}
+
 function formatShortDate(iso?: string): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -1488,7 +1512,7 @@ export function ShopAnalyticsView({
                         </p>
                         {prod.price && (
                           <p className="mt-0.5 font-mono-num text-[12px] font-bold text-[#0F172A]">
-                            {prod.price} {prod.currency || brand.currency || ""}
+                            {formatProductPrice(prod.price, prod.currency || brand.currency)}
                           </p>
                         )}
                         {prod.created_at && (
@@ -2268,7 +2292,7 @@ export function ShopAnalyticsView({
                     <div className="mt-1.5 flex items-center justify-between gap-2">
                       {prod.price && (
                         <span className="font-mono-num text-xs font-bold text-[#0F172A]">
-                          {prod.price} {prod.currency || brand.currency || ""}
+                          {formatProductPrice(prod.price, prod.currency || brand.currency)}
                         </span>
                       )}
                       {prod.created_at && (
