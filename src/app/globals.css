@@ -231,14 +231,153 @@ h3,
     0 1px 3px rgba(15, 23, 42, 0.16);
 }
 
-/* Primary Electric Blue CTA (Clean, crisp, zero glow) */
+/* Primary Electric Blue CTA with Liquid Glass Specular Rim & Spring Press */
 .adtrack-btn-primary {
+  position: relative;
   background-color: #0027eb;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0.05) 46%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 3px 10px -2px rgba(0, 39, 235, 0.26),
+    0 1px 2px rgba(15, 23, 42, 0.14);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    background-color 0.18s ease,
+    box-shadow 0.22s ease;
 }
-.adtrack-btn-primary:hover {
-  background-color: #001fc2;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+.adtrack-btn-primary:hover:not(:disabled) {
+  background-color: #0021cc;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.46),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.24),
+    0 5px 14px -3px rgba(0, 39, 235, 0.34),
+    0 2px 4px rgba(15, 23, 42, 0.14);
+}
+.adtrack-btn-primary:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Unified Liquid Glass Specular Rim & Tactile Spring Effect across UI Buttons */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):not([class*="bg-[#0F172A]"]):not([data-slot="glass-tab-bar-item"]),
+a[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):not([class*="bg-[#0F172A]"]),
+select[class*="border"][class*="rounded"] {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(15, 23, 42, 0.02) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.05),
+    0 1px 2px rgba(15, 23, 42, 0.05);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.22s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+button[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):not([class*="bg-[#0F172A]"]):not([data-slot="glass-tab-bar-item"]):hover:not(:disabled),
+a[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):not([class*="bg-[#0F172A]"]):hover,
+select[class*="border"][class*="rounded"]:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(0, 39, 235, 0.08),
+    0 3px 10px -2px rgba(0, 39, 235, 0.13),
+    0 1px 3px rgba(15, 23, 42, 0.07);
+}
+
+button[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):not([data-slot="glass-tab-bar-item"]):active:not(:disabled),
+a[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):active {
+  transform: scale(0.965);
+}
+
+/* Dark Obsidian Buttons (e.g. Open Shop Analytics, Apply) */
+button[class*="bg-[#0F172A]"][class*="rounded"]:not([data-slot="glass-tab-bar-item"]),
+a[class*="bg-[#0F172A]"][class*="rounded"] {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.03) 48%,
+    rgba(0, 0, 0, 0.12) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 2px 8px -2px rgba(15, 23, 42, 0.28);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    background-color 0.18s ease,
+    box-shadow 0.22s ease;
+}
+
+button[class*="bg-[#0F172A]"][class*="rounded"]:not([data-slot="glass-tab-bar-item"]):hover:not(:disabled),
+a[class*="bg-[#0F172A]"][class*="rounded"]:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.38),
+    0 4px 12px -2px rgba(0, 39, 235, 0.22),
+    0 2px 4px rgba(15, 23, 42, 0.2);
+}
+
+button[class*="bg-[#0F172A]"][class*="rounded"]:not([data-slot="glass-tab-bar-item"]):active:not(:disabled),
+a[class*="bg-[#0F172A]"][class*="rounded"]:active {
+  transform: scale(0.965);
+}
+
+/* Segmented Active Pills & Frosted Light Pill Buttons (matching GlassTabBar active indicator) */
+button[class*="bg-white"][class*="shadow-xs"][class*="rounded"]:not([data-slot="glass-tab-bar-item"]),
+button[class*="rounded-full"][class*="bg-[#F1F5F9]"]:not([data-slot="glass-tab-bar-item"]),
+button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar-item"]) {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.15) 55%,
+    rgba(15, 23, 42, 0.02) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.98),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.05),
+    0 3px 10px -2px rgba(0, 39, 235, 0.11),
+    0 1px 3px rgba(15, 23, 42, 0.07);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.22s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+button[class*="bg-white"][class*="shadow-xs"][class*="rounded"]:not([data-slot="glass-tab-bar-item"]):active:not(:disabled),
+button[class*="rounded-full"][class*="bg-[#F1F5F9]"]:not([data-slot="glass-tab-bar-item"]):active:not(:disabled),
+button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar-item"]):active:not(:disabled) {
+  transform: scale(0.965);
+}
+
+/* Sidebar Dark Glass Specular Hover & Tactile Press */
+.adtrack-sidebar button:not([data-no-glass="true"]) {
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    background-color 0.18s ease,
+    box-shadow 0.2s ease,
+    color 0.18s ease;
+}
+.adtrack-sidebar button:not([data-no-glass="true"]):hover:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.adtrack-sidebar button:not([data-no-glass="true"]):active:not(:disabled) {
+  transform: scale(0.975);
 }
 
 /* Subtle Elevated Light Surface Card */

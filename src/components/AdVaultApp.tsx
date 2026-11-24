@@ -640,6 +640,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         {/* Brand Wordmark */}
         <button
           type="button"
+          data-no-glass="true"
           onClick={() => {
             navigateWithSkeleton(() => {
               setView("shops");
@@ -813,7 +814,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-white/[0.06]"
                   style={
                     active
-                      ? { backgroundColor: "rgba(255,255,255,0.11)", color: "#FFFFFF" }
+                      ? {
+                          backgroundColor: "rgba(255,255,255,0.11)",
+                          color: "#FFFFFF",
+                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14)",
+                        }
                       : { color: "rgba(255,255,255,0.54)" }
                   }
                 >
