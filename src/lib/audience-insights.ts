@@ -609,3 +609,337 @@ export function estimateShopRevenueSummary(
     aovNote: brand.aov_note,
   };
 }
+
+export type OfferLeverId =
+  | "discount"
+  | "bundles"
+  | "free_gift"
+  | "subscription"
+  | "guarantee"
+  | "shipping"
+  | "urgency"
+  | "funnel";
+
+export interface OfferLever {
+  id: OfferLeverId;
+  label: string;
+  detail: string;
+  adCount: number;
+  adPct: number;
+  storeSignal: boolean;
+  sampleAd?: Ad;
+}
+
+export interface TestedOfferClaim {
+  text: string;
+  tag: string;
+  ad: Ad;
+}
+
+export interface ShopOfferStrategy {
+  levers: OfferLever[];
+  testedClaims: TestedOfferClaim[];
+  primaryStack: string;
+  totalAdsAnalyzed: number;
+}
+
+/**
+ * Analyzes a shop's real DTC E-commerce Offer Strategy across all live Meta Ads
+ * (primary copy, headlines, descriptions, landing pages) + Shopify storefront signals
+ * (compare-at discounts, bundle tiers, bundle/subscription apps).
+ */
+export function analyzeShopOfferStrategy(
+  brand: Brand,
+  brandAds: Ad[]
+): ShopOfferStrategy {
+  const totalAds = brandAds.length;
+  const apps = (brand.shopify_apps || []).map((a) => a.toLowerCase());
+  const topProds = brand.top_products || [];
+
+  const getAdText = (ad: Ad) =>
+    `${ad.headline || ""}\n${ad.primary_text || ""}\n${ad.link_description || ""}`;
+
+  // 1. Discount / Sale (% off in ads OR compare_at_price on products)
+  let maxAdPct = 0;
+  const discountAds: Ad[] = [];
+  for (const ad of brandAds) {
+    const txt = getAdText(ad);
+    const pcts = Array.from(
+      txt.matchAll(
+        /(?:up to|op til|save|spar|get|få|extra|ekstra)?\s*(\d{1,2})\s*%\s*(?:off|rabat|discount|tilbud|besparelse)?/gi
+      )
+    )
+      .map((m) => parseInt(m[1], 10))
+      .filter((n) => n >= 10 && n <= 85);
+    const hasSaleWord =
+      /\b(black friday|cyber monday|flash sale|udsalg|tilbud|rabatkode|promo code|discount code|halv pris|50% off)\b/i.test(
+        txt
+      );
+    if (pcts.length > 0 || hasSaleWord) {
+      discountAds.push(ad);
+      for (const n of pcts) if (n > maxAdPct) maxAdPct = n;
+    }
+  }
+  let maxProductPct = 0;
+  for (const p of topProds) {
+    const price = parseNumericPrice(p.price);
+    const cmp = parseNumericPrice(p.compare_at_price);
+    if (price && cmp && cmp > price) {
+      const pct = Math.round(((cmp - price) / cmp) * 100);
+      if (pct >= 8 && pct <= 85 && pct > maxProductPct) maxProductPct = pct;
+    }
+  }
+  const bestPct = Math.max(maxAdPct, maxProductPct);
+
+  // 2. Bundles & Volume / Tiered Pricing
+  const bundleRe =
+    /\b(bundle|starter\s*kit|value\s*pack|family\s*pack|multi[\s-]?pack|[234][\s-]?pack|buy\s*[234]|køb\s*[234]|pakketilbud|sæt|komplet\s*sæt|combo|bogo|buy\s*\d+\s*get\s*\d+|køb\s*\d+\s*få\s*\d+)\b/i;
+  const bundleAds = brandAds.filter((ad) => bundleRe.test(getAdText(ad)));
+  const detectedBundleApp = (brand.shopify_apps || []).find((a) =>
+    /rebuy|kaching|wide bundles|aftersell|zipify|vitals|bundle/i.test(a)
+  );
+  const maxTiers = topProds.reduce(
+    (max, p) => Math.max(max, p.bundle_tiers?.length || 0),
+    0
+  );
+  const hasStoreBundles = Boolean(
+    brand.aov_has_bundles ||
+      maxTiers >= 2 ||
+      detectedBundleApp ||
+      topProds.some((p) => BUNDLE_TITLE_RE.test(p.title || ""))
+  );
+
+  // 3. Free Gift / GWP / BOGO
+  const giftRe =
+    /\b(free\s+gift|gratis\s+gave|gratis\s+med|free\s+[a-z]+\s+(?:included|worth|value)|gratis\s+[a-zæøå]+\s+(?:med|værdi)|bogo|buy\s*\d+\s*get\s*\d+\s*free|køb\s*\d+\s*få\s*\d+\s*gratis|\+\s*free\s+[a-z]+|\+\s*gratis\s+[a-zæøå]+)\b/i;
+  const giftAds = brandAds.filter((ad) => giftRe.test(getAdText(ad)));
+  const hasTitleGift = topProds.some((p) =>
+    /\+\s*(?:free|gratis)\b/i.test(p.title || "")
+  );
+
+  // 4. Subscription / Subscribe & Save
+  const subRe =
+    /\b(subscribe\s*&?\s*save|subscription|abonnement|monthly\s*delivery|cancel\s*anytime|opsig\s*når\s*som\s*helst|pause\s*or\s*cancel|levering\s*hver\s*måned)\b/i;
+  const subAds = brandAds.filter((ad) => subRe.test(getAdText(ad)));
+  const detectedSubApp = (brand.shopify_apps || []).find((a) =>
+    /recharge|skio|appstle|seal|loop\s*sub/i.test(a)
+  );
+
+  // 5. Risk Reversal: Trial & Guarantee
+  const trialRe =
+    /\b((\d{2,3})[\s-]*(?:day|days|dages|night|nights|nætters)\s*(?:trial|prøve|prøveperiode|sleep|søvn|garanti|guarantee|risk[\s-]?free)|money[\s-]?back|pengene\s*tilbage|tilfredshedsgaranti|risk[\s-]?free|prøv\s*(?:den|det|risikofrit))\b/i;
+  let bestTrialDays = 0;
+  const trialAds: Ad[] = [];
+  for (const ad of brandAds) {
+    const txt = getAdText(ad);
+    const m = txt.match(trialRe);
+    if (m) {
+      trialAds.push(ad);
+      const days = parseInt(m[2] || "0", 10);
+      if (days >= 14 && days <= 365 && days > bestTrialDays) bestTrialDays = days;
+    }
+  }
+
+  // 6. Free Shipping / Fast Delivery
+  const shipRe =
+    /\b(free\s*(?:express\s*|standard\s*)?shipping|fri\s*fragt|gratis\s*(?:fragt|levering)|dag[\s-]?til[\s-]?dag\s*levering|next[\s-]?day\s*delivery)\b/i;
+  const shipAds = brandAds.filter((ad) => shipRe.test(getAdText(ad)));
+
+  // 7. Urgency / Scarcity
+  const urgencyRe =
+    /\b(limited\s*(?:stock|time|edition|offer)|selling\s*(?:fast|out)|almost\s*sold\s*out|ends\s*(?:tonight|soon|today)|kun\s*i\s*dag|begrænset\s*(?:antal|tid)|få\s*på\s*lager|sidste\s*chance|snart\s*udsolgt)\b/i;
+  const urgencyAds = brandAds.filter((ad) => urgencyRe.test(getAdText(ad)));
+
+  // 8. Dedicated Funnel / Listicle / Quiz LPs
+  const funnelAds = brandAds.filter((ad) => {
+    const p = (ad.landing_page_path || "").toLowerCase();
+    return (
+      p.startsWith("/pages/") ||
+      p.includes("/quiz") ||
+      p.includes("/offer") ||
+      p.includes("/lp") ||
+      p.includes("/am/")
+    );
+  });
+
+  const makePct = (count: number) =>
+    totalAds > 0 ? Math.round((count / totalAds) * 100) : 0;
+
+  const levers: OfferLever[] = [];
+
+  if (discountAds.length > 0 || maxProductPct >= 10) {
+    levers.push({
+      id: "discount",
+      label: "Rabat & Tilbud",
+      detail: bestPct > 0 ? `Op til ${bestPct}% rabat` : "Aktiv kampagne / rabat",
+      adCount: discountAds.length,
+      adPct: makePct(discountAds.length),
+      storeSignal: maxProductPct >= 10,
+      sampleAd: discountAds[0],
+    });
+  }
+
+  if (bundleAds.length > 0 || hasStoreBundles) {
+    const detail =
+      maxTiers >= 2
+        ? `${maxTiers} bundle-tiers på produktside`
+        : detectedBundleApp
+          ? `Bundles via ${detectedBundleApp}`
+          : bundleAds.length > 0
+            ? "Pakketilbud & mængderabat"
+            : "Bundle-produkter i katalog";
+    levers.push({
+      id: "bundles",
+      label: "Bundles & Pakker",
+      detail,
+      adCount: bundleAds.length,
+      adPct: makePct(bundleAds.length),
+      storeSignal: hasStoreBundles,
+      sampleAd: bundleAds[0],
+    });
+  }
+
+  if (giftAds.length > 0 || hasTitleGift) {
+    levers.push({
+      id: "free_gift",
+      label: "Gratis gave",
+      detail:
+        giftAds.length > 0
+          ? "Free gift / BOGO i annoncer"
+          : "Gratis tilbehør inkl. i køb",
+      adCount: giftAds.length,
+      adPct: makePct(giftAds.length),
+      storeSignal: hasTitleGift,
+      sampleAd: giftAds[0],
+    });
+  }
+
+  if (subAds.length > 0 || Boolean(detectedSubApp)) {
+    levers.push({
+      id: "subscription",
+      label: "Abonnement",
+      detail: detectedSubApp
+        ? `Subscribe & Save (${detectedSubApp})`
+        : "Subscribe & Save i annoncer",
+      adCount: subAds.length,
+      adPct: makePct(subAds.length),
+      storeSignal: Boolean(detectedSubApp),
+      sampleAd: subAds[0],
+    });
+  }
+
+  if (trialAds.length > 0) {
+    levers.push({
+      id: "guarantee",
+      label: "Prøve & Garanti",
+      detail:
+        bestTrialDays > 0
+          ? `${bestTrialDays} dages prøveperiode`
+          : "Tilfredsheds- / pengene tilbage",
+      adCount: trialAds.length,
+      adPct: makePct(trialAds.length),
+      storeSignal: false,
+      sampleAd: trialAds[0],
+    });
+  }
+
+  if (shipAds.length > 0) {
+    levers.push({
+      id: "shipping",
+      label: "Fri fragt",
+      detail: "Gratis levering fremhævet",
+      adCount: shipAds.length,
+      adPct: makePct(shipAds.length),
+      storeSignal: false,
+      sampleAd: shipAds[0],
+    });
+  }
+
+  if (funnelAds.length >= 2) {
+    levers.push({
+      id: "funnel",
+      label: "Dedicated Funnels",
+      detail: `${funnelAds.length} ads → LP / advertorial`,
+      adCount: funnelAds.length,
+      adPct: makePct(funnelAds.length),
+      storeSignal: false,
+      sampleAd: funnelAds[0],
+    });
+  }
+
+  if (urgencyAds.length >= 2) {
+    levers.push({
+      id: "urgency",
+      label: "Urgency & Knaphed",
+      detail: "Begrænset lager / tidsfrist",
+      adCount: urgencyAds.length,
+      adPct: makePct(urgencyAds.length),
+      storeSignal: false,
+      sampleAd: urgencyAds[0],
+    });
+  }
+
+  // Also check Klarna/Anyday BNPL if few levers detected
+  if (levers.length < 2 && apps.some((a) => a.includes("klarna") || a.includes("anyday"))) {
+    levers.push({
+      id: "discount",
+      label: "Delbetaling",
+      detail: "Klarna / Anyday i checkout",
+      adCount: 0,
+      adPct: 0,
+      storeSignal: true,
+    });
+  }
+
+  // Sort by live ad volume first, then storefront signal
+  levers.sort(
+    (a, b) =>
+      b.adCount - a.adCount || (b.storeSignal ? 1 : 0) - (a.storeSignal ? 1 : 0)
+  );
+
+  // Extract up to 3 crisp, distinct live offer headlines/claims from their ads
+  const testedClaims: TestedOfferClaim[] = [];
+  const seenClaims = new Set<string>();
+  const OFFER_LINE_RE =
+    /(\d{1,2}\s*%\s*(?:off|rabat)|free\s+gift|gratis\s+(?:gave|fragt|med)|bogo|buy\s*\d+\s*get|køb\s*\d+\s*(?:få|spar)|subscribe\s*&?\s*save|abonnement|\d{2,3}[\s-]*(?:day|dages|night|nætters)\s*(?:trial|prøve|garanti)|bundle|starter\s*kit|black\s*friday|flash\s*sale)/i;
+
+  for (const ad of brandAds) {
+    if (testedClaims.length >= 3) break;
+    const candidates = [ad.headline, ad.link_description, ad.extracted_hook]
+      .map((s) => (s || "").replace(/\s+/g, " ").trim())
+      .filter((s) => s.length >= 8 && s.length <= 72);
+
+    for (const cand of candidates) {
+      if (!OFFER_LINE_RE.test(cand)) continue;
+      const key = cand.toLowerCase().replace(/[^a-z0-9æøå%]/g, "").slice(0, 32);
+      if (!key || seenClaims.has(key)) continue;
+      seenClaims.add(key);
+
+      let tag = "Offer";
+      if (/\d{1,2}\s*%/i.test(cand)) tag = "Rabat";
+      else if (/gift|gratis\s+(?:gave|med)|bogo/i.test(cand)) tag = "Gave";
+      else if (/bundle|kit|pack|køb\s*[234]/i.test(cand)) tag = "Bundle";
+      else if (/subscrib|abonnement/i.test(cand)) tag = "Abo";
+      else if (/trial|prøve|garanti/i.test(cand)) tag = "Garanti";
+      else if (/fragt|shipping/i.test(cand)) tag = "Fragt";
+
+      testedClaims.push({ text: cand, tag, ad });
+      break;
+    }
+  }
+
+  const primaryStack =
+    levers.length > 0
+      ? levers
+          .slice(0, 3)
+          .map((l) => l.label)
+          .join(" · ")
+      : "Fokus på produktværdi & brand";
+
+  return {
+    levers: levers.slice(0, 6),
+    testedClaims,
+    primaryStack,
+    totalAdsAnalyzed: totalAds,
+  };
+}

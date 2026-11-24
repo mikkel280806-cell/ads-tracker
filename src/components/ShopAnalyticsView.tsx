@@ -7,10 +7,12 @@ import {
   Bookmark,
   Calendar,
   Check,
+  Clock,
   Copy,
   DollarSign,
   ExternalLink,
   Film,
+  Gift,
   Globe,
   Hash,
   Image as ImageIcon,
@@ -18,12 +20,16 @@ import {
   LineChart,
   Link2,
   Package,
+  Percent,
+  RefreshCw,
   Search,
+  ShieldCheck,
   Sparkles,
   Star,
   Tag,
   TrendingDown,
   TrendingUp,
+  Truck,
   Users,
   Zap,
 } from "lucide-react";
@@ -31,9 +37,11 @@ import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/typ
 import { getTechMeta } from "@/lib/tech-catalog";
 import { buildAdRankIndex } from "@/lib/ad-ranking";
 import {
+  analyzeShopOfferStrategy,
   estimateShopRevenueSummary,
   formatProductPriceDkk,
   summarizeAdsAudience,
+  type OfferLeverId,
 } from "@/lib/audience-insights";
 import { dedupeAds, formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
@@ -625,6 +633,12 @@ export function ShopAnalyticsView({
   const shopAudience = useMemo(
     () => summarizeAdsAudience(brandAds),
     [brandAds]
+  );
+
+  // Live DTC Offer Strategy intelligence (discounts, bundles, free gifts, subscriptions, trials, funnels)
+  const offerStrategy = useMemo(
+    () => analyzeShopOfferStrategy(brand, brandAds),
+    [brand, brandAds]
   );
 
   const platformMix = useMemo(() => {
@@ -1645,109 +1659,222 @@ export function ShopAnalyticsView({
 
           {/* 2-COLUMN PRODUCTS + PIXELS / SHOPIFY APPS ROW (Exact Trendtrack Layout!) */}
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-            {/* Products Card (7 cols) */}
-            <div className="adtrack-card rounded-2xl p-5 xl:col-span-7">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium text-[#64748B]">Products:</p>
-                  <p className="font-display text-2xl font-bold leading-tight text-[#0F172A]">
-                    {(brand.products_count ?? topProducts.length).toLocaleString("en-US")}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] p-0.5 text-xs font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => setProductSort("best")}
-                      className={`rounded-lg px-3 py-1.5 transition-all ${
-                        productSort === "best"
-                          ? "bg-white text-[#0F172A] shadow-xs"
-                          : "text-[#64748B] hover:text-[#0F172A]"
-                      }`}
-                    >
-                      Best Seller
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setProductSort("latest")}
-                      className={`rounded-lg px-3 py-1.5 transition-all ${
-                        productSort === "latest"
-                          ? "bg-white text-[#0F172A] shadow-xs"
-                          : "text-[#64748B] hover:text-[#0F172A]"
-                      }`}
-                    >
-                      Last published
-                    </button>
+            {/* Products + Offer Strategi Card (7 cols — fills height cleanly with zero whitespace!) */}
+            <div className="adtrack-card flex flex-col justify-between rounded-2xl p-5 xl:col-span-7">
+              <div>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium text-[#64748B]">Products:</p>
+                    <p className="font-display text-2xl font-bold leading-tight text-[#0F172A]">
+                      {(brand.products_count ?? topProducts.length).toLocaleString("en-US")}
+                    </p>
                   </div>
 
-                  {brand.website_url && (
-                    <a
-                      href={`${brand.website_url.replace(/\/+$/, "")}/collections/all?sort_by=${
-                        productSort === "best" ? "best-selling" : "created-descending"
-                      }`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-xl border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
-                    >
-                      {productSort === "best" ? "Bestsellers" : "Nyeste"}
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </a>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] p-0.5 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setProductSort("best")}
+                        className={`rounded-lg px-3 py-1.5 transition-all ${
+                          productSort === "best"
+                            ? "bg-white text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        Best Seller
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProductSort("latest")}
+                        className={`rounded-lg px-3 py-1.5 transition-all ${
+                          productSort === "latest"
+                            ? "bg-white text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        Last published
+                      </button>
+                    </div>
+
+                    {brand.website_url && (
+                      <a
+                        href={`${brand.website_url.replace(/\/+$/, "")}/collections/all?sort_by=${
+                          productSort === "best" ? "best-selling" : "created-descending"
+                        }`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-xl border border-[#E2E6EF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                      >
+                        {productSort === "best" ? "Bestsellers" : "Nyeste"}
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
                 </div>
+
+                {shownProducts.length === 0 ? (
+                  <div className="flex h-44 items-center justify-center text-xs text-[#64748B]">
+                    Ingen offentlige Shopify-produkter fundet på denne shop.
+                  </div>
+                ) : (
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {shownProducts.slice(0, 10).map((prod, idx) => (
+                      <a
+                        key={`${prod.title}-${idx}`}
+                        href={prod.url || brand.website_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group w-[144px] shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0] bg-white transition-all hover:-translate-y-0.5 hover:border-[#0027eb]/40 hover:shadow-md"
+                      >
+                        <div className="relative aspect-square w-full overflow-hidden bg-[#F7F8FB]">
+                          {prod.image_url ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={prod.image_url}
+                              alt={prod.title}
+                              loading="lazy"
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
+                              <Package className="h-6 w-6" />
+                            </div>
+                          )}
+                          <span className="absolute right-2 top-2 rounded-md bg-white/95 px-1.5 py-0.5 font-mono-num text-[10px] font-bold text-[#0F172A] shadow-xs">
+                            #{idx + 1}
+                          </span>
+                        </div>
+                        <div className="p-2.5">
+                          <p className="truncate font-display text-[12px] font-semibold text-[#0F172A] group-hover:text-[#0027eb]">
+                            {prod.title}
+                          </p>
+                          {prod.price && (
+                            <p className="mt-0.5 font-mono-num text-[12px] font-bold text-[#0F172A]">
+                              {formatProductPrice(prod.price, prod.currency || brand.currency)}
+                            </p>
+                          )}
+                          {prod.created_at && (
+                            <p className="mt-1 truncate text-[10px] text-[#94A3B8]">
+                              Created: {formatShortDate(prod.created_at)}
+                            </p>
+                          )}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {shownProducts.length === 0 ? (
-                <div className="flex h-44 items-center justify-center text-xs text-[#64748B]">
-                  Ingen offentlige Shopify-produkter fundet på denne shop.
+              {/* LIVE E-COM OFFER STRATEGI (fills bottom of card cleanly — shows exact offers tested in ads & storefront!) */}
+              <div className="mt-4 border-t border-[#EFF2F6] pt-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-[#64748B]" />
+                    <h3 className="font-display text-[14px] font-bold text-[#0F172A]">
+                      Offer Strategi
+                    </h3>
+                    {offerStrategy.levers.length > 0 && (
+                      <span className="rounded-lg bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-[#475569]">
+                        {offerStrategy.levers.length} aktive greb
+                      </span>
+                    )}
+                  </div>
+                  <span className="truncate text-[11px] font-medium text-[#64748B]">
+                    {offerStrategy.primaryStack}
+                  </span>
                 </div>
-              ) : (
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {shownProducts.slice(0, 10).map((prod, idx) => (
-                    <a
-                      key={`${prod.title}-${idx}`}
-                      href={prod.url || brand.website_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group w-[144px] shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0] bg-white transition-all hover:-translate-y-0.5 hover:border-[#0027eb]/40 hover:shadow-md"
-                    >
-                      <div className="relative aspect-square w-full overflow-hidden bg-[#F7F8FB]">
-                        {prod.image_url ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={prod.image_url}
-                            alt={prod.title}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
-                            <Package className="h-6 w-6" />
+
+                {offerStrategy.levers.length === 0 ? (
+                  <p className="rounded-xl border border-[#EFF2F6] bg-[#FAFBFD] px-3 py-2.5 text-xs text-[#64748B]">
+                    Ingen tydelige rabat- eller bundle-offers fundet i de aktive annoncer (fokuserer primært på brand &amp; produktværdi).
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {offerStrategy.levers.map((lever) => {
+                      const renderLeverIcon = (id: OfferLeverId) => {
+                        const cls = "h-3.5 w-3.5 shrink-0 text-[#64748B]";
+                        switch (id) {
+                          case "discount":
+                            return <Percent className={cls} />;
+                          case "bundles":
+                            return <Layers className={cls} />;
+                          case "free_gift":
+                            return <Gift className={cls} />;
+                          case "subscription":
+                            return <RefreshCw className={cls} />;
+                          case "guarantee":
+                            return <ShieldCheck className={cls} />;
+                          case "shipping":
+                            return <Truck className={cls} />;
+                          case "urgency":
+                            return <Clock className={cls} />;
+                          case "funnel":
+                            return <Zap className={cls} />;
+                        }
+                      };
+                      const clickable = Boolean(lever.sampleAd);
+                      return (
+                        <button
+                          key={lever.id}
+                          type="button"
+                          disabled={!clickable}
+                          onClick={() => lever.sampleAd && onOpenAd(lever.sampleAd)}
+                          title={
+                            clickable
+                              ? `Klik for at se eksempel-annonce der tester "${lever.label}"`
+                              : lever.detail
+                          }
+                          className={`group flex flex-col justify-between gap-1.5 rounded-xl border border-[#EFF2F6] bg-[#FAFBFD] p-2.5 text-left transition-colors ${
+                            clickable
+                              ? "cursor-pointer hover:border-[#CBD5E1] hover:bg-white"
+                              : "cursor-default"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] font-semibold text-[#0F172A]">
+                              {renderLeverIcon(lever.id)}
+                              <span className="truncate">{lever.label}</span>
+                            </span>
+                            {lever.adCount > 0 ? (
+                              <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 font-mono-num text-[10px] font-semibold text-[#475569] ring-1 ring-[#E6E9F0]">
+                                {lever.adCount} ads
+                              </span>
+                            ) : (
+                              <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold text-[#64748B] ring-1 ring-[#E6E9F0]">
+                                Shop
+                              </span>
+                            )}
                           </div>
-                        )}
-                        <span className="absolute right-2 top-2 rounded-md bg-white/95 px-1.5 py-0.5 font-mono-num text-[10px] font-bold text-[#0F172A] shadow-xs">
-                          #{idx + 1}
+                          <p className="truncate text-[11px] text-[#64748B]">
+                            {lever.detail}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {offerStrategy.testedClaims.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#94A3B8]">
+                      Testede offers:
+                    </span>
+                    {offerStrategy.testedClaims.map((claim, idx) => (
+                      <button
+                        key={`${claim.tag}-${idx}`}
+                        type="button"
+                        onClick={() => onOpenAd(claim.ad)}
+                        className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-white px-2 py-1 text-[11px] font-medium text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                      >
+                        <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[9.5px] font-semibold text-[#475569]">
+                          {claim.tag}
                         </span>
-                      </div>
-                      <div className="p-2.5">
-                        <p className="truncate font-display text-[12px] font-semibold text-[#0F172A] group-hover:text-[#0027eb]">
-                          {prod.title}
-                        </p>
-                        {prod.price && (
-                          <p className="mt-0.5 font-mono-num text-[12px] font-bold text-[#0F172A]">
-                            {formatProductPrice(prod.price, prod.currency || brand.currency)}
-                          </p>
-                        )}
-                        {prod.created_at && (
-                          <p className="mt-1 truncate text-[10px] text-[#94A3B8]">
-                            Created: {formatShortDate(prod.created_at)}
-                          </p>
-                        )}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              )}
+                        <span className="truncate max-w-[230px]">{claim.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Pixels | Shopify Apps Segmented Card (5 cols — EXACT Screenshot 19.50.29!) */}
