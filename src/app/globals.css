@@ -447,30 +447,9 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   }
 }
 
-/* Solid fixed status-bar anchor for iOS 26 WebKit top-edge color sampling */
-.ios-statusbar-anchor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: max(12px, env(safe-area-inset-top, 0px));
-  background-color: #f7f8fb;
-  z-index: 50;
-  pointer-events: none;
-}
-
-/* Seamless #F7F8FB stationary header sitting cleanly below iOS 26's ~34pt top status-bar blur tail */
+/* Compact solid fixed mobile top bar (tight padding directly below safe-area-inset-top) */
 .mobile-pwa-header {
   padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
-}
-@media (display-mode: standalone) {
-  .mobile-pwa-header {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
-  }
-}
-html.ios-pwa-standalone .mobile-pwa-header {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
 }
 
 ::-webkit-scrollbar {

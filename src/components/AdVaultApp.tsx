@@ -916,8 +916,28 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   return (
     <>
-    {/* Real fixed solid top-bar anchor for iOS 26 WebKit status-bar color sampling */}
-    <div aria-hidden="true" className="ios-statusbar-anchor lg:hidden" />
+    {/* COMPACT FIXED SOLID WHITE MOBILE TOP BAR (root-level fixed at top: 0 for WebKit edge sampling, Antigravity-tight height) */}
+    <header className="mobile-pwa-header fixed inset-x-0 top-0 z-40 flex items-center border-b border-[#E6E9F0] bg-white px-4 pb-2.5 text-[#0F172A] lg:hidden">
+      <button
+        type="button"
+        data-no-glass="true"
+        onClick={() => {
+          navigateWithSkeleton(() => {
+            setView("shops");
+            setSelectedShopId(null);
+            setSelectedFolderId(null);
+          });
+        }}
+        className="flex items-center"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icons/flake-wordmark-dark.png"
+          alt="Flake"
+          className="h-[22px] w-auto select-none"
+        />
+      </button>
+    </header>
     <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — FIXED APP SHELL FRAME (EXTENDS 24PX UNDER ROUNDED CORNER)
@@ -1175,34 +1195,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           STATIONARY WORKSPACE FRAME — ONLY INNER <main> SCROLLS (MOBILE + DESKTOP)
          ===================================================================== */}
       <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:rounded-tl-[24px] lg:bg-white">
-        {/* STATIONARY SEAMLESS MOBILE TOP BAR (#F7F8FB matches html/body/theme-color — eliminates iOS 26 top fade band) */}
-        <header className="mobile-pwa-header relative z-20 flex shrink-0 items-center border-b border-[#E8ECF4]/80 bg-[#F7F8FB] px-4 pb-2.5 text-[#0F172A] lg:hidden">
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => {
-              navigateWithSkeleton(() => {
-                setView("shops");
-                setSelectedShopId(null);
-                setSelectedFolderId(null);
-              });
-            }}
-            className="flex items-center"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icons/flake-wordmark-dark.png"
-              alt="Flake"
-              className="h-[22px] w-auto select-none"
-            />
-          </button>
-        </header>
-
         {/* SCROLLABLE WORKSPACE CONTENT VIEWPORT */}
         <main
           ref={workspaceScrollRef}
           data-scroll-root="true"
-          className="workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7F8FB] px-3.5 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] text-[#0F172A] sm:px-6 lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
+          className="workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7F8FB] px-3.5 pt-[calc(env(safe-area-inset-top,0px)+58px)] pb-[calc(7rem+env(safe-area-inset-bottom,0px))] text-[#0F172A] sm:px-6 lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
         >
           {/* Global Live Toast */}
           {toast && (
