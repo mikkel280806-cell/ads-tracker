@@ -159,7 +159,7 @@ export const SidebarPixelWave = React.memo(function SidebarPixelWave() {
           else if (colorPos > 1) colorPos = 1;
           const lutIdx = (colorPos * 255) | 0;
 
-          const alpha = Math.min(1, 0.24 + intensity * 0.86);
+          const alpha = Math.min(0.75, 0.14 + intensity * 0.56);
           const invA = 1 - alpha;
           const r = (LUT_R[lutIdx] * alpha + BASE_R * invA) | 0;
           const g = (LUT_G[lutIdx] * alpha + BASE_G * invA) | 0;
@@ -222,7 +222,7 @@ export const SidebarPixelWave = React.memo(function SidebarPixelWave() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[410px] w-full select-none [image-rendering:pixelated]"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[410px] w-full select-none opacity-60 [image-rendering:pixelated]"
     />
   );
 });

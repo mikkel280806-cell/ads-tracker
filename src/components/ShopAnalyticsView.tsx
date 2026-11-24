@@ -1304,12 +1304,12 @@ export function ShopAnalyticsView({
           {/* BOTTOM SECTION: LAST ADS */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <h2 className="font-display text-base font-bold text-[#0F172A]">
                   Last Ads
                 </h2>
-                <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 font-mono-num text-[11px] font-semibold text-[#475569]">
-                  {brandAds.length} scraped
+                <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-0.5 font-mono-num text-[12px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+                  {brandAds.length.toLocaleString("fr-FR")}
                 </span>
               </div>
               <button
@@ -1440,8 +1440,8 @@ export function ShopAnalyticsView({
                       <h3 className="font-display text-[13.5px] font-bold text-[#0F172A]">
                         Ads - Media Mix
                       </h3>
-                      <span className="font-mono-num text-[11px] font-semibold text-[#64748B]">
-                        {brandAds.length} Scraped
+                      <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2 py-0.5 font-mono-num text-[11.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+                        {brandAds.length.toLocaleString("fr-FR")}
                       </span>
                     </div>
                     <div className="space-y-2">

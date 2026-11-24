@@ -222,20 +222,19 @@ h3,
     0 1px 3px rgba(15, 23, 42, 0.16);
 }
 
-/* Primary Electric Blue CTA with Liquid Glass Specular Rim & Spring Press */
+/* Primary Electric Blue CTA — Clean Specular Rim & Tactile Press (no heavy glow) */
 .adtrack-btn-primary {
   position: relative;
   background-color: #0027eb;
   background-image: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.24) 0%,
-    rgba(255, 255, 255, 0.05) 46%,
-    rgba(0, 0, 0, 0.08) 100%
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.03) 48%,
+    rgba(0, 0, 0, 0.06) 100%
   );
   box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.38),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-    0 3px 10px -2px rgba(0, 39, 235, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
     0 1px 2px rgba(15, 23, 42, 0.14);
   transition:
     transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
@@ -245,10 +244,9 @@ h3,
 .adtrack-btn-primary:hover:not(:disabled) {
   background-color: #0021cc;
   box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.46),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.24),
-    0 5px 14px -3px rgba(0, 39, 235, 0.34),
-    0 2px 4px rgba(15, 23, 42, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 2px 6px -1px rgba(15, 23, 42, 0.18);
 }
 .adtrack-btn-primary:active:not(:disabled) {
   transform: scale(0.96);
@@ -285,9 +283,9 @@ a[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):not([class*="bg-[
 select[class*="border"][class*="rounded"]:hover:not(:disabled) {
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(0, 39, 235, 0.08),
-    0 3px 10px -2px rgba(0, 39, 235, 0.13),
-    0 1px 3px rgba(15, 23, 42, 0.07);
+    inset 0 -1px 0 rgba(15, 23, 42, 0.06),
+    0 2px 6px -2px rgba(15, 23, 42, 0.1),
+    0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 button[class*="border"][class*="rounded"]:not(.adtrack-btn-primary):not([data-slot="glass-tab-bar-item"]):active:not(:disabled),
@@ -317,10 +315,10 @@ a[class*="bg-[#0F172A]"][class*="rounded"] {
 button[class*="bg-[#0F172A]"][class*="rounded"]:not([data-slot="glass-tab-bar-item"]):hover:not(:disabled),
 a[class*="bg-[#0F172A]"][class*="rounded"]:hover {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.32),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.38),
-    0 4px 12px -2px rgba(0, 39, 235, 0.22),
-    0 2px 4px rgba(15, 23, 42, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.36),
+    0 3px 10px -2px rgba(15, 23, 42, 0.28),
+    0 1px 3px rgba(15, 23, 42, 0.18);
 }
 
 button[class*="bg-[#0F172A]"][class*="rounded"]:not([data-slot="glass-tab-bar-item"]):active:not(:disabled),
@@ -341,8 +339,8 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, 0.98),
     inset 0 -1px 0 rgba(15, 23, 42, 0.05),
-    0 3px 10px -2px rgba(0, 39, 235, 0.11),
-    0 1px 3px rgba(15, 23, 42, 0.07);
+    0 2px 6px -2px rgba(15, 23, 42, 0.09),
+    0 1px 2px rgba(15, 23, 42, 0.06);
   transition:
     transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
     box-shadow 0.22s ease,

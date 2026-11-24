@@ -785,10 +785,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             }
           >
             <span className="flex items-center gap-2.5">
-              <Store
-                className="h-[17px] w-[17px]"
-                style={{ color: view === "shops" ? "#60A5FA" : undefined }}
-              />
+              <Store className="h-[17px] w-[17px]" />
               Shops
             </span>
           </button>
@@ -814,10 +811,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             }
           >
             <span className="flex items-center gap-2.5">
-              <Radar
-                className="h-[17px] w-[17px]"
-                style={{ color: view === "explore" ? "#60A5FA" : undefined }}
-              />
+              <Radar className="h-[17px] w-[17px]" />
               Ads
             </span>
           </button>
@@ -860,12 +854,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             }
           >
             <span className="flex items-center gap-2.5">
-              <Folder
-                className="h-[17px] w-[17px]"
-                style={{
-                  color: view === "folders" && !selectedFolderId ? "#6B8BFF" : undefined,
-                }}
-              />
+              <Folder className="h-[17px] w-[17px]" />
               Folders
             </span>
             <span className="font-mono-num text-[10.5px] text-white/45">
