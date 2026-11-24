@@ -40,7 +40,8 @@ export function extractMeta(html: string, key: string): string | undefined {
 
 export async function fetchWithTimeout(
   url: string,
-  timeoutMs = 7500
+  timeoutMs = 7500,
+  extraHeaders?: Record<string, string>
 ): Promise<Response | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -49,6 +50,7 @@ export async function fetchWithTimeout(
       headers: {
         "User-Agent": BROWSER_UA,
         Accept: "text/html,application/json,*/*",
+        ...(extraHeaders || {}),
       },
       redirect: "follow",
       signal: controller.signal,
@@ -646,6 +648,77 @@ function hasPositiveProductPrice(price?: string): boolean {
   return Number.isFinite(num) && num > 0;
 }
 
+const EXCLUDED_SHOPIFY_TAG_RE =
+  /\b(hidden|no-direct-access|gwp|free[-_\s]?gift|gratis[-_\s]?gave|gift[-_\s]?with[-_\s]?purchase|promo[-_\s]?gift|bonus[-_\s]?gift|shipping[-_\s]?protection|insurance|navidium|route[-_\s]?protection|redo|warranty|exclude|gift[-_\s]?card|gorgias_do_not_recommend)\b/i;
+
+const EXCLUDED_SHOPIFY_TITLE_RE =
+  /\b(shipping\s*protection|fragtforsikring|forsikring\s*mod\s*skader|gift\s*card|gavekort|gaveæske|ekstra\s*fyld|free\s*gift|gratis\s*gave|sikkerhedsclips|safety\s*clip|smøreolie|silikoneolie|oil\s*120\s*ml|lubricant|cleaning\s*brush|magnetic\s*charger|add-?on|2\.0\s*refresh\s*set|base\s*add-?on|travel\s*pouch|sample\s*pack)\b/i;
+
+const FREE_GIFT_BLOCK_RE =
+  /(?:gratis\s*(?:med|gave|inkluderet|værdi|!)|følger\s*gratis\s*med|inkl\.?\s*gratis|værdi\s*\d+\s*kr|free\s*(?:gift|bonus|included|with\s*(?:your|every|this)\s*(?:order|purchase))|included\s*free|\+\s*free\b)/gi;
+
+function normalizeGiftTitle(s?: string): string {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[™®©]/g, "")
+    .replace(/[^a-z0-9æøåäöüß\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function detectFreeGiftHandlesFromHero(
+  heroTitle: string,
+  heroHtml: string,
+  candidates: ProductPreview[],
+  heroPrice: number
+): Set<string> {
+  const detected = new Set<string>();
+  const text = String(heroHtml || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ");
+
+  const giftSnippets: string[] = [];
+  for (const tm of heroTitle.matchAll(/\+\s*(?:free|gratis)\s+([^)!,+]{3,50})/gi)) {
+    giftSnippets.push(normalizeGiftTitle(tm[1]));
+  }
+
+  FREE_GIFT_BLOCK_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  let count = 0;
+  while ((m = FREE_GIFT_BLOCK_RE.exec(text)) !== null && count < 12) {
+    count++;
+    giftSnippets.push(
+      normalizeGiftTitle(
+        text.slice(Math.max(0, m.index - 150), Math.min(text.length, m.index + 1200))
+      )
+    );
+  }
+  if (giftSnippets.length === 0) return detected;
+
+  for (const prod of candidates) {
+    const pPrice = parseFloat(String(prod.price || "0").replace(/[^0-9.]/g, ""));
+    if (!Number.isFinite(pPrice) || pPrice <= 0) continue;
+    if (heroPrice > 0 && pPrice >= heroPrice * 0.35) continue;
+    const norm = normalizeGiftTitle(prod.title);
+    const shortNorm = normalizeGiftTitle(String(prod.title || "").split(/\s*[-–(|]\s*/)[0]);
+    if (norm.length < 4) continue;
+    if (
+      giftSnippets.some(
+        (snip) =>
+          snip.includes(norm) || (shortNorm.length >= 5 && snip.includes(shortNorm))
+      )
+    ) {
+      if (prod.handle) detected.add(prod.handle.toLowerCase());
+      detected.add(norm);
+    }
+  }
+  return detected;
+}
+
 export async function scrapeShopifyProducts(
   origin: string,
   currency: string
@@ -656,11 +729,42 @@ export async function scrapeShopifyProducts(
   foundedDate?: string;
   categories: string[];
 }> {
+  const isDkOrigin = origin.toLowerCase().includes(".dk");
+  const targetCountry = isDkOrigin ? "DK" : "US";
+  const targetCurrency = isDkOrigin ? "DKK" : currency || "USD";
+  const locHeaders = {
+    Cookie: `localization=${targetCountry}; cart_currency=${targetCurrency}`,
+  };
+
   const [bestHtmlRes, newestHtmlRes, allRes] = await Promise.all([
-    fetchWithTimeout(`${origin}/collections/all?sort_by=best-selling`, 6500),
-    fetchWithTimeout(`${origin}/collections/all?sort_by=created-descending`, 6500),
-    fetchWithTimeout(`${origin}/products.json?limit=250`, 7000),
+    fetchWithTimeout(
+      `${origin}/collections/all?sort_by=best-selling&country=${targetCountry}`,
+      6500,
+      locHeaders
+    ),
+    fetchWithTimeout(
+      `${origin}/collections/all?sort_by=created-descending&country=${targetCountry}`,
+      6500,
+      locHeaders
+    ),
+    fetchWithTimeout(
+      `${origin}/products.json?limit=250&country=${targetCountry}`,
+      7000,
+      locHeaders
+    ),
   ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isExcludedRawProduct = (p: any): boolean => {
+    const tagsStr = Array.isArray(p?.tags) ? p.tags.join(" ") : String(p?.tags || "");
+    const typeStr = String(p?.product_type || "");
+    const title = String(p?.title || "");
+    return (
+      EXCLUDED_SHOPIFY_TAG_RE.test(tagsStr) ||
+      EXCLUDED_SHOPIFY_TAG_RE.test(typeStr) ||
+      EXCLUDED_SHOPIFY_TITLE_RE.test(title)
+    );
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapProd = (p: any): ProductPreview => ({
@@ -669,7 +773,7 @@ export async function scrapeShopifyProducts(
     handle: p?.handle,
     price: p?.variants?.[0]?.price,
     compare_at_price: p?.variants?.[0]?.compare_at_price || undefined,
-    currency,
+    currency: targetCurrency,
     image_url: p?.images?.[0]?.src,
     url: p?.handle ? `${origin}/products/${p.handle}` : origin,
     created_at: p?.created_at,
@@ -697,8 +801,9 @@ export async function scrapeShopifyProducts(
       ? extractCollectionProductHandles(await newestHtmlRes.text().catch(() => ""))
       : [];
 
-  // Map full catalog by lowercase handle (filtering out 0-price freebies/add-ons)
+  // Map full catalog by lowercase handle (filtering out 0-price freebies, hidden SKUs & free gifts)
   const pricedProducts = allList
+    .filter((p) => !isExcludedRawProduct(p))
     .map(mapProd)
     .filter((p) => hasPositiveProductPrice(p.price));
 
@@ -722,13 +827,14 @@ export async function scrapeShopifyProducts(
     const fetchedMissing = await Promise.all(
       missingHandles.map(async (h) => {
         const res = await fetchWithTimeout(
-          `${origin}/products/${encodeURIComponent(h)}.json`,
-          4500
+          `${origin}/products/${encodeURIComponent(h)}.json?country=${targetCountry}`,
+          4500,
+          locHeaders
         );
         if (!res || !res.ok) return null;
         try {
           const json = await res.json();
-          if (!json?.product) return null;
+          if (!json?.product || isExcludedRawProduct(json.product)) return null;
           const mapped = mapProd(json.product);
           return hasPositiveProductPrice(mapped.price) ? mapped : null;
         } catch {
@@ -744,7 +850,7 @@ export async function scrapeShopifyProducts(
   }
 
   // 1. True Shopify Best-Selling order from /collections/all?sort_by=best-selling
-  const orderedBest: ProductPreview[] = [];
+  let orderedBest: ProductPreview[] = [];
   const usedBest = new Set<string>();
   for (const h of bestHandles) {
     const match = byHandle.get(h);
@@ -754,13 +860,39 @@ export async function scrapeShopifyProducts(
     }
   }
   for (const prod of pricedProducts) {
-    if (orderedBest.length >= 16) break;
+    if (orderedBest.length >= 20) break;
     const h = (prod.handle || prod.title).toLowerCase();
     if (!usedBest.has(h)) {
       orderedBest.push(prod);
       usedBest.add(h);
     }
   }
+
+  // Auto-detect & strip Free Gifts advertised on the #1 hero product page (e.g. Dreaver Kopholder/Beskyttelsesmåtte)
+  if (orderedBest.length >= 2 && orderedBest[0].url) {
+    const hero = orderedBest[0];
+    const heroPrice = parseFloat(String(hero.price || "0").replace(/[^0-9.]/g, ""));
+    const heroRes = await fetchWithTimeout(
+      `${hero.url}?country=${targetCountry}`,
+      5000,
+      locHeaders
+    );
+    const heroHtml = heroRes && heroRes.ok ? await heroRes.text().catch(() => "") : "";
+    const giftSet = detectFreeGiftHandlesFromHero(
+      hero.title,
+      heroHtml,
+      orderedBest.slice(1),
+      heroPrice
+    );
+    if (giftSet.size > 0) {
+      orderedBest = orderedBest.filter(
+        (p) =>
+          !(p.handle && giftSet.has(p.handle.toLowerCase())) &&
+          !giftSet.has(normalizeGiftTitle(p.title))
+      );
+    }
+  }
+
   const topProducts = orderedBest.slice(0, 16);
 
   // 2. True Shopify Newest order from /collections/all?sort_by=created-descending (fallback: created_at desc)
