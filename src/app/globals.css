@@ -403,13 +403,30 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   padding-top: env(safe-area-inset-top);
 }
 
-/* Compact stationary solid white header below safe-area-inset-top */
+/* Edge-to-edge app shell (fixes iOS standalone PWA ~34px bottom safe-area white gap) */
+.flake-app-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+}
+@media (max-width: 1023px) and (display-mode: standalone) {
+  .flake-app-shell {
+    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+    height: calc(100% + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Stationary solid white header sitting just below iOS 26's ~22px top blur tail
+   (minimum possible top margin while keeping the Flake wordmark 100% razor sharp) */
 .mobile-pwa-header {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
 }
 @media (display-mode: standalone) {
   .mobile-pwa-header {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 25px);
   }
 }
 

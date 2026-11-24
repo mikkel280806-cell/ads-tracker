@@ -777,7 +777,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   return (
     <>
-    <div className="fixed inset-0 flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
+    <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — FIXED APP SHELL FRAME (EXTENDS 24PX UNDER ROUNDED CORNER)
          ===================================================================== */}
@@ -1007,7 +1007,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         <main
           ref={workspaceScrollRef}
           data-scroll-root="true"
-          className="workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7F8FB] px-3.5 py-4 pb-28 text-[#0F172A] sm:px-6 lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
+          className="workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7F8FB] px-3.5 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] text-[#0F172A] sm:px-6 lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
         >
           {/* Global Live Toast */}
           {toast && (
