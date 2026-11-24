@@ -66,16 +66,33 @@ export async function GET() {
   }
 
   try {
+    // Paginate adtrack_ads in 1,000-row pages (Supabase PostgREST caps single requests at 1,000 rows)
+    const fetchAllAds = async () => {
+      const PAGE_SIZE = 1000;
+      const MAX_PAGES = 10; // up to 10,000 ads
+      const allRows: { payload: unknown }[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const from = page * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        const res = await supabase
+          .from("adtrack_ads")
+          .select("payload")
+          .order("started_running_at", { ascending: false })
+          .range(from, to);
+        if (res.error) return { data: null as { payload: unknown }[] | null, error: res.error };
+        const chunk = res.data || [];
+        allRows.push(...chunk);
+        if (chunk.length < PAGE_SIZE) break;
+      }
+      return { data: allRows, error: null };
+    };
+
     const [brandsRes, adsRes, foldersRes] = await Promise.all([
       supabase
         .from("adtrack_brands")
         .select("payload")
         .order("active_ads_count", { ascending: false }),
-      supabase
-        .from("adtrack_ads")
-        .select("payload")
-        .order("started_running_at", { ascending: false })
-        .limit(5000),
+      fetchAllAds(),
       supabase
         .from("adtrack_folders")
         .select("id, name, description, accent_color, created_at")

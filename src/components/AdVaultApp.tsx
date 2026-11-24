@@ -285,9 +285,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     const timer = window.setTimeout(() => {
       const persist = () => {
         try {
-          localStorage.setItem(STORAGE_KEYS.ads, JSON.stringify(ads));
           localStorage.setItem(STORAGE_KEYS.brands, JSON.stringify(brands));
           localStorage.setItem(STORAGE_KEYS.boards, JSON.stringify(boards));
+          // Cap localStorage ads cache to 600 items so iOS Safari never hits the 5MB quota
+          localStorage.setItem(STORAGE_KEYS.ads, JSON.stringify(ads.slice(0, 600)));
         } catch {
           // ignore quota errors
         }
