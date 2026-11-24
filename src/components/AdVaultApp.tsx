@@ -1119,7 +1119,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           <button
             type="button"
             data-no-glass="true"
-            className="mt-1 flex w-full items-center justify-between gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
+            className="!mt-4 flex w-full items-center justify-between gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
           >
             <span className="flex min-w-0 items-center gap-2.5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2A3142] font-display text-[13px] font-bold text-white ring-1 ring-white/15">
