@@ -16,11 +16,11 @@ import {
   Check,
   ChevronDown,
   Clock,
-  Compass,
   Folder,
   Info,
   ListFilter,
   Plus,
+  Radar,
   Search,
   Store,
 } from "lucide-react";
@@ -760,7 +760,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             }
           >
             <span className="flex items-center gap-2.5">
-              <Compass
+              <Radar
                 className="h-[17px] w-[17px]"
                 style={{ color: view === "explore" ? "#60A5FA" : undefined }}
               />
@@ -1367,7 +1367,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           />
           <GlassTabBarItem
             value="explore"
-            icon={<Compass strokeWidth={view === "explore" ? 2.25 : 1.85} />}
+            icon={<Radar strokeWidth={view === "explore" ? 2.25 : 1.85} />}
             label="Ads"
           />
           <GlassTabBarItem
