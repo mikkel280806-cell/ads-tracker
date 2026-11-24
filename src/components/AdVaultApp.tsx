@@ -16,9 +16,11 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ChevronsUpDown,
   Folder,
   Info,
   ListFilter,
+  PackagePlus,
   Plus,
   Radar,
   Search,
@@ -1061,6 +1063,44 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               );
             })}
           </div>
+        </div>
+
+        {/* Bottom Sidebar Footer: Chrome Extension + Profile Placeholder */}
+        <div className="relative z-10 mt-3 shrink-0 space-y-2 border-t border-white/[0.08] pt-3">
+          <button
+            type="button"
+            data-no-glass="true"
+            className="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-white/85 transition-colors hover:bg-white/[0.06] hover:text-white"
+          >
+            <span className="flex min-w-0 items-center gap-2.5">
+              <PackagePlus className="h-[17px] w-[17px] shrink-0 text-white/75" />
+              <span className="truncate">Chrome extension</span>
+            </span>
+            <span className="shrink-0 rounded-full bg-[#0027eb] px-2 py-0.5 text-[10.5px] font-semibold leading-none text-white">
+              New
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-no-glass="true"
+            className="flex w-full items-center justify-between gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
+          >
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0027eb] font-display text-[13px] font-bold text-white">
+                M
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate font-display text-[13px] font-semibold leading-tight text-white">
+                  Mikkel Petersen
+                </span>
+                <span className="block truncate text-[11px] leading-tight text-white/50">
+                  mikkel280806@gmail.com
+                </span>
+              </span>
+            </span>
+            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/45" />
+          </button>
         </div>
       </aside>
 
