@@ -1091,7 +1091,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               <PackagePlus className="h-[17px] w-[17px] shrink-0 text-white/75" />
               <span className="truncate">Chrome extension</span>
             </span>
-            <span className="my-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#4F6BFF] via-[#1B3EF8] to-[#0027eb] px-2.5 py-1 text-[10.5px] font-bold leading-none tracking-[0.01em] text-white ring-1 ring-[#7B92FF]/50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.38),0_2px_6px_rgba(0,39,235,0.35)]">
+            <span className="my-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#233985]/70 to-[#162457]/75 px-2 py-0.5 text-[10px] font-semibold leading-none tracking-[0.01em] text-[#B9CBFF] ring-1 ring-[#6B88FF]/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
               New
             </span>
           </button>
