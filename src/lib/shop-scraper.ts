@@ -1347,8 +1347,14 @@ export async function estimateHeroAovViaFirecrawl(opts: {
     const fallbackPrice = parseOfferNum(hero.price);
     const unitCandidates = windowPrices
       .filter((p) => {
-        const ctx = offerWindow.slice(Math.max(0, p.index - 24), p.index + 20);
-        return p.cur === detectedCurrency && !SAVE_RE.test(ctx) && !/free\s*shipping|fri\s*fragt/i.test(ctx);
+        const ctx = offerWindow.slice(Math.max(0, p.index - 40), p.index + 28);
+        return (
+          p.cur === detectedCurrency &&
+          !SAVE_RE.test(ctx) &&
+          !/free\s*shipping|fri\s*fragt|installment|interest-free|klarna|affirm|afterpay|shop\s*pay|\/mo\b|per\s*month|as\s*low\s*as|starting\s*at/i.test(
+            ctx
+          )
+        );
       })
       .map((p) => p.val);
     const singleUnit =
