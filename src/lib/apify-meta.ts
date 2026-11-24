@@ -1,4 +1,10 @@
-import type { Ad, DisplayFormat, MarketCode, MediaType } from "./types";
+import type {
+  Ad,
+  CountryReachBreakdown,
+  DisplayFormat,
+  MarketCode,
+  MediaType,
+} from "./types";
 import type { CompanyAdsResponse } from "./scrapecreators";
 import { dedupeAds } from "./url-parser";
 import {
@@ -37,6 +43,33 @@ interface CuriousCard {
   video_preview_image_url?: string;
 }
 
+interface CuriousAaaInfo {
+  eu_total_reach?: number;
+  gender_audience?: string;
+  age_audience?: {
+    min?: number;
+    max?: number;
+  };
+  location_audience?: Array<{
+    name?: string;
+    type?: string;
+    excluded?: boolean;
+  }>;
+  age_country_gender_reach_breakdown?: Array<{
+    country?: string;
+    age_gender_breakdowns?: Array<{
+      age_range?: string;
+      male?: number | null;
+      female?: number | null;
+      unknown?: number | null;
+    }>;
+  }>;
+  payer_beneficiary_data?: Array<{
+    payer?: string;
+    beneficiary?: string;
+  }>;
+}
+
 export interface CuriousCoderMetaAdItem {
   error?: string;
   errorCode?: string;
@@ -55,10 +88,12 @@ export interface CuriousCoderMetaAdItem {
   ads_count?: number;
   ad_library_url?: string;
   publisher_platform?: string[];
+  targeted_or_reached_countries?: string[];
   eu_total_reach?: number;
   reach_estimate?: number | string | null;
-  aaa_info?: {
-    eu_total_reach?: number;
+  aaa_info?: CuriousAaaInfo;
+  transparency_by_location?: {
+    eu_transparency?: CuriousAaaInfo;
   };
   impressions_with_index?: {
     impressions_text?: string | null;
@@ -99,6 +134,28 @@ function parseStartDate(rawStart?: number | string, formatted?: string): string 
   }
   return new Date().toISOString();
 }
+
+const COUNTRY_NAME_TO_CODE: Record<string, string> = {
+  denmark: "DK",
+  sweden: "SE",
+  norway: "NO",
+  germany: "DE",
+  france: "FR",
+  netherlands: "NL",
+  belgium: "BE",
+  austria: "AT",
+  switzerland: "CH",
+  spain: "ES",
+  italy: "IT",
+  poland: "PL",
+  finland: "FI",
+  ireland: "IE",
+  portugal: "PT",
+  "united kingdom": "GB",
+  "united states": "US",
+  canada: "CA",
+  australia: "AU",
+};
 
 function formatPlatformName(raw: string): string {
   const upper = raw.toUpperCase();
@@ -235,13 +292,66 @@ export function mapApifyMetaAd(
     fallbackBrand.defaultFallbackImage ||
     "";
 
+  const aaa = raw.aaa_info || raw.transparency_by_location?.eu_transparency;
   const euReach =
-    typeof raw.aaa_info?.eu_total_reach === "number" &&
-    raw.aaa_info.eu_total_reach > 0
-      ? raw.aaa_info.eu_total_reach
+    typeof aaa?.eu_total_reach === "number" && aaa.eu_total_reach > 0
+      ? aaa.eu_total_reach
       : typeof raw.eu_total_reach === "number" && raw.eu_total_reach > 0
         ? raw.eu_total_reach
         : undefined;
+
+  const audienceBreakdown: CountryReachBreakdown[] = (
+    Array.isArray(aaa?.age_country_gender_reach_breakdown)
+      ? aaa.age_country_gender_reach_breakdown
+      : []
+  )
+    .map((entry) => {
+      const rows = (
+        Array.isArray(entry.age_gender_breakdowns)
+          ? entry.age_gender_breakdowns
+          : []
+      )
+        .map((r) => ({
+          age_range: String(r.age_range || "Unknown"),
+          male: Number(r.male) || 0,
+          female: Number(r.female) || 0,
+          unknown: Number(r.unknown) || 0,
+        }))
+        .filter((r) => r.male + r.female + r.unknown > 0);
+      const totalReach = rows.reduce(
+        (sum, r) => sum + r.male + r.female + r.unknown,
+        0
+      );
+      return {
+        country: String(entry.country || "").toUpperCase(),
+        total_reach: totalReach,
+        age_gender_breakdowns: rows,
+      };
+    })
+    .filter((c) => Boolean(c.country) && c.total_reach > 0)
+    .sort((a, b) => b.total_reach - a.total_reach);
+
+  const countrySet = new Set<string>();
+  for (const c of audienceBreakdown) countrySet.add(c.country);
+  if (Array.isArray(raw.targeted_or_reached_countries)) {
+    for (const c of raw.targeted_or_reached_countries) {
+      const code = String(c || "").trim().toUpperCase();
+      if (code.length === 2) countrySet.add(code);
+    }
+  }
+  if (Array.isArray(aaa?.location_audience)) {
+    for (const loc of aaa.location_audience) {
+      if (loc?.excluded) continue;
+      const mapped =
+        COUNTRY_NAME_TO_CODE[String(loc?.name || "").trim().toLowerCase()];
+      if (mapped) countrySet.add(mapped);
+    }
+  }
+
+  const payerName =
+    aaa?.payer_beneficiary_data?.[0]?.payer ||
+    aaa?.payer_beneficiary_data?.[0]?.beneficiary ||
+    undefined;
 
   return {
     id: `meta-${archiveId}`,
@@ -276,6 +386,20 @@ export function mapApifyMetaAd(
     is_active: raw.is_active ?? true,
     started_running_at: startedAt,
     eu_reach: euReach,
+    gender_audience: aaa?.gender_audience || undefined,
+    age_min:
+      typeof aaa?.age_audience?.min === "number"
+        ? aaa.age_audience.min
+        : undefined,
+    age_max:
+      typeof aaa?.age_audience?.max === "number"
+        ? aaa.age_audience.max
+        : undefined,
+    targeted_countries:
+      countrySet.size > 0 ? Array.from(countrySet) : undefined,
+    audience_breakdown:
+      audienceBreakdown.length > 0 ? audienceBreakdown : undefined,
+    payer_name: payerName,
     duplicated_count: duplicatedCount,
     platforms,
     status: "ready",

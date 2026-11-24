@@ -29,6 +29,11 @@ import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types"
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import { dedupeAds, getActiveDays } from "@/lib/url-parser";
 import { buildAdRankIndex, sortAdsForExplore } from "@/lib/ad-ranking";
+import {
+  adMatchesAgeBucket,
+  getCountryDisplay,
+  summarizeAdAudience,
+} from "@/lib/audience-insights";
 import { preloadFeedWindow } from "@/lib/media-preloader";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
@@ -50,7 +55,10 @@ import {
 } from "@/components/ui/FlakeDropdown";
 
 type ActiveView = "shops" | "explore" | "folders";
-type SortOption = "top" | "longest" | "duplicated" | "newest";
+type SortOption = "top" | "reach" | "longest" | "duplicated" | "newest";
+type MinReachFilter = "all" | "10k" | "50k" | "100k" | "500k";
+type GenderFilter = "all" | "Women" | "Men" | "All";
+type AgeFilter = "all" | "18-24" | "25-34" | "35-44" | "45-54" | "55+";
 
 const STORAGE_KEYS = {
   ads: "adtrack_ads_v7",
@@ -101,6 +109,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const deferredSearch = useDeferredValue(search);
   const [marketFilter, setMarketFilter] = useState<"ALL" | MarketCode>("ALL");
   const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image" | "carousel">("all");
+  const [platformFilter, setPlatformFilter] = useState<string>("all");
+  const [countryFilter, setCountryFilter] = useState<string>("all");
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
+  const [ageFilter, setAgeFilter] = useState<AgeFilter>("all");
+  const [minReachFilter, setMinReachFilter] = useState<MinReachFilter>("all");
+  const [scaledOnly, setScaledOnly] = useState<boolean>(false);
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
   const [rankMin, setRankMin] = useState<number | null>(null);
@@ -532,6 +546,39 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         if (timeFilter === "30d" && days > 30) return false;
         if (timeFilter === "90d" && days > 90) return false;
       }
+      if (platformFilter !== "all") {
+        if (!(ad.platforms || []).includes(platformFilter)) return false;
+      }
+      if (countryFilter !== "all") {
+        const inTargeted = (ad.targeted_countries || []).includes(countryFilter);
+        const inBreakdown = (ad.audience_breakdown || []).some(
+          (b) => b.country === countryFilter
+        );
+        if (!inTargeted && !inBreakdown) return false;
+      }
+      if (genderFilter !== "all") {
+        const aud = summarizeAdAudience(ad);
+        if (!aud.hasBreakdown && !aud.targetGender) return false;
+        if (aud.dominantGender !== genderFilter) return false;
+      }
+      if (ageFilter !== "all") {
+        if (!adMatchesAgeBucket(ad, ageFilter)) return false;
+      }
+      if (minReachFilter !== "all") {
+        const reach = ad.eu_reach || 0;
+        const threshold =
+          minReachFilter === "500k"
+            ? 500_000
+            : minReachFilter === "100k"
+              ? 100_000
+              : minReachFilter === "50k"
+                ? 50_000
+                : 10_000;
+        if (reach < threshold) return false;
+      }
+      if (scaledOnly && (ad.duplicated_count || 1) < 3) {
+        return false;
+      }
       if (rankMin !== null || rankMax !== null) {
         const meta = adRankIndex.get(ad.id);
         const br = meta?.brandRank ?? 999;
@@ -559,6 +606,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
     if (sortBy !== "top") {
       return [...list].sort((a, b) => {
+        if (sortBy === "reach") {
+          const diff = (b.eu_reach || 0) - (a.eu_reach || 0);
+          if (diff !== 0) return diff;
+          return (
+            (adRankIndex.get(b.id)?.winnerScore || 0) -
+            (adRankIndex.get(a.id)?.winnerScore || 0)
+          );
+        }
         if (sortBy === "longest") {
           return getActiveDays(b.started_running_at) - getActiveDays(a.started_running_at);
         }
@@ -579,6 +634,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     marketFilter,
     brandFilter,
     mediaFilter,
+    platformFilter,
+    countryFilter,
+    genderFilter,
+    ageFilter,
+    minReachFilter,
+    scaledOnly,
     timeFilter,
     rankMin,
     rankMax,
@@ -597,13 +658,20 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     return cols;
   }, [visibleAds, visibleLimit, masonryCols]);
 
-  const activeFilterCount = mediaFilter !== "all" ? 1 : 0;
+  const activeFilterCount =
+    (mediaFilter !== "all" ? 1 : 0) +
+    (platformFilter !== "all" ? 1 : 0) +
+    (countryFilter !== "all" ? 1 : 0) +
+    (genderFilter !== "all" ? 1 : 0) +
+    (ageFilter !== "all" ? 1 : 0) +
+    (minReachFilter !== "all" ? 1 : 0) +
+    (scaledOnly ? 1 : 0);
 
   const hasAnyAdsFilter =
     marketFilter !== "ALL" ||
     brandFilter !== "all" ||
     timeFilter !== "all" ||
-    mediaFilter !== "all" ||
+    activeFilterCount > 0 ||
     rankMin !== null ||
     rankMax !== null ||
     search.trim().length > 0;
@@ -613,6 +681,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     setBrandFilter("all");
     setTimeFilter("all");
     setMediaFilter("all");
+    setPlatformFilter("all");
+    setCountryFilter("all");
+    setGenderFilter("all");
+    setAgeFilter("all");
+    setMinReachFilter("all");
+    setScaledOnly(false);
     setRankMin(null);
     setRankMax(null);
     setRankMinDraft("");
@@ -729,9 +803,26 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     [paidAds]
   );
 
+  const availableAdCountries = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ad of paidAds) {
+      const codes = new Set<string>();
+      for (const c of ad.targeted_countries || []) codes.add(c);
+      for (const b of ad.audience_breakdown || []) codes.add(b.country);
+      for (const code of codes) {
+        if (code) counts.set(code, (counts.get(code) || 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([code, count]) => ({ ...getCountryDisplay(code), count }));
+  }, [paidAds]);
+
   const sortSelectOptions = useMemo<FlakeSelectOption[]>(
     () => [
       { value: "top", label: "Top Performing" },
+      { value: "reach", label: "Highest Reach" },
       { value: "newest", label: "Newest" },
       { value: "longest", label: "Longest Active" },
       { value: "duplicated", label: "Most Duplicated" },
@@ -1246,7 +1337,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         <div className="flex items-start gap-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-3 text-[12px] leading-[1.45] text-[#475569]">
                           <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
                           <p>
-                            Ads are ranked by comparing impressions to other ads from their brand. The lower the rank, the better the ad is performing.
+                            Ads are ranked within each brand by reach, scaling and active runtime. The lower the rank, the stronger the ad is performing.
                           </p>
                         </div>
                       </div>
@@ -1318,32 +1409,248 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       onOpenChange={setFiltersOpen}
                       anchorRef={filtersTriggerRef}
                       align="right"
-                      width={264}
+                      width={330}
+                      maxHeight={480}
                     >
-                      <div className="space-y-3.5 p-3.5">
+                      <div className="workspace-scroll space-y-3.5 overflow-y-auto overscroll-contain p-3.5">
+                        {/* Format */}
                         <div>
                           <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
                             Format
                           </p>
-                          <div className="grid grid-cols-2 gap-1.5 text-xs font-medium">
-                            {(["all", "video", "image", "carousel"] as const).map((fmt) => (
+                          <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                            {(
+                              [
+                                { id: "all", label: "Alle" },
+                                { id: "video", label: "Video" },
+                                { id: "image", label: "Image" },
+                                { id: "carousel", label: "Carousel" },
+                              ] as const
+                            ).map((fmt) => (
                               <button
-                                key={fmt}
+                                key={fmt.id}
                                 type="button"
                                 onClick={() => {
-                                  setMediaFilter(fmt);
+                                  setMediaFilter(fmt.id);
                                   setVisibleLimit(48);
                                 }}
-                                className={`rounded-lg border px-2.5 py-1.5 capitalize transition-colors ${
-                                  mediaFilter === fmt
+                                className={`rounded-lg py-1 transition-all ${
+                                  mediaFilter === fmt.id
+                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                                    : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                {fmt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Platform */}
+                        <div>
+                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                            Platform
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
+                            {[
+                              { id: "all", label: "Alle" },
+                              { id: "Facebook", label: "Facebook" },
+                              { id: "Instagram", label: "Instagram" },
+                              { id: "Messenger", label: "Messenger" },
+                              { id: "Threads", label: "Threads" },
+                            ].map((p) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => {
+                                  setPlatformFilter(p.id);
+                                  setVisibleLimit(48);
+                                }}
+                                className={`rounded-lg border px-2.5 py-1 transition-colors ${
+                                  platformFilter === p.id
                                     ? "border-[#0F172A] bg-[#0F172A] text-white"
                                     : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
                                 }`}
                               >
-                                {fmt === "all" ? "Alle formater" : fmt}
+                                {p.label}
                               </button>
                             ))}
                           </div>
+                        </div>
+
+                        {/* Min. Real Reach */}
+                        <div>
+                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                            Min. Reach (Meta)
+                          </p>
+                          <div className="grid grid-cols-5 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                            {(
+                              [
+                                { id: "all", label: "Alle" },
+                                { id: "10k", label: "10K+" },
+                                { id: "50k", label: "50K+" },
+                                { id: "100k", label: "100K+" },
+                                { id: "500k", label: "500K+" },
+                              ] as const
+                            ).map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => {
+                                  setMinReachFilter(opt.id);
+                                  setVisibleLimit(48);
+                                }}
+                                className={`rounded-lg py-1 transition-all ${
+                                  minReachFilter === opt.id
+                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                                    : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Målgruppe: Køn */}
+                        <div>
+                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                            Målgruppe · Køn
+                          </p>
+                          <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                            {(
+                              [
+                                { id: "all", label: "Alle" },
+                                { id: "Women", label: "Kvinder" },
+                                { id: "Men", label: "Mænd" },
+                                { id: "All", label: "Begge" },
+                              ] as const
+                            ).map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => {
+                                  setGenderFilter(opt.id);
+                                  setVisibleLimit(48);
+                                }}
+                                className={`rounded-lg py-1 transition-all ${
+                                  genderFilter === opt.id
+                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                                    : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Målgruppe: Aldersgruppe */}
+                        <div>
+                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                            Målgruppe · Aldersgruppe
+                          </p>
+                          <div className="grid grid-cols-3 gap-1.5 text-[11.5px] font-medium">
+                            {(
+                              [
+                                { id: "all", label: "Alle aldre" },
+                                { id: "18-24", label: "18–24" },
+                                { id: "25-34", label: "25–34" },
+                                { id: "35-44", label: "35–44" },
+                                { id: "45-54", label: "45–54" },
+                                { id: "55+", label: "55+" },
+                              ] as const
+                            ).map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => {
+                                  setAgeFilter(opt.id);
+                                  setVisibleLimit(48);
+                                }}
+                                className={`rounded-lg border px-2 py-1 transition-colors ${
+                                  ageFilter === opt.id
+                                    ? "border-[#0F172A] bg-[#0F172A] text-white"
+                                    : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Land (from real Meta targeted / reached countries) */}
+                        {availableAdCountries.length > 0 && (
+                          <div>
+                            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                              Land (Reach)
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCountryFilter("all");
+                                  setVisibleLimit(48);
+                                }}
+                                className={`rounded-lg border px-2.5 py-1 transition-colors ${
+                                  countryFilter === "all"
+                                    ? "border-[#0F172A] bg-[#0F172A] text-white"
+                                    : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
+                                }`}
+                              >
+                                Alle
+                              </button>
+                              {availableAdCountries.map((c) => (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setCountryFilter(c.code);
+                                    setVisibleLimit(48);
+                                  }}
+                                  className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 transition-colors ${
+                                    countryFilter === c.code
+                                      ? "border-[#0F172A] bg-[#0F172A] text-white"
+                                      : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
+                                  }`}
+                                >
+                                  <span>{c.flag}</span>
+                                  <span>{c.code}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Scaled Ads Toggle */}
+                        <div className="flex items-center justify-between rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-3 py-2">
+                          <div>
+                            <p className="text-[12px] font-semibold text-[#0F172A]">
+                              Kun skalerede ads
+                            </p>
+                            <p className="text-[10.5px] text-[#64748B]">
+                              3+ aktive duplikater
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={scaledOnly}
+                            onClick={() => {
+                              setScaledOnly((v) => !v);
+                              setVisibleLimit(48);
+                            }}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                              scaledOnly ? "bg-[#0027eb]" : "bg-[#CBD5E1]"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-xs transition-transform ${
+                                scaledOnly ? "translate-x-[18px]" : "translate-x-[3px]"
+                              }`}
+                            />
+                          </button>
                         </div>
 
                         {activeFilterCount > 0 && (
@@ -1351,6 +1658,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             type="button"
                             onClick={() => {
                               setMediaFilter("all");
+                              setPlatformFilter("all");
+                              setCountryFilter("all");
+                              setGenderFilter("all");
+                              setAgeFilter("all");
+                              setMinReachFilter("all");
+                              setScaledOnly(false);
                               setVisibleLimit(48);
                             }}
                             className="w-full rounded-xl border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"

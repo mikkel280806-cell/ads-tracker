@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Eye,
   Film,
+  Globe,
   Image as ImageIcon,
   Layers,
   Link2,
@@ -23,11 +24,13 @@ import {
   StickyNote,
   Trash2,
   Upload,
+  Users,
   VolumeX,
   X,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import type { AdRankingMeta } from "@/lib/ad-ranking";
+import { summarizeAdAudience } from "@/lib/audience-insights";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
 import { preloadImage, preloadVideo } from "@/lib/media-preloader";
 import {
@@ -235,6 +238,11 @@ export function AdDetailSheet({
   const activeDays = useMemo(
     () => (ad ? getActiveDays(ad.started_running_at) : 0),
     [ad]
+  );
+
+  const audience = useMemo(
+    () => (ad && !isOrganic ? summarizeAdAudience(ad) : null),
+    [ad, isOrganic]
   );
 
   // Stop any synced audio element when switching or closing video
@@ -1388,20 +1396,61 @@ export function AdDetailSheet({
                     </span>
                   </div>
 
-                  {/* Impressions */}
-                  {rankMeta && (
+                  {/* Real Meta Reach (only shown when real scraper reach data exists — no fake Est. impressions) */}
+                  {typeof ad.eu_reach === "number" && ad.eu_reach > 0 && (
                     <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
-                      <span className="text-[#64748B]">Impressions</span>
+                      <span className="text-[#64748B]">Reach</span>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="font-mono-num font-semibold text-[#0F172A]">
-                          {formatReach(rankMeta.impressions)}
+                          {formatReach(ad.eu_reach)}
                         </span>
                         <span className="font-mono-num text-[11px] text-[#64748B]">
-                          (~{formatReach(rankMeta.dailyImpressions)}/day)
+                          ({formatReach(Math.max(1, Math.round(ad.eu_reach / Math.max(1, activeDays))))}/dag)
                         </span>
-                        <span className="rounded-md bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#64748B]">
-                          {rankMeta.impressionsSource === "meta_eu" ? "EU" : "Est."}
-                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Countries */}
+                  {audience && audience.countries.length > 0 && (
+                    <div className="grid grid-cols-[118px_1fr] items-start gap-3 py-2.5">
+                      <span className="pt-0.5 text-[#64748B]">Lande</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {audience.countries.slice(0, 6).map((c) => (
+                          <span
+                            key={c.code}
+                            title={`${c.name}${c.reach > 0 ? ` — ${formatReach(c.reach)} reach (${c.pct}%)` : ""}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#0F172A]"
+                          >
+                            <span>{c.flag}</span>
+                            <span>{c.code}</span>
+                            {c.pct > 0 && audience.countries.length > 1 && (
+                              <span className="text-[#64748B]">{c.pct}%</span>
+                            )}
+                          </span>
+                        ))}
+                        {audience.countries.length > 6 && (
+                          <span className="rounded-lg bg-[#F1F5F9] px-1.5 py-0.5 font-mono-num text-[10.5px] font-semibold text-[#64748B]">
+                            +{audience.countries.length - 6}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Platforms */}
+                  {ad.platforms && ad.platforms.length > 0 && (
+                    <div className="grid grid-cols-[118px_1fr] items-start gap-3 py-2.5">
+                      <span className="pt-0.5 text-[#64748B]">Platforms</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {ad.platforms.map((plat) => (
+                          <span
+                            key={plat}
+                            className="inline-flex items-center rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2 py-0.5 text-[11px] font-medium text-[#334155]"
+                          >
+                            {plat}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1503,6 +1552,160 @@ export function AdDetailSheet({
                     </div>
                   )}
                 </div>
+                )}
+              </div>
+            )}
+
+            {/* SMART MÅLGRUPPE / AUDIENCE INTELLIGENCE CARD (Paid Meta Ads with real breakdown/targeting) */}
+            {rightTab === "details" && !isOrganic && audience && audience.hasData && (
+              <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4 space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="h-4 w-4 text-[#0027eb]" />
+                    <h3 className="font-display text-[14px] font-bold text-[#0F172A]">
+                      Målgruppe
+                    </h3>
+                  </div>
+                  {audience.totalReach > 0 && (
+                    <span className="rounded-lg bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155]">
+                      {formatReach(audience.totalReach)} reach
+                    </span>
+                  )}
+                </div>
+
+                {/* Smart Danish Audience Headline */}
+                {audience.headline && (
+                  <div className="rounded-xl border border-[#E6ECFF] bg-[#F5F8FF] px-3 py-2 text-[12px] font-semibold text-[#0F172A]">
+                    {audience.headline}
+                  </div>
+                )}
+
+                {/* Gender Split Bar */}
+                {(audience.hasBreakdown || audience.targetGender) && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11.5px]">
+                      <span className="font-medium text-[#334155]">
+                        Kvinder{" "}
+                        <span className="font-mono-num font-bold text-[#0F172A]">
+                          {audience.femalePct}%
+                        </span>
+                        {audience.femaleReach > 0 && (
+                          <span className="ml-1 font-mono-num text-[10.5px] text-[#94A3B8]">
+                            ({formatReach(audience.femaleReach)})
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium text-[#334155]">
+                        Mænd{" "}
+                        <span className="font-mono-num font-bold text-[#0F172A]">
+                          {audience.malePct}%
+                        </span>
+                        {audience.maleReach > 0 && (
+                          <span className="ml-1 font-mono-num text-[10.5px] text-[#94A3B8]">
+                            ({formatReach(audience.maleReach)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex h-2 w-full overflow-hidden rounded-full bg-[#EEF2F6]">
+                      {audience.femalePct > 0 && (
+                        <div
+                          className="h-full bg-[#0027eb] transition-all duration-300"
+                          style={{ width: `${audience.femalePct}%` }}
+                        />
+                      )}
+                      {audience.malePct > 0 && (
+                        <div
+                          className="h-full bg-[#94A3B8] transition-all duration-300"
+                          style={{ width: `${audience.malePct}%` }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Age Distribution Bars */}
+                {audience.hasBreakdown && (
+                  <div className="space-y-1.5 pt-0.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      <span>Aldersfordeling</span>
+                      {audience.peakAgeRange && (
+                        <span className="normal-case tracking-normal text-[#0027eb]">
+                          Top: {audience.peakAgeRange} år
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      {audience.ageBands.map((band) => {
+                        const isPeak = band.ageRange === audience.peakAgeRange && band.total > 0;
+                        return (
+                          <div
+                            key={band.ageRange}
+                            className="grid grid-cols-[44px_1fr_68px] items-center gap-2 text-[11.5px]"
+                          >
+                            <span
+                              className={`font-mono-num ${
+                                isPeak
+                                  ? "font-bold text-[#0F172A]"
+                                  : "font-medium text-[#64748B]"
+                              }`}
+                            >
+                              {band.ageRange}
+                            </span>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-[#F1F5F9]">
+                              <div
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${Math.max(band.total > 0 ? 3 : 0, band.pct)}%`,
+                                  backgroundColor: isPeak ? "#0027eb" : "#CBD5E1",
+                                }}
+                              />
+                            </div>
+                            <span className="text-right font-mono-num text-[11px] text-[#475569]">
+                              <strong className={isPeak ? "text-[#0F172A]" : "font-semibold text-[#334155]"}>
+                                {band.pct}%
+                              </strong>
+                              {band.total > 0 ? ` · ${formatReach(band.total)}` : ""}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Multi-Country Reach Breakdown */}
+                {audience.countries.length > 1 && audience.countries[0].reach > 0 && (
+                  <div className="space-y-1.5 border-t border-[#F1F5F9] pt-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      <Globe className="h-3 w-3" />
+                      <span>Top lande (Reach)</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {audience.countries.slice(0, 6).map((c) => (
+                        <span
+                          key={c.code}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#ECEFF5] bg-[#FAFBFD] px-2 py-1 font-mono-num text-[11px] text-[#334155]"
+                        >
+                          <span>{c.flag}</span>
+                          <span className="font-semibold text-[#0F172A]">{c.name}</span>
+                          <span className="text-[#64748B]">
+                            {c.pct}% ({formatReach(c.reach)})
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payer / Beneficiary Transparency Footer */}
+                {ad.payer_name && (
+                  <div className="flex items-center justify-between gap-2 border-t border-[#F1F5F9] pt-2.5 text-[11px] text-[#64748B]">
+                    <span>Annoncør / Betaler</span>
+                    <span className="truncate font-medium text-[#334155]">
+                      {ad.payer_name}
+                    </span>
+                  </div>
                 )}
               </div>
             )}

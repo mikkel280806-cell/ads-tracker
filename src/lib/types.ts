@@ -17,6 +17,19 @@ export interface CountryShare {
   pct: number;
 }
 
+export interface AgeGenderReachRow {
+  age_range: string;
+  male: number;
+  female: number;
+  unknown: number;
+}
+
+export interface CountryReachBreakdown {
+  country: string;
+  total_reach: number;
+  age_gender_breakdowns: AgeGenderReachRow[];
+}
+
 export interface TrafficPoint {
   label: string;
   visits: number;
@@ -134,6 +147,12 @@ export interface Ad {
   is_active: boolean;
   started_running_at: string;
   eu_reach?: number;
+  gender_audience?: string;
+  age_min?: number;
+  age_max?: number;
+  targeted_countries?: string[];
+  audience_breakdown?: CountryReachBreakdown[];
+  payer_name?: string;
   estimated_spend?: number;
   daily_spend?: number;
   duplicated_count?: number;

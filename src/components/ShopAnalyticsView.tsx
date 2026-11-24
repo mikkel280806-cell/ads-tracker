@@ -30,6 +30,10 @@ import {
 import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/types";
 import { getTechMeta } from "@/lib/tech-catalog";
 import { buildAdRankIndex } from "@/lib/ad-ranking";
+import {
+  estimateShopRevenueSummary,
+  summarizeAdsAudience,
+} from "@/lib/audience-insights";
 import { dedupeAds, formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
 import { MasonryGrid } from "./MasonryGrid";
@@ -386,7 +390,7 @@ export function ShopAnalyticsView({
   void _onUpdateBrand;
   const [mainTab, setMainTab] = useState<MainTab>("analytics");
   const [metaSubTab, setMetaSubTab] = useState<MetaSubTab>("library");
-  const [metaSort, setMetaSort] = useState<"top" | "longest" | "duplicated">("top");
+  const [metaSort, setMetaSort] = useState<"top" | "reach" | "longest" | "duplicated">("top");
   const [creativeFormat, setCreativeFormat] = useState<"all" | "video" | "image" | "carousel">("all");
   const [hookCategoryFilter, setHookCategoryFilter] = useState<string>("all");
 
@@ -440,124 +444,33 @@ export function ShopAnalyticsView({
   const savedInFolders = (brand.folder_ids || []).length > 0;
 
   // Estimate Monthly Revenue from Monthly Visits × Est. CVR (~2%) × Est. AOV (bestsellers + bundles)
-  const revenueEstimate = useMemo(() => {
-    const visits = brand.monthly_visits || 0;
-    const bestsellers = (brand.top_products && brand.top_products.length > 0
-      ? brand.top_products
-      : brand.latest_products || []
-    ).slice(0, 12);
+  const revenueEstimate = useMemo(
+    () => estimateShopRevenueSummary(brand),
+    [brand]
+  );
 
-    const rawCurrency = (
-      bestsellers.find((p) => p.currency)?.currency ||
-      brand.currency ||
-      (brand.market === "DK" ? "DKK" : "USD")
-    ).toUpperCase();
-    const currency: "DKK" | "EUR" | "GBP" | "USD" =
-      rawCurrency === "DKK" || rawCurrency === "KR"
-        ? "DKK"
-        : rawCurrency === "EUR"
-          ? "EUR"
-          : rawCurrency === "GBP"
-            ? "GBP"
-            : "USD";
+  // Aggregated Real Meta Audience & Reach intelligence across all of this shop's scraped ads
+  const shopAudience = useMemo(
+    () => summarizeAdsAudience(brandAds),
+    [brandAds]
+  );
 
-    const parseNumericPrice = (raw?: string): number | null => {
-      if (!raw) return null;
-      const cleaned = raw.replace(/[^0-9.,]/g, "").trim();
-      if (!cleaned) return null;
-      // Handle EU thousands/decimal format (e.g. "1.299,00" or "399,00") vs US ("1,299.00")
-      let normalized = cleaned;
-      if (cleaned.includes(",") && cleaned.includes(".")) {
-        normalized =
-          cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")
-            ? cleaned.replace(/\./g, "").replace(",", ".")
-            : cleaned.replace(/,/g, "");
-      } else if (cleaned.includes(",")) {
-        const parts = cleaned.split(",");
-        normalized =
-          parts[parts.length - 1].length <= 2
-            ? cleaned.replace(",", ".")
-            : cleaned.replace(/,/g, "");
+  const platformMix = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ad of brandAds) {
+      for (const p of ad.platforms || []) {
+        counts.set(p, (counts.get(p) || 0) + 1);
       }
-      const n = Number(normalized);
-      return Number.isFinite(n) && n > 0 ? n : null;
-    };
-
-    const prices = bestsellers
-      .map((p) => parseNumericPrice(p.price))
-      .filter((n): n is number => n !== null)
-      .sort((a, b) => a - b);
-
-    const medianPrice =
-      prices.length > 0
-        ? prices[Math.floor(prices.length / 2)]
-        : currency === "DKK"
-          ? 399
-          : 58;
-
-    const BUNDLE_TITLE_RE =
-      /\b(bundle|kit|set|pack|duo|trio|combo|system|sæt|pakke|starter|routine|value|multipack|complete|2-pack|3-pack|4-pack)\b/i;
-    const BUNDLE_APP_RE =
-      /rebuy|kaching|wide bundles|vitals|upcart|aftersell|zipify|bundle/i;
-
-    const bundleProductsCount = bestsellers.filter((p) =>
-      BUNDLE_TITLE_RE.test(p.title || "")
-    ).length;
-    const hasBundleApp = (brand.shopify_apps || []).some((app) =>
-      BUNDLE_APP_RE.test(app)
-    );
-    const hasBundles = bundleProductsCount > 0 || hasBundleApp;
-
-    const aovMultiplier = bundleProductsCount >= 2 ? 1.32 : hasBundles ? 1.24 : 1.12;
-    const estAov = Math.round(medianPrice * aovMultiplier);
-
-    // Convert to USD equivalent to calibrate CVR realistically across price tiers (~2% DTC baseline)
-    const aovUsd =
-      currency === "DKK"
-        ? estAov / 6.9
-        : currency === "EUR"
-          ? estAov * 1.08
-          : currency === "GBP"
-            ? estAov * 1.27
-            : estAov;
-
-    let cvrPct = 2.0;
-    if (aovUsd >= 600) cvrPct = 1.2;
-    else if (aovUsd >= 250) cvrPct = 1.6;
-    else if (aovUsd <= 35) cvrPct = 2.4;
-    if (hasBundles && aovUsd < 250) cvrPct = Number((cvrPct + 0.1).toFixed(1));
-
-    const monthlyRevenue = Math.round(visits * (cvrPct / 100) * estAov);
-
-    const formatCompactMoney = (val: number) => {
-      const abs = Math.abs(val);
-      let numStr: string;
-      if (abs >= 1_000_000) numStr = `${(val / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-      else if (abs >= 1_000) numStr = `${Math.round(val / 1_000)}K`;
-      else numStr = `${Math.round(val)}`;
-      if (currency === "DKK") return `${numStr.replace(".", ",")} kr.`;
-      if (currency === "EUR") return `€${numStr}`;
-      if (currency === "GBP") return `£${numStr}`;
-      return `$${numStr}`;
-    };
-
-    const formatAov = (val: number) => {
-      if (currency === "DKK") return `${val.toLocaleString("da-DK")} kr.`;
-      if (currency === "EUR") return `€${val.toLocaleString("en-US")}`;
-      if (currency === "GBP") return `£${val.toLocaleString("en-US")}`;
-      return `$${val.toLocaleString("en-US")}`;
-    };
-
-    return {
-      monthlyRevenue,
-      formattedRevenue: visits > 0 ? formatCompactMoney(monthlyRevenue) : "—",
-      formattedAov: formatAov(estAov),
-      cvrPct,
-      hasBundles,
-      bundleProductsCount,
-      basedOnPrices: prices.length,
-    };
-  }, [brand]);
+    }
+    const total = Math.max(1, brandAds.length);
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({
+        name,
+        count,
+        pct: Math.round((count / total) * 100),
+      }));
+  }, [brandAds]);
 
   // Compute Media Mix (Videos, Images, DCO, Carousel)
   const mediaMix = useMemo(() => {
@@ -727,6 +640,10 @@ export function ShopAnalyticsView({
   // Sorted Meta Ads for Ad Library tab
   const sortedMetaAds = useMemo(() => {
     return [...brandAds].sort((a, b) => {
+      if (metaSort === "reach") {
+        const diff = (b.eu_reach || 0) - (a.eu_reach || 0);
+        if (diff !== 0) return diff;
+      }
       if (metaSort === "longest") {
         return getActiveDays(b.started_running_at) - getActiveDays(a.started_running_at);
       }
@@ -1420,6 +1337,180 @@ export function ShopAnalyticsView({
             </div>
           </div>
 
+          {/* SMART MÅLGRUPPE & REAL META REACH CARD (Aggregated from scraped Meta Transparency breakdowns) */}
+          {shopAudience.hasData && (
+            <div className="adtrack-card rounded-2xl p-5">
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-[#0027eb]" />
+                    <h2 className="font-display text-[15px] font-bold text-[#0F172A]">
+                      Målgruppe &amp; Meta Reach
+                    </h2>
+                    {shopAudience.totalReach > 0 && (
+                      <span className="rounded-lg bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155]">
+                        {formatReach(shopAudience.totalReach)} reach ({shopAudience.adsWithReach} ads)
+                      </span>
+                    )}
+                  </div>
+                  {shopAudience.headline && (
+                    <p className="mt-1 text-[12.5px] font-medium text-[#475569]">
+                      Primær målgruppe:{" "}
+                      <span className="font-semibold text-[#0F172A]">
+                        {shopAudience.headline}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                {platformMix.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {platformMix.slice(0, 5).map((p) => (
+                      <span
+                        key={p.name}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#ECEFF5] bg-[#FAFBFD] px-2 py-1 text-[11px] font-medium text-[#334155]"
+                      >
+                        <span>{p.name}</span>
+                        <span className="font-mono-num text-[#64748B]">{p.pct}%</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+                {/* Left: Gender Split + Top Countries (5 cols) */}
+                <div className="space-y-4 lg:col-span-5">
+                  <div className="space-y-2 rounded-xl border border-[#EFF2F6] bg-[#FAFBFD] p-3.5">
+                    <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      Kønsfordeling
+                    </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-[#334155]">
+                        Kvinder{" "}
+                        <strong className="font-mono-num text-[#0F172A]">
+                          {shopAudience.femalePct}%
+                        </strong>
+                        {shopAudience.femaleReach > 0 && (
+                          <span className="ml-1 font-mono-num text-[11px] text-[#94A3B8]">
+                            ({formatReach(shopAudience.femaleReach)})
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium text-[#334155]">
+                        Mænd{" "}
+                        <strong className="font-mono-num text-[#0F172A]">
+                          {shopAudience.malePct}%
+                        </strong>
+                        {shopAudience.maleReach > 0 && (
+                          <span className="ml-1 font-mono-num text-[11px] text-[#94A3B8]">
+                            ({formatReach(shopAudience.maleReach)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#E2E8F0]">
+                      {shopAudience.femalePct > 0 && (
+                        <div
+                          className="h-full bg-[#0027eb]"
+                          style={{ width: `${shopAudience.femalePct}%` }}
+                        />
+                      )}
+                      {shopAudience.malePct > 0 && (
+                        <div
+                          className="h-full bg-[#94A3B8]"
+                          style={{ width: `${shopAudience.malePct}%` }}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {shopAudience.countries.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                        Lande (Meta Reach)
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {shopAudience.countries.slice(0, 8).map((c) => (
+                          <span
+                            key={c.code}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[11.5px] text-[#334155]"
+                          >
+                            <span>{c.flag}</span>
+                            <span className="font-semibold text-[#0F172A]">{c.name}</span>
+                            {c.pct > 0 && (
+                              <span className="text-[#64748B]">
+                                {c.pct}%
+                                {c.reach > 0 ? ` · ${formatReach(c.reach)}` : ""}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Age Distribution Bars (7 cols) */}
+                {shopAudience.hasBreakdown && (
+                  <div className="space-y-2 rounded-xl border border-[#EFF2F6] bg-[#FAFBFD] p-3.5 lg:col-span-7">
+                    <div className="flex items-center justify-between text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      <span>Aldersfordeling</span>
+                      {shopAudience.peakAgeRange && (
+                        <span className="normal-case tracking-normal text-[#0027eb]">
+                          Største segment: {shopAudience.peakAgeRange} år
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2 pt-0.5">
+                      {shopAudience.ageBands.map((band) => {
+                        const isPeak =
+                          band.ageRange === shopAudience.peakAgeRange && band.total > 0;
+                        return (
+                          <div
+                            key={band.ageRange}
+                            className="grid grid-cols-[48px_1fr_84px] items-center gap-2.5 text-xs"
+                          >
+                            <span
+                              className={`font-mono-num ${
+                                isPeak
+                                  ? "font-bold text-[#0F172A]"
+                                  : "font-medium text-[#64748B]"
+                              }`}
+                            >
+                              {band.ageRange}
+                            </span>
+                            <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#E8ECF3]">
+                              <div
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${Math.max(band.total > 0 ? 3 : 0, band.pct)}%`,
+                                  backgroundColor: isPeak ? "#0027eb" : "#CBD5E1",
+                                }}
+                              />
+                            </div>
+                            <span className="text-right font-mono-num text-[11.5px] text-[#475569]">
+                              <strong
+                                className={
+                                  isPeak
+                                    ? "text-[#0F172A]"
+                                    : "font-semibold text-[#334155]"
+                                }
+                              >
+                                {band.pct}%
+                              </strong>
+                              {band.total > 0 ? ` · ${formatReach(band.total)}` : ""}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 2-COLUMN PRODUCTS + PIXELS / SHOPIFY APPS ROW (Exact Trendtrack Layout!) */}
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
             {/* Products Card (7 cols) */}
@@ -1824,9 +1915,12 @@ export function ShopAnalyticsView({
 
               {/* Ranked Sort Strip + Ad Grid */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F5F7FA] p-1 text-xs font-semibold">
+                <div className="inline-flex flex-wrap rounded-xl border border-[#E6E9F0] bg-[#F5F7FA] p-1 text-xs font-semibold">
                   {[
                     { id: "top" as const, label: "Top Performing" },
+                    ...(shopAudience.totalReach > 0
+                      ? [{ id: "reach" as const, label: "Highest Reach" }]
+                      : []),
                     { id: "longest" as const, label: "Longest Active" },
                     { id: "duplicated" as const, label: "Most Duplicated" },
                   ].map((s) => (

@@ -31,6 +31,10 @@ import type {
 } from "@/lib/types";
 import { formatReach } from "@/lib/url-parser";
 import {
+  estimateShopRevenueSummary,
+  summarizeAdsAudience,
+} from "@/lib/audience-insights";
+import {
   MetaInfinityIcon,
   ShopifyBagIcon,
   TechBrandIcon,
@@ -50,9 +54,12 @@ interface ShopsTableViewProps {
   onToggleBrandFolder: (brandId: string, boardId: string) => void;
 }
 
-type SortKey = "ads" | "visits" | "growth" | "trustpilot" | "products" | "tech";
+type SortKey = "ads" | "visits" | "revenue" | "growth" | "trustpilot" | "products" | "tech";
 type MinAdsFilter = "all" | "50" | "250" | "1000" | "5000";
 type MinVisitsFilter = "all" | "50k" | "250k" | "1m";
+type MinRevenueFilter = "all" | "100k" | "500k" | "1m";
+type AudienceGenderFilter = "all" | "Women" | "Men" | "All";
+type ProductsRangeFilter = "all" | "small" | "medium" | "large";
 type GrowthFilter = "all" | "positive" | "fast";
 type TrustpilotFilter = "all" | "4.0" | "4.5";
 type PlatformFilter = "all" | "shopify";
@@ -209,6 +216,12 @@ export const ShopsTableView = React.memo(function ShopsTableView({
   const [techFilter, setTechFilter] = useState<string>("all");
   const [minAdsFilter, setMinAdsFilter] = useState<MinAdsFilter>("all");
   const [minVisitsFilter, setMinVisitsFilter] = useState<MinVisitsFilter>("all");
+  const [minRevenueFilter, setMinRevenueFilter] = useState<MinRevenueFilter>("all");
+  const [audienceGenderFilter, setAudienceGenderFilter] =
+    useState<AudienceGenderFilter>("all");
+  const [productsRangeFilter, setProductsRangeFilter] =
+    useState<ProductsRangeFilter>("all");
+  const [bundlesOnly, setBundlesOnly] = useState<boolean>(false);
   const [growthFilter, setGrowthFilter] = useState<GrowthFilter>("all");
   const [trustpilotFilter, setTrustpilotFilter] = useState<TrustpilotFilter>("all");
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
@@ -241,6 +254,22 @@ export const ShopsTableView = React.memo(function ShopsTableView({
     }
     return map;
   }, [ads]);
+
+  const revenueByBrand = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof estimateShopRevenueSummary>>();
+    for (const b of brands) {
+      map.set(b.id, estimateShopRevenueSummary(b));
+    }
+    return map;
+  }, [brands]);
+
+  const audienceByBrand = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof summarizeAdsAudience>>();
+    for (const b of brands) {
+      map.set(b.id, summarizeAdsAudience(adsByBrand.get(b.id) || []));
+    }
+    return map;
+  }, [brands, adsByBrand]);
 
   const runBrandLookup = async (rawQuery: string) => {
     const q = rawQuery.trim();
@@ -330,6 +359,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
     () => [
       { value: "ads", label: "Flest Live Ads" },
       { value: "visits", label: "Højest Visits" },
+      { value: "revenue", label: "Højest Est. Revenue" },
       { value: "growth", label: "Størst Vækst" },
       { value: "trustpilot", label: "Højest Trustpilot" },
       { value: "products", label: "Flest Produkter" },
@@ -341,6 +371,10 @@ export const ShopsTableView = React.memo(function ShopsTableView({
   const advancedFilterCount =
     (minAdsFilter !== "all" ? 1 : 0) +
     (minVisitsFilter !== "all" ? 1 : 0) +
+    (minRevenueFilter !== "all" ? 1 : 0) +
+    (audienceGenderFilter !== "all" ? 1 : 0) +
+    (productsRangeFilter !== "all" ? 1 : 0) +
+    (bundlesOnly ? 1 : 0) +
     (growthFilter !== "all" ? 1 : 0) +
     (trustpilotFilter !== "all" ? 1 : 0) +
     (platformFilter !== "all" ? 1 : 0);
@@ -358,6 +392,10 @@ export const ShopsTableView = React.memo(function ShopsTableView({
     setTechFilter("all");
     setMinAdsFilter("all");
     setMinVisitsFilter("all");
+    setMinRevenueFilter("all");
+    setAudienceGenderFilter("all");
+    setProductsRangeFilter("all");
+    setBundlesOnly(false);
     setGrowthFilter("all");
     setTrustpilotFilter("all");
     setPlatformFilter("all");
@@ -390,6 +428,30 @@ export const ShopsTableView = React.memo(function ShopsTableView({
               ? 250_000
               : 50_000;
         if (visits < threshold) return false;
+      }
+      if (minRevenueFilter !== "all") {
+        const revUsd = revenueByBrand.get(b.id)?.monthlyRevenueUsd || 0;
+        const threshold =
+          minRevenueFilter === "1m"
+            ? 1_000_000
+            : minRevenueFilter === "500k"
+              ? 500_000
+              : 100_000;
+        if (revUsd < threshold) return false;
+      }
+      if (audienceGenderFilter !== "all") {
+        const aud = audienceByBrand.get(b.id);
+        if (!aud || (!aud.hasBreakdown && !aud.targetGender)) return false;
+        if (aud.dominantGender !== audienceGenderFilter) return false;
+      }
+      if (productsRangeFilter !== "all") {
+        const count = b.products_count ?? (b.top_products?.length || 0);
+        if (productsRangeFilter === "small" && (count < 1 || count > 20)) return false;
+        if (productsRangeFilter === "medium" && (count <= 20 || count > 100)) return false;
+        if (productsRangeFilter === "large" && count <= 100) return false;
+      }
+      if (bundlesOnly && !revenueByBrand.get(b.id)?.hasBundles) {
+        return false;
       }
       if (growthFilter === "positive" && (b.traffic_growth_pct ?? 0) <= 0) {
         return false;
@@ -427,6 +489,12 @@ export const ShopsTableView = React.memo(function ShopsTableView({
       if (sortBy === "visits") {
         return (b.monthly_visits || 0) - (a.monthly_visits || 0);
       }
+      if (sortBy === "revenue") {
+        return (
+          (revenueByBrand.get(b.id)?.monthlyRevenueUsd || 0) -
+          (revenueByBrand.get(a.id)?.monthlyRevenueUsd || 0)
+        );
+      }
       if (sortBy === "growth") {
         return (b.traffic_growth_pct ?? -999) - (a.traffic_growth_pct ?? -999);
       }
@@ -446,11 +514,17 @@ export const ShopsTableView = React.memo(function ShopsTableView({
   }, [
     brands,
     adsByBrand,
+    revenueByBrand,
+    audienceByBrand,
     marketFilter,
     categoryFilter,
     techFilter,
     minAdsFilter,
     minVisitsFilter,
+    minRevenueFilter,
+    audienceGenderFilter,
+    productsRangeFilter,
+    bundlesOnly,
     growthFilter,
     trustpilotFilter,
     platformFilter,
@@ -725,8 +799,8 @@ export const ShopsTableView = React.memo(function ShopsTableView({
               onOpenChange={setFiltersOpen}
               anchorRef={filtersTriggerRef}
               align="right"
-              width={310}
-              maxHeight={420}
+              width={330}
+              maxHeight={480}
             >
               <div className="workspace-scroll space-y-3.5 overflow-y-auto overscroll-contain p-3.5">
                 {/* Live Meta Ads */}
@@ -880,12 +954,133 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                   </div>
                 </div>
 
+                {/* Est. Monthly Revenue */}
+                <div>
+                  <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Est. Monthly Revenue
+                  </p>
+                  <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                    {(
+                      [
+                        { id: "all", label: "Alle" },
+                        { id: "100k", label: "$100K+" },
+                        { id: "500k", label: "$500K+" },
+                        { id: "1m", label: "$1M+" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setMinRevenueFilter(opt.id)}
+                        className={`rounded-lg py-1 transition-all ${
+                          minRevenueFilter === opt.id
+                            ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Målgruppe (Køn) */}
+                <div>
+                  <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Målgruppe · Køn
+                  </p>
+                  <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                    {(
+                      [
+                        { id: "all", label: "Alle" },
+                        { id: "Women", label: "Kvinder" },
+                        { id: "Men", label: "Mænd" },
+                        { id: "All", label: "Unisex" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setAudienceGenderFilter(opt.id)}
+                        className={`rounded-lg py-1 transition-all ${
+                          audienceGenderFilter === opt.id
+                            ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Antal Produkter */}
+                <div>
+                  <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Antal Produkter
+                  </p>
+                  <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                    {(
+                      [
+                        { id: "all", label: "Alle" },
+                        { id: "small", label: "1–20" },
+                        { id: "medium", label: "20–100" },
+                        { id: "large", label: "100+" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setProductsRangeFilter(opt.id)}
+                        className={`rounded-lg py-1 transition-all ${
+                          productsRangeFilter === opt.id
+                            ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bundles Toggle */}
+                <div className="flex items-center justify-between rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-3 py-2">
+                  <div>
+                    <p className="text-[12px] font-semibold text-[#0F172A]">
+                      Kun shops med bundles
+                    </p>
+                    <p className="text-[10.5px] text-[#64748B]">
+                      Bundle-produkter eller bundle-apps
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={bundlesOnly}
+                    onClick={() => setBundlesOnly((v) => !v)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                      bundlesOnly ? "bg-[#0027eb]" : "bg-[#CBD5E1]"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-xs transition-transform ${
+                        bundlesOnly ? "translate-x-[18px]" : "translate-x-[3px]"
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 {advancedFilterCount > 0 && (
                   <button
                     type="button"
                     onClick={() => {
                       setMinAdsFilter("all");
                       setMinVisitsFilter("all");
+                      setMinRevenueFilter("all");
+                      setAudienceGenderFilter("all");
+                      setProductsRangeFilter("all");
+                      setBundlesOnly(false);
                       setGrowthFilter("all");
                       setTrustpilotFilter("all");
                       setPlatformFilter("all");
