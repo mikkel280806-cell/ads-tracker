@@ -383,6 +383,13 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     syncCatalog({ action: "upsert_ad", ad: updatedAd });
   };
 
+  const handleDeleteAd = (adId: string) => {
+    setAds((prev) => prev.filter((a) => a.id !== adId));
+    if (activeAdId === adId) setActiveAdId(null);
+    syncCatalog({ action: "delete_ad", adId });
+    showToast("Medie slettet");
+  };
+
   const handleUpdateBrand = (brandId: string, patch: Partial<Brand>, freshAds?: Ad[]) => {
     const existing = brands.find((b) => b.id === brandId);
     if (!existing) return;
@@ -1501,12 +1508,15 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         adsList={
           selectedShop
             ? dedupedAds.filter((a) => a.brand_id === selectedShop.id)
-            : visibleAds
+            : view === "folders" && selectedFolderId
+              ? ads.filter((a) => a.board_ids.includes(selectedFolderId))
+              : visibleAds
         }
         boards={boards}
         onClose={() => setActiveAdId(null)}
         onSelectAd={(id) => setActiveAdId(id)}
         onUpdateAd={handleUpdateAd}
+        onDeleteAd={handleDeleteAd}
         onToggleBoard={handleToggleBoard}
         onOpenBrand={openShopAnalytics}
       />

@@ -257,11 +257,13 @@ export async function POST(request: NextRequest) {
         | "upsert_brand"
         | "upsert_brand_and_ads"
         | "upsert_ad"
+        | "delete_ad"
         | "upsert_folder"
         | "delete_folder";
       brand?: Brand;
       ads?: Ad[];
       ad?: Ad;
+      adId?: string;
       folder?: Board;
       folderId?: string;
     };
@@ -291,6 +293,14 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase
         .from("adtrack_ads")
         .upsert(toAdRow(body.ad), { onConflict: "id" });
+      if (error) throw error;
+    }
+
+    if (body.action === "delete_ad" && body.adId) {
+      const { error } = await supabase
+        .from("adtrack_ads")
+        .delete()
+        .eq("id", body.adId);
       if (error) throw error;
     }
 

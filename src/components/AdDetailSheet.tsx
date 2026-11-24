@@ -17,8 +17,12 @@ import {
   Image as ImageIcon,
   Layers,
   Link2,
+  Loader2,
   MousePointerClick,
+  Pencil,
   StickyNote,
+  Trash2,
+  Upload,
   VolumeX,
   X,
 } from "lucide-react";
@@ -41,6 +45,7 @@ interface AdDetailSheetProps {
   onClose: () => void;
   onSelectAd?: (adId: string) => void;
   onUpdateAd: (adId: string, patch: Partial<Ad>) => void;
+  onDeleteAd?: (adId: string) => void;
   onToggleBoard: (adId: string, boardId: string) => void;
   onOpenBrand?: (brandId: string) => void;
 }
@@ -71,6 +76,7 @@ export function AdDetailSheet({
   onClose,
   onSelectAd,
   onUpdateAd,
+  onDeleteAd,
   onToggleBoard,
   onOpenBrand,
 }: AdDetailSheetProps) {
@@ -80,6 +86,130 @@ export function AdDetailSheet({
   const folderBtnRef = useRef<HTMLButtonElement | null>(null);
   const [rightTab, setRightTab] = useState<"details" | "script">("details");
   const [failedAdId, setFailedAdId] = useState<string | null>(null);
+
+  // Inline edit state for uploaded / imported organic media
+  const [editingMedia, setEditingMedia] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editHandle, setEditHandle] = useState("");
+  const [editCaption, setEditCaption] = useState("");
+  const [editSourceUrl, setEditSourceUrl] = useState("");
+  const [editThumbUrl, setEditThumbUrl] = useState("");
+  const [editMediaUrl, setEditMediaUrl] = useState("");
+  const [editMediaType, setEditMediaType] = useState<"video" | "image">("video");
+  const [uploadingAsset, setUploadingAsset] = useState<"thumb" | "media" | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const thumbFileRef = useRef<HTMLInputElement | null>(null);
+  const mediaFileRef = useRef<HTMLInputElement | null>(null);
+
+  // Reset inline edit state when switching ads
+  useEffect(() => {
+    setEditingMedia(false);
+    setConfirmDelete(false);
+    setEditError(null);
+    setUploadingAsset(null);
+  }, [ad?.id]);
+
+  const startEditMedia = () => {
+    if (!ad) return;
+    setEditTitle(ad.brand_name || ad.headline || "");
+    setEditHandle(ad.brand_handle || "");
+    setEditCaption(ad.primary_text || "");
+    setEditSourceUrl(ad.source_url || "");
+    setEditThumbUrl(ad.thumbnail_url || "");
+    setEditMediaUrl(ad.media_url || "");
+    setEditMediaType(ad.media_type === "video" ? "video" : "image");
+    setEditError(null);
+    setConfirmDelete(false);
+    setEditingMedia(true);
+  };
+
+  const uploadReplacementAsset = async (
+    file: File,
+    kind: "thumb" | "media"
+  ) => {
+    if (file.size > 50 * 1024 * 1024) {
+      setEditError("Filen er over 50 MB grænsen.");
+      return;
+    }
+    setUploadingAsset(kind);
+    setEditError(null);
+    try {
+      const signRes = await fetch("/api/folder-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sign_upload",
+          filename: file.name || (kind === "thumb" ? "cover.jpg" : "media.mp4"),
+          contentType: file.type || (kind === "thumb" ? "image/jpeg" : "video/mp4"),
+        }),
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok || !signData.ok || !signData.uploadUrl || !signData.publicUrl) {
+        throw new Error(signData.error || "Kunne ikke klargøre upload.");
+      }
+      const fd = new FormData();
+      fd.append("cacheControl", "3600");
+      fd.append("", file, file.name || (kind === "thumb" ? "cover.jpg" : "media.mp4"));
+      const putRes = await fetch(signData.uploadUrl, {
+        method: "PUT",
+        body: fd,
+      });
+      if (!putRes.ok) {
+        throw new Error(`Upload fejlede (HTTP ${putRes.status}).`);
+      }
+      if (kind === "thumb") {
+        setEditThumbUrl(signData.publicUrl);
+      } else {
+        const isImg =
+          file.type.startsWith("image/") ||
+          /\.(jpg|jpeg|png|webp|gif|heic)$/i.test(file.name);
+        setEditMediaUrl(signData.publicUrl);
+        setEditMediaType(isImg ? "image" : "video");
+        if (isImg) setEditThumbUrl(signData.publicUrl);
+      }
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Upload fejlede.");
+    } finally {
+      setUploadingAsset(null);
+    }
+  };
+
+  const saveEditMedia = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ad) return;
+    const cleanTitle = editTitle.trim() || ad.brand_name || "Upload";
+    const cleanHandle = editHandle.trim();
+    const cleanCaption = editCaption.trim();
+    const cleanSource = editSourceUrl.trim();
+    const initials = cleanTitle
+      .replace(/^@/, "")
+      .split(/\s+/)
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "UP";
+
+    const nextMediaUrl = editMediaUrl || ad.media_url;
+    const nextThumbUrl = editThumbUrl || ad.thumbnail_url || nextMediaUrl;
+
+    onUpdateAd(ad.id, {
+      brand_name: cleanTitle,
+      headline: cleanTitle,
+      brand_handle: cleanHandle || ad.brand_handle,
+      brand_avatar_initials: initials,
+      primary_text: cleanCaption,
+      extracted_hook: cleanCaption.split(/[.!?\n]/)[0]?.slice(0, 110) || cleanTitle,
+      source_url: cleanSource || ad.source_url,
+      media_url: nextMediaUrl,
+      thumbnail_url: nextThumbUrl,
+      media_type: editMediaType,
+      display_format: editMediaType === "video" ? "VIDEO" : "IMAGE",
+      ai_format: editMediaType === "video" ? "Organic Video" : "Organic Image",
+    });
+    setFailedAdId(null);
+    setEditingMedia(false);
+  };
 
   // Video transcription state (Deepgram Nova-2 — automatic on video open)
   const [transcribing, setTranscribing] = useState(false);
@@ -932,11 +1062,185 @@ export function AdDetailSheet({
 
             {rightTab === "details" && (
               <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
-                <h3 className="mb-3.5 font-display text-[14px] font-bold text-[#0F172A]">
-                  {isOrganic ? "Video Details" : "Details"}
-                </h3>
+                <div className="mb-3.5 flex items-center justify-between gap-2">
+                  <h3 className="font-display text-[14px] font-bold text-[#0F172A]">
+                    {isOrganic ? "Video Details" : "Details"}
+                  </h3>
+                  {isOrganic && !editingMedia && (
+                    <button
+                      type="button"
+                      onClick={startEditMedia}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-white px-2.5 py-1 text-[11.5px] font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Rediger
+                    </button>
+                  )}
+                </div>
 
-                {isOrganic ? (
+                {isOrganic && editingMedia ? (
+                  <form onSubmit={saveEditMedia} className="space-y-3 text-xs">
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-[#475569]">
+                        {isInstagram ? "Creator / Titel" : "Titel"}
+                      </label>
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Navn eller titel..."
+                        className="w-full rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3 py-2 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-[#475569]">
+                        Handle / Tag
+                      </label>
+                      <input
+                        type="text"
+                        value={editHandle}
+                        onChange={(e) => setEditHandle(e.target.value)}
+                        placeholder="@creator eller kategori..."
+                        className="w-full rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3 py-2 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-[#475569]">
+                        Beskrivelse / Caption
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editCaption}
+                        onChange={(e) => setEditCaption(e.target.value)}
+                        placeholder="Tilføj beskrivelse, hook eller kontekst..."
+                        className="w-full resize-none rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3 py-2 text-[16px] leading-relaxed text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-[#475569]">
+                        Kildelink (valgfrit)
+                      </label>
+                      <input
+                        type="url"
+                        value={editSourceUrl}
+                        onChange={(e) => setEditSourceUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3 py-2 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-xs"
+                      />
+                    </div>
+
+                    {/* Replace Media File or Cover Thumbnail */}
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
+                      <input
+                        ref={thumbFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void uploadReplacementAsset(f, "thumb");
+                          e.target.value = "";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={uploadingAsset !== null}
+                        onClick={() => thumbFileRef.current?.click()}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E2E6EF] bg-white px-2.5 py-2 text-[11.5px] font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A] disabled:opacity-50"
+                      >
+                        {uploadingAsset === "thumb" ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ImageIcon className="h-3.5 w-3.5" />
+                        )}
+                        Skift cover
+                      </button>
+
+                      <input
+                        ref={mediaFileRef}
+                        type="file"
+                        accept="video/*,image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void uploadReplacementAsset(f, "media");
+                          e.target.value = "";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={uploadingAsset !== null}
+                        onClick={() => mediaFileRef.current?.click()}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E2E6EF] bg-white px-2.5 py-2 text-[11.5px] font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A] disabled:opacity-50"
+                      >
+                        {uploadingAsset === "media" ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5" />
+                        )}
+                        Udskift fil
+                      </button>
+                    </div>
+
+                    {editError && (
+                      <p className="rounded-xl bg-[#FFF1F2] px-3 py-2 text-[11.5px] font-medium text-[#E11D48]">
+                        {editError}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 border-t border-[#F1F5F9] pt-3">
+                      {onDeleteAd ? (
+                        confirmDelete ? (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteAd(ad.id)}
+                            className="inline-flex items-center gap-1 rounded-xl bg-[#E11D48] px-3 py-1.5 text-[11.5px] font-semibold text-white"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Bekræft slet
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            data-no-glass="true"
+                            onClick={() => setConfirmDelete(true)}
+                            className="inline-flex items-center gap-1 rounded-xl px-2 py-1.5 text-[11.5px] font-semibold text-[#E11D48] hover:bg-[#FFF1F2]"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Slet
+                          </button>
+                        )
+                      ) : (
+                        <span />
+                      )}
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingMedia(false);
+                            setConfirmDelete(false);
+                            setEditError(null);
+                          }}
+                          className="rounded-xl px-3 py-1.5 text-[11.5px] font-semibold text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+                        >
+                          Annuller
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={uploadingAsset !== null}
+                          className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[11.5px] font-semibold text-white disabled:opacity-50"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          Gem
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                ) : isOrganic ? (
                   <div className="divide-y divide-[#F3F5F9] text-[12.5px]">
                     {/* Source */}
                     <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
