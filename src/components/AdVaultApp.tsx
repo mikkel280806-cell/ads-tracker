@@ -300,6 +300,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   }, []);
 
   const handleToggleBoard = useCallback((adId: string, boardId: string) => {
+    let adToArchive: Ad | null = null;
     setAds((prev) => {
       const existing = prev.find((a) => a.id === adId);
       if (!existing) return prev;
@@ -311,8 +312,45 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           : [...existing.board_ids, boardId],
       };
       syncCatalog({ action: "upsert_ad", ad: updatedAd });
+      // Foreplay-style permanent archiving: whenever an ad is saved to a folder,
+      // permanently mirror its expiring Meta CDN video & thumbnail into our own storage!
+      if (
+        !hasBoard &&
+        (updatedAd.media_url.includes("fbcdn.net") ||
+          updatedAd.thumbnail_url.includes("fbcdn.net"))
+      ) {
+        adToArchive = updatedAd;
+      }
       return prev.map((a) => (a.id === adId ? updatedAd : a));
     });
+
+    if (adToArchive) {
+      const snapshot = adToArchive as Ad;
+      fetch("/api/archive-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ad: snapshot }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.ok && data.archived && data.ad) {
+            setAds((prev) =>
+              prev.map((a) =>
+                a.id === snapshot.id
+                  ? {
+                      ...a,
+                      media_url: data.ad.media_url,
+                      thumbnail_url: data.ad.thumbnail_url,
+                      fallback_image_url: data.ad.fallback_image_url,
+                      audio_url: data.ad.audio_url,
+                    }
+                  : a
+              )
+            );
+          }
+        })
+        .catch(() => {});
+    }
   }, []);
 
   const handleToggleBrandFolder = (brandId: string, boardId: string) => {
