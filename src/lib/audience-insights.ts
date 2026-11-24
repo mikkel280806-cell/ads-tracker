@@ -356,8 +356,55 @@ export function adMatchesAgeBucket(ad: Ad, bucket: string): boolean {
   return summary.peakAgeRange === bucket || (band ? band.pct >= 28 : false);
 }
 
+export const FX_TO_DKK: Record<string, number> = {
+  DKK: 1,
+  KR: 1,
+  USD: 6.95,
+  EUR: 7.46,
+  GBP: 8.85,
+  AUD: 4.55,
+  CAD: 4.95,
+  SEK: 0.65,
+  NOK: 0.63,
+};
+
+export function convertToDkk(amount: number, rawCurrency?: string): number {
+  const cur = (rawCurrency || "USD").trim().toUpperCase();
+  const rate = FX_TO_DKK[cur] ?? FX_TO_DKK.USD;
+  return amount * rate;
+}
+
+export function formatProductPriceDkk(
+  rawPrice?: string,
+  rawCurrency?: string
+): string {
+  if (!rawPrice) return "";
+  const trimmed = rawPrice.trim();
+  if (!trimmed) return "";
+
+  const num = parseNumericPrice(trimmed);
+  if (num === null) return trimmed;
+
+  let cur = (rawCurrency || "").trim().toUpperCase();
+  if (!cur) {
+    if (trimmed.startsWith("$") || /\bUSD\b/i.test(trimmed)) cur = "USD";
+    else if (trimmed.startsWith("€") || /\bEUR\b/i.test(trimmed)) cur = "EUR";
+    else if (trimmed.startsWith("£") || /\bGBP\b/i.test(trimmed)) cur = "GBP";
+    else if (/\bAUD\b|A\$/i.test(trimmed)) cur = "AUD";
+    else if (/\bCAD\b|CA\$/i.test(trimmed)) cur = "CAD";
+    else if (/\bSEK\b/i.test(trimmed)) cur = "SEK";
+    else if (/\bNOK\b/i.test(trimmed)) cur = "NOK";
+    else if (/\bDKK\b|kr\.?$/i.test(trimmed)) cur = "DKK";
+    else cur = "USD";
+  }
+
+  const dkk = Math.round(convertToDkk(num, cur));
+  return `${dkk.toLocaleString("da-DK")} kr.`;
+}
+
 export interface ShopRevenueEstimate {
   monthlyRevenue: number;
+  monthlyRevenueDkk: number;
   monthlyRevenueUsd: number;
   formattedRevenue: string;
   formattedAov: string;
@@ -365,7 +412,7 @@ export interface ShopRevenueEstimate {
   hasBundles: boolean;
   bundleProductsCount: number;
   basedOnPrices: number;
-  currency: "DKK" | "EUR" | "GBP" | "USD";
+  currency: "DKK";
   aovSource: "firecrawl" | "estimated";
   aovNote?: string;
 }
@@ -401,11 +448,10 @@ function parseNumericPrice(raw?: string): number | null {
 function normalizeCurrency(
   rawCurrency?: string,
   market?: Brand["market"]
-): "DKK" | "EUR" | "GBP" | "USD" {
+): string {
   const c = (rawCurrency || (market === "DK" ? "DKK" : "USD")).toUpperCase();
-  if (c === "DKK" || c === "KR") return "DKK";
-  if (c === "EUR") return "EUR";
-  if (c === "GBP") return "GBP";
+  if (c === "KR") return "DKK";
+  if (FX_TO_DKK[c]) return c;
   return "USD";
 }
 
@@ -451,7 +497,7 @@ export function estimateShopRevenueSummary(
     }
   }
 
-  let currency: "DKK" | "EUR" | "GBP" | "USD";
+  let currency: string;
   let estAov: number;
   let aovSource: "firecrawl" | "estimated" = "estimated";
   let basedOnPrices = 0;
@@ -527,14 +573,8 @@ export function estimateShopRevenueSummary(
     }
   }
 
-  const aovUsd =
-    currency === "DKK"
-      ? estAov / 6.9
-      : currency === "EUR"
-        ? estAov * 1.08
-        : currency === "GBP"
-          ? estAov * 1.27
-          : estAov;
+  const aovDkk = Math.round(convertToDkk(estAov, currency));
+  const aovUsd = aovDkk / FX_TO_DKK.USD;
 
   let cvrPct = 2.0;
   if (aovUsd >= 600) cvrPct = 1.2;
@@ -542,38 +582,29 @@ export function estimateShopRevenueSummary(
   else if (aovUsd <= 35) cvrPct = 2.3;
   if (hasBundles && aovUsd < 250) cvrPct = Number((cvrPct + 0.1).toFixed(1));
 
-  const monthlyRevenue = Math.round(visits * (cvrPct / 100) * estAov);
+  const monthlyRevenueDkk = Math.round(visits * (cvrPct / 100) * aovDkk);
   const monthlyRevenueUsd = Math.round(visits * (cvrPct / 100) * aovUsd);
 
-  const formatCompactMoney = (val: number) => {
+  const formatCompactDkk = (val: number) => {
     const abs = Math.abs(val);
     let numStr: string;
     if (abs >= 1_000_000) numStr = `${(val / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
     else if (abs >= 1_000) numStr = `${Math.round(val / 1_000)}K`;
     else numStr = `${Math.round(val)}`;
-    if (currency === "DKK") return `${numStr.replace(".", ",")} kr.`;
-    if (currency === "EUR") return `€${numStr}`;
-    if (currency === "GBP") return `£${numStr}`;
-    return `$${numStr}`;
-  };
-
-  const formatAov = (val: number) => {
-    if (currency === "DKK") return `${val.toLocaleString("da-DK")} kr.`;
-    if (currency === "EUR") return `€${val.toLocaleString("en-US")}`;
-    if (currency === "GBP") return `£${val.toLocaleString("en-US")}`;
-    return `$${val.toLocaleString("en-US")}`;
+    return `${numStr.replace(".", ",")} kr.`;
   };
 
   return {
-    monthlyRevenue,
+    monthlyRevenue: monthlyRevenueDkk,
+    monthlyRevenueDkk,
     monthlyRevenueUsd,
-    formattedRevenue: visits > 0 ? formatCompactMoney(monthlyRevenue) : "—",
-    formattedAov: formatAov(estAov),
+    formattedRevenue: visits > 0 ? formatCompactDkk(monthlyRevenueDkk) : "—",
+    formattedAov: `${aovDkk.toLocaleString("da-DK")} kr.`,
     cvrPct,
     hasBundles,
     bundleProductsCount,
     basedOnPrices,
-    currency,
+    currency: "DKK",
     aovSource,
     aovNote: brand.aov_note,
   };

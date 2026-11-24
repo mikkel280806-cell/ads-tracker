@@ -430,14 +430,14 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         if (visits < threshold) return false;
       }
       if (minRevenueFilter !== "all") {
-        const revUsd = revenueByBrand.get(b.id)?.monthlyRevenueUsd || 0;
+        const revDkk = revenueByBrand.get(b.id)?.monthlyRevenueDkk || 0;
         const threshold =
           minRevenueFilter === "1m"
-            ? 1_000_000
+            ? 5_000_000
             : minRevenueFilter === "500k"
-              ? 500_000
-              : 100_000;
-        if (revUsd < threshold) return false;
+              ? 2_000_000
+              : 500_000;
+        if (revDkk < threshold) return false;
       }
       if (audienceGenderFilter !== "all") {
         const aud = audienceByBrand.get(b.id);
@@ -940,18 +940,18 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                   </div>
                 </div>
 
-                {/* Est. Monthly Revenue */}
+                {/* Est. Monthly Revenue (DKK) */}
                 <div>
                   <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                    Est. Monthly Revenue
+                    Est. Monthly Revenue (kr.)
                   </p>
                   <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
                     {(
                       [
                         { id: "all", label: "Alle" },
-                        { id: "100k", label: "$100K+" },
-                        { id: "500k", label: "$500K+" },
-                        { id: "1m", label: "$1M+" },
+                        { id: "100k", label: "500K+" },
+                        { id: "500k", label: "2M+" },
+                        { id: "1m", label: "5M+" },
                       ] as const
                     ).map((opt) => (
                       <button

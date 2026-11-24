@@ -32,6 +32,7 @@ import { getTechMeta } from "@/lib/tech-catalog";
 import { buildAdRankIndex } from "@/lib/ad-ranking";
 import {
   estimateShopRevenueSummary,
+  formatProductPriceDkk,
   summarizeAdsAudience,
 } from "@/lib/audience-insights";
 import { dedupeAds, formatReach, getActiveDays, isDedicatedLandingPage } from "@/lib/url-parser";
@@ -62,27 +63,7 @@ type MainTab = "analytics" | "meta_ads" | "products";
 type MetaSubTab = "library" | "creatives" | "copies" | "headlines" | "hooks" | "lp";
 
 function formatProductPrice(rawPrice?: string, rawCurrency?: string): string {
-  if (!rawPrice) return "";
-  const trimmed = rawPrice.trim();
-  if (!trimmed) return "";
-
-  // Strip currency codes/symbols already embedded in price string
-  const numericOnly = trimmed
-    .replace(/^(USD|EUR|GBP|DKK|SEK|NOK|CAD|AUD|\$|€|£)\s*/i, "")
-    .replace(/\s*(USD|EUR|GBP|DKK|SEK|NOK|CAD|AUD|kr\.?)$/i, "")
-    .trim();
-
-  // Remove redundant .00 / ,00 decimals (e.g. 49.00 -> 49)
-  const cleanNum = numericOnly.replace(/([.,])00$/, "");
-  const cur = (rawCurrency || "").trim().toUpperCase();
-
-  if (cur === "USD" || trimmed.startsWith("$")) return `$${cleanNum}`;
-  if (cur === "EUR" || trimmed.startsWith("€")) return `€${cleanNum}`;
-  if (cur === "GBP" || trimmed.startsWith("£")) return `£${cleanNum}`;
-  if (cur === "DKK" || cur === "SEK" || cur === "NOK") return `${cleanNum} kr.`;
-  if (cur === "CAD") return `CA$${cleanNum}`;
-  if (cur === "AUD") return `A$${cleanNum}`;
-  return cur ? `${cleanNum} ${cur}` : cleanNum;
+  return formatProductPriceDkk(rawPrice, rawCurrency);
 }
 
 function formatShortDate(iso?: string): string {
