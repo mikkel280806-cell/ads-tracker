@@ -731,7 +731,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   return (
     <>
-    <div className="flex h-dvh w-full overflow-hidden bg-white lg:bg-[#050811]">
+    <div className="fixed inset-0 flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — FIXED APP SHELL FRAME (EXTENDS 24PX UNDER ROUNDED CORNER)
          ===================================================================== */}
@@ -942,11 +942,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       {/* =====================================================================
           STATIONARY WORKSPACE FRAME — ONLY INNER <main> SCROLLS (MOBILE + DESKTOP)
          ===================================================================== */}
-      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white lg:relative lg:z-10 lg:-ml-6 lg:rounded-tl-[24px]">
+      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:rounded-tl-[24px] lg:bg-white">
         {/* STATIONARY SOLID WHITE MOBILE TOP BAR
             Locks the status bar + Flake brand bar above the scroll container so content
             never scrolls behind the iOS 26 Dynamic Island / top scroll-edge blur zone. */}
-        <header className="mobile-pwa-header relative z-20 flex shrink-0 items-center border-b border-[#ECEFF5] bg-white px-4 pb-3 text-[#0F172A] lg:hidden">
+        <header className="mobile-pwa-header relative z-20 flex shrink-0 items-center border-b border-[#ECEFF5] bg-white px-4 pb-2.5 text-[#0F172A] lg:hidden">
           <button
             type="button"
             data-no-glass="true"
@@ -963,7 +963,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             <img
               src="/icons/flake-wordmark-dark.png"
               alt="Flake"
-              className="h-[18px] w-auto select-none"
+              className="h-[22px] w-auto select-none"
             />
           </button>
         </header>
