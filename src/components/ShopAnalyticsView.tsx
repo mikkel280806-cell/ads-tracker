@@ -1779,9 +1779,6 @@ export function ShopAnalyticsView({
                       </span>
                     )}
                   </div>
-                  <span className="truncate text-[11px] font-medium text-[#64748B]">
-                    {offerStrategy.primaryStack}
-                  </span>
                 </div>
 
                 {offerStrategy.levers.length === 0 ? (
