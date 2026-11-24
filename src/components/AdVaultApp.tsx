@@ -444,10 +444,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     [dedupedAds, brands]
   );
 
-  // Filtered & sorted Explore ads
+  // Filtered & sorted Explore ads (only tracked paid ads — excludes personal folder uploads / organic IG Reels)
   const visibleAds = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
     const list = dedupedAds.filter((ad) => {
+      if (
+        ad.source_type === "instagram" ||
+        ad.source_type === "manual" ||
+        ad.tags.includes("custom-import") ||
+        ad.tags.includes("custom-upload")
+      ) {
+        return false;
+      }
       if (marketFilter === "DK" && ad.market !== "DK") return false;
       if (marketFilter === "US" && ad.market === "DK") return false;
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;

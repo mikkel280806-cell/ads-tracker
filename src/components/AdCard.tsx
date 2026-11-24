@@ -6,12 +6,14 @@ import {
   BookmarkPlus,
   Check,
   ChevronDown,
+  Film,
   Layers,
   Play,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import { getActiveDays } from "@/lib/url-parser";
 import { preloadImage, preloadVideo } from "@/lib/media-preloader";
+import { InstagramColorIcon } from "./BrandIcons";
 
 interface AdCardProps {
   ad: Ad;
@@ -73,6 +75,13 @@ export const AdCard = React.memo(function AdCard({
     return () => observer.disconnect();
   }, [ad.media_url, isVideoFile, primaryImg]);
 
+  const isOrganic =
+    ad.source_type === "instagram" ||
+    ad.source_type === "manual" ||
+    ad.tags.includes("custom-import") ||
+    ad.tags.includes("custom-upload");
+  const isInstagram = ad.source_type === "instagram" || ad.tags.includes("instagram");
+
   const activeDays = getActiveDays(ad.started_running_at);
   const inFolders = ad.board_ids.length > 0;
   const savedBoardName = inFolders
@@ -111,11 +120,13 @@ export const AdCard = React.memo(function AdCard({
         setFolderMenuOpen(false);
       }}
     >
-      {/* 1. CLEAN KONVERT CARD HEADER: Avatar + Brand Name + [● 2 D] */}
+      {/* 1. CLEAN KONVERT CARD HEADER: Avatar + Brand Name + [● 2 D | Organic Pill] */}
       <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
         <button
           type="button"
-          onClick={() => (onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad))}
+          onClick={() =>
+            !isOrganic && onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad)
+          }
           className="flex min-w-0 items-center gap-2 text-left"
         >
           <div className="relative shrink-0">
@@ -134,7 +145,7 @@ export const AdCard = React.memo(function AdCard({
                 {ad.brand_avatar_initials}
               </span>
             )}
-            {rank && rank <= 3 && (
+            {!isOrganic && rank && rank <= 3 && (
               <span
                 className={`absolute -left-1.5 -top-1.5 inline-flex h-[19px] w-[19px] shrink-0 aspect-square items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ring-2 ring-white ${rankBadgeStyle}`}
               >
@@ -148,15 +159,31 @@ export const AdCard = React.memo(function AdCard({
           </span>
         </button>
 
-        {/* Crisp Green-Dot Days Running Pill */}
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#EAECEF] bg-white px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#334155]">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              ad.is_active ? "bg-[#22C55E]" : "bg-[#94A3B8]"
-            }`}
-          />
-          {activeDays} D
-        </span>
+        {isOrganic ? (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-2 py-0.5 text-[10.5px] font-semibold text-[#475569]">
+            {isInstagram ? (
+              <>
+                <InstagramColorIcon className="h-3 w-3 shrink-0" />
+                Reel
+              </>
+            ) : (
+              <>
+                <Film className="h-3 w-3 shrink-0 text-[#64748B]" />
+                Video
+              </>
+            )}
+          </span>
+        ) : (
+          /* Crisp Green-Dot Days Running Pill */
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#EAECEF] bg-white px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#334155]">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                ad.is_active ? "bg-[#22C55E]" : "bg-[#94A3B8]"
+              }`}
+            />
+            {activeDays} D
+          </span>
+        )}
       </div>
 
       {/* 2. AD COPY PREVIEW WITH GRADIENT FADE + FLOATING "See more" PILL */}

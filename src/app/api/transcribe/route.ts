@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as TranscribeRequest;
     const ad = body.ad;
-    const videoUrl = (body.videoUrl || ad?.media_url || "").trim();
+    const videoUrl = (ad?.audio_url || body.videoUrl || ad?.media_url || "").trim();
 
     if (!videoUrl || !/^https?:\/\//i.test(videoUrl)) {
       return NextResponse.json(

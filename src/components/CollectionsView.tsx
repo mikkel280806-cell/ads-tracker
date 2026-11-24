@@ -18,6 +18,71 @@ import {
 import type { Ad, Board, Brand } from "@/lib/types";
 import { AdCard } from "./AdCard";
 import { MasonryGrid } from "./MasonryGrid";
+import { InstagramColorIcon } from "./BrandIcons";
+
+interface PendingFolderItem {
+  id: string;
+  folderId: string;
+  mode: "instagram" | "upload";
+  label: string;
+  status: string;
+  progress?: number;
+  error?: string;
+}
+
+/**
+ * Official Supabase Storage signed-upload via FormData PUT + XMLHttpRequest
+ * for real-time upload % progress and full iOS Safari (.MOV / video/quicktime) compatibility.
+ */
+function uploadToSignedUrl(
+  uploadUrl: string,
+  fileOrBlob: File | Blob,
+  filename: string,
+  onProgress?: (pct: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("cacheControl", "3600");
+    fd.append("", fileOrBlob, filename);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl, true);
+
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable && ev.total > 0 && onProgress) {
+        onProgress(Math.min(99, Math.round((ev.loaded / ev.total) * 100)));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+      } else {
+        let detail = "";
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          detail = parsed?.message || parsed?.error || "";
+        } catch {
+          detail = (xhr.responseText || "").slice(0, 120);
+        }
+        reject(
+          new Error(
+            detail
+              ? `Upload fejlede (HTTP ${xhr.status}): ${detail}`
+              : `Upload fejlede (HTTP ${xhr.status}).`
+          )
+        );
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Netværksfejl under upload. Prøv igen."));
+    };
+
+    xhr.send(fd);
+  });
+}
 
 const FOLDER_COLORS = [
   "#0027eb",
@@ -264,7 +329,18 @@ export function CollectionsView({
   const [submitting, setSubmitting] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [pendingItems, setPendingItems] = useState<PendingFolderItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const updatePending = (id: string, patch: Partial<PendingFolderItem>) => {
+    setPendingItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+    );
+  };
+
+  const removePending = (id: string) => {
+    setPendingItems((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const resetAddModal = () => {
     setIgUrl("");
@@ -290,36 +366,58 @@ export function CollectionsView({
     folderId: string
   ) => {
     e.preventDefault();
-    if (!igUrl.trim() || submitting) return;
-    setModalError(null);
-    setSubmitting(true);
-    setUploadStatus("Henter video fra Instagram...");
+    const trimmedUrl = igUrl.trim();
+    if (!trimmedUrl) return;
+
+    if (!/instagram\.com\/(reel|reels|p|tv)\//i.test(trimmedUrl)) {
+      setModalError(
+        "Indsæt et gyldigt Instagram Reel- eller opslagslink (fx instagram.com/reel/...)."
+      );
+      return;
+    }
+
+    const titleSnapshot = customTitle.trim();
+    const notesSnapshot = customNotes.trim();
+    const pendingId = `pending-ig-${Date.now().toString(36)}`;
+
+    // Close modal IMMEDIATELY and show live loading card right inside the folder!
+    resetAddModal();
+    setAddModalOpen(false);
+    setPendingItems((prev) => [
+      {
+        id: pendingId,
+        folderId,
+        mode: "instagram",
+        label: titleSnapshot || "Instagram Reel",
+        status: "Henter video & lyd fra Instagram...",
+      },
+      ...prev,
+    ]);
+
     try {
       const res = await fetch("/api/folder-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "import_instagram",
-          url: igUrl.trim(),
+          url: trimmedUrl,
           folderId,
-          title: customTitle.trim() || undefined,
-          notes: customNotes.trim() || undefined,
+          title: titleSnapshot || undefined,
+          notes: notesSnapshot || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok || !data.ad) {
         throw new Error(data.error || "Kunne ikke importere Instagram-videoen.");
       }
+      removePending(pendingId);
       onAddCustomAd?.(data.ad);
-      resetAddModal();
-      setAddModalOpen(false);
     } catch (err) {
-      setModalError(
-        err instanceof Error ? err.message : "Instagram-import fejlede."
-      );
-    } finally {
-      setSubmitting(false);
-      setUploadStatus(null);
+      updatePending(pendingId, {
+        status: "Import fejlede",
+        error:
+          err instanceof Error ? err.message : "Instagram-import fejlede.",
+      });
     }
   };
 
@@ -328,23 +426,55 @@ export function CollectionsView({
     folderId: string
   ) => {
     e.preventDefault();
-    if (!selectedFile || submitting) return;
-    setModalError(null);
-    setSubmitting(true);
+    if (!selectedFile) return;
+
+    // Supabase Free Tier single-object limit is 50 MB
+    if (selectedFile.size > 50 * 1024 * 1024) {
+      const mb = (selectedFile.size / (1024 * 1024)).toFixed(1);
+      setModalError(
+        `Filen er ${mb} MB (maks 50 MB). Trim videoen en smule eller vælg en kortere fil.`
+      );
+      return;
+    }
+
+    const fileSnapshot = selectedFile;
+    const titleSnapshot = customTitle.trim();
+    const notesSnapshot = customNotes.trim();
+    const cleanTitle =
+      titleSnapshot ||
+      fileSnapshot.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ") ||
+      "Video upload";
+    const pendingId = `pending-up-${Date.now().toString(36)}`;
+
+    // Close modal IMMEDIATELY and render live upload card with real-time % inside folder!
+    resetAddModal();
+    setAddModalOpen(false);
+    setPendingItems((prev) => [
+      {
+        id: pendingId,
+        folderId,
+        mode: "upload",
+        label: cleanTitle,
+        status: "Klargør upload...",
+        progress: 5,
+      },
+      ...prev,
+    ]);
 
     try {
-      const isVideo = selectedFile.type.startsWith("video/");
+      const isVideo =
+        fileSnapshot.type.startsWith("video/") ||
+        /\.(mp4|mov|webm|m4v)$/i.test(fileSnapshot.name);
       const contentType =
-        selectedFile.type || (isVideo ? "video/mp4" : "image/jpeg");
+        fileSnapshot.type || (isVideo ? "video/mp4" : "image/jpeg");
 
-      // 1. Request signed direct upload URL (bypasses Vercel 4.5MB body cap -> supports 50MB+ iPhone videos!)
-      setUploadStatus("Klargør upload...");
+      // 1. Request signed direct upload URL (bypasses Vercel 4.5MB body cap)
       const signRes = await fetch("/api/folder-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "sign_upload",
-          filename: selectedFile.name,
+          filename: fileSnapshot.name || (isVideo ? "video.mov" : "image.jpg"),
           contentType,
         }),
       });
@@ -353,55 +483,50 @@ export function CollectionsView({
         throw new Error(signData.error || "Kunne ikke starte upload.");
       }
 
-      // 2. Upload video/image directly from device to Supabase Storage
-      setUploadStatus("Uploader til skyen...");
-      const putRes = await fetch(signData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": contentType,
-          "x-upsert": "true",
-        },
-        body: selectedFile,
-      });
-      if (!putRes.ok) {
-        throw new Error(`Upload fejlede (HTTP ${putRes.status}).`);
-      }
+      // 2. Upload via official Supabase FormData PUT with live progress %
+      updatePending(pendingId, { status: "Uploader video...", progress: 10 });
+      await uploadToSignedUrl(
+        signData.uploadUrl,
+        fileSnapshot,
+        fileSnapshot.name || (isVideo ? "video.mov" : "image.jpg"),
+        (pct) => {
+          updatePending(pendingId, {
+            status: `Uploader (${pct}%)...`,
+            progress: pct,
+          });
+        }
+      );
 
-      // 3. For videos, generate & upload a sharp poster thumbnail frame via Canvas
+      // 3. For videos, extract & upload a sharp JPEG poster frame via Canvas
       let thumbPublicUrl: string = isVideo ? "" : signData.publicUrl;
       if (isVideo) {
-        setUploadStatus("Genererer forhåndsvisning...");
-        const posterBlob = await extractVideoPosterBlob(selectedFile);
+        updatePending(pendingId, {
+          status: "Genererer forhåndsvisning...",
+          progress: 96,
+        });
+        const posterBlob = await extractVideoPosterBlob(fileSnapshot);
         if (posterBlob) {
           const thumbSignRes = await fetch("/api/folder-video", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "sign_upload",
-              filename: `${selectedFile.name.replace(/\.[^.]+$/, "")}-poster.jpg`,
+              filename: `${(fileSnapshot.name || "video").replace(/\.[^.]+$/, "")}-poster.jpg`,
               contentType: "image/jpeg",
             }),
           });
           const thumbSign = await thumbSignRes.json().catch(() => null);
-          if (thumbSign?.ok && thumbSign.uploadUrl) {
-            const thumbPut = await fetch(thumbSign.uploadUrl, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "image/jpeg",
-                "x-upsert": "true",
-              },
-              body: posterBlob,
-            });
-            if (thumbPut.ok && thumbSign.publicUrl) {
-              thumbPublicUrl = thumbSign.publicUrl;
-            }
+          if (thumbSign?.ok && thumbSign.uploadUrl && thumbSign.publicUrl) {
+            await uploadToSignedUrl(
+              thumbSign.uploadUrl,
+              posterBlob,
+              "poster.jpg"
+            ).catch(() => {});
+            thumbPublicUrl = thumbSign.publicUrl;
           }
         }
       }
 
-      const cleanTitle =
-        customTitle.trim() ||
-        selectedFile.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
       const initials = cleanTitle.slice(0, 2).toUpperCase() || "UP";
 
       const uploadedAd: Ad = {
@@ -413,37 +538,36 @@ export function CollectionsView({
         brand_avatar_color: "#0F172A",
         market: "DK",
         source_type: "manual",
-        source_url: signData.publicUrl,
+        source_url: "",
         media_type: isVideo ? "video" : "image",
         display_format: isVideo ? "VIDEO" : "IMAGE",
         media_url: signData.publicUrl,
         thumbnail_url: thumbPublicUrl || signData.publicUrl,
         fallback_image_url: thumbPublicUrl || undefined,
         aspect_ratio: isVideo ? "9:16" : "3:4",
-        primary_text: customNotes.trim(),
+        primary_text: notesSnapshot,
         headline: cleanTitle,
-        cta_text: "Uploaded",
+        cta_text: "",
         landing_page_url: "",
-        landing_page_path: "/",
+        landing_page_path: "",
         is_active: true,
         started_running_at: new Date().toISOString(),
         platforms: ["Upload"],
         status: "ready",
         tags: ["custom-upload"],
         board_ids: [folderId],
-        user_notes: customNotes.trim(),
+        user_notes: notesSnapshot,
         is_favorite: false,
         created_at: new Date().toISOString(),
       };
 
+      removePending(pendingId);
       onAddCustomAd?.(uploadedAd);
-      resetAddModal();
-      setAddModalOpen(false);
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : "Upload fejlede.");
-    } finally {
-      setSubmitting(false);
-      setUploadStatus(null);
+      updatePending(pendingId, {
+        status: "Upload fejlede",
+        error: err instanceof Error ? err.message : "Upload fejlede.",
+      });
     }
   };
 
@@ -452,6 +576,16 @@ export function CollectionsView({
   // FOLDER DETAIL VIEW (Shows saved Ads & custom Videos inside this folder)
   if (activeFolder) {
     const folderAds = ads.filter((a) => a.board_ids.includes(activeFolder.id));
+    const folderPending = pendingItems.filter(
+      (p) => p.folderId === activeFolder.id
+    );
+    type FolderGridEntry =
+      | { kind: "pending"; item: PendingFolderItem }
+      | { kind: "ad"; ad: Ad };
+    const folderEntries: FolderGridEntry[] = [
+      ...folderPending.map((item) => ({ kind: "pending" as const, item })),
+      ...folderAds.map((ad) => ({ kind: "ad" as const, ad })),
+    ];
 
     return (
       <div className="space-y-6">
@@ -759,30 +893,116 @@ export function CollectionsView({
           </div>
         )}
 
-        {/* Saved Ads & Custom Videos inside Folder */}
-        {folderAds.length > 0 && (
+        {/* Saved Ads, Custom Videos & Live Loading Cards inside Folder */}
+        {folderEntries.length > 0 && (
           <div className="space-y-3">
             <h2 className="flex items-center gap-2 font-display text-sm font-bold text-[#0F172A]">
               <Layers className="h-4 w-4 text-[#64748B]" />
-              Gemte Videoer &amp; Ads ({folderAds.length})
+              Gemte Videoer &amp; Ads ({folderAds.length}
+              {folderPending.length > 0 ? ` + ${folderPending.length} henter` : ""})
             </h2>
             <MasonryGrid
-              items={folderAds}
-              getKey={(ad) => ad.id}
-              renderItem={(ad) => (
-                <AdCard
-                  ad={ad}
-                  boards={boards}
-                  onOpen={onOpenAd}
-                  onToggleBoard={onToggleBoard}
-                  onOpenBrand={onOpenShop}
-                />
-              )}
+              items={folderEntries}
+              getKey={(entry) =>
+                entry.kind === "pending" ? entry.item.id : entry.ad.id
+              }
+              renderItem={(entry) =>
+                entry.kind === "pending" ? (
+                  <article className="relative flex flex-col overflow-hidden rounded-[14px] border border-[#EAECEF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+                    {/* Card Header */}
+                    <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F1F5F9]">
+                          {entry.item.mode === "instagram" ? (
+                            <InstagramColorIcon className="h-3.5 w-3.5" />
+                          ) : (
+                            <Film className="h-3.5 w-3.5 text-[#475569]" />
+                          )}
+                        </span>
+                        <span className="truncate font-display text-[13px] font-semibold text-[#0F172A]">
+                          {entry.item.label}
+                        </span>
+                      </div>
+                      {entry.item.error ? (
+                        <button
+                          type="button"
+                          onClick={() => removePending(entry.item.id)}
+                          aria-label="Fjern"
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-[#94A3B8] hover:bg-[#FFF1F2] hover:text-[#E11D48]"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      ) : (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[#E2E6EF] bg-[#FAFBFD] px-2 py-0.5 text-[10.5px] font-semibold text-[#475569]">
+                          <Loader2 className="h-3 w-3 animate-spin text-[#0027eb]" />
+                          Henter
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Shimmer / Error Media Frame */}
+                    <div className="px-2 pb-2.5">
+                      <div
+                        className={`relative flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-[10px] p-5 text-center ${
+                          entry.item.error
+                            ? "bg-[#FFF1F2]"
+                            : "skeleton-shimmer bg-[#F3F5F9]"
+                        }`}
+                      >
+                        {entry.item.error ? (
+                          <>
+                            <p className="font-display text-xs font-bold text-[#9F1239]">
+                              Kunne ikke hente video
+                            </p>
+                            <p className="text-[11.5px] leading-relaxed text-[#E11D48]">
+                              {entry.item.error}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => removePending(entry.item.id)}
+                              className="mt-1 rounded-lg border border-[#FECDD3] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#9F1239] hover:bg-[#FFF1F2]"
+                            >
+                              Luk kort
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/90 shadow-sm">
+                              <Loader2 className="h-5 w-5 animate-spin text-[#0027eb]" />
+                            </span>
+                            <div className="w-full max-w-[200px] space-y-2">
+                              <p className="text-[12px] font-semibold text-[#0F172A]">
+                                {entry.item.status}
+                              </p>
+                              {typeof entry.item.progress === "number" && (
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/80">
+                                  <div
+                                    className="h-full rounded-full bg-[#0027eb] transition-all duration-200"
+                                    style={{ width: `${entry.item.progress}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                ) : (
+                  <AdCard
+                    ad={entry.ad}
+                    boards={boards}
+                    onOpen={onOpenAd}
+                    onToggleBoard={onToggleBoard}
+                    onOpenBrand={onOpenShop}
+                  />
+                )
+              }
             />
           </div>
         )}
 
-        {folderAds.length === 0 && (
+        {folderEntries.length === 0 && (
           <div className="px-6 py-14 text-center">
             <p className="font-display text-sm font-bold text-[#0F172A]">
               Denne folder er tom endnu

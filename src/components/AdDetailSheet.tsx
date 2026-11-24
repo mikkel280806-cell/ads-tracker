@@ -25,7 +25,11 @@ import type { Ad, Board } from "@/lib/types";
 import type { AdRankingMeta } from "@/lib/ad-ranking";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
 import { preloadImage, preloadVideo } from "@/lib/media-preloader";
-import { FacebookColorIcon, MetaInfinityIcon } from "./BrandIcons";
+import {
+  FacebookColorIcon,
+  InstagramColorIcon,
+  MetaInfinityIcon,
+} from "./BrandIcons";
 
 interface AdDetailSheetProps {
   ad: Ad | null;
@@ -80,17 +84,41 @@ export function AdDetailSheet({
     Record<string, string>
   >({});
   const autoTranscribedRef = useRef<Set<string>>(new Set());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const isOrganic = Boolean(
+    ad &&
+      (ad.source_type === "instagram" ||
+        ad.source_type === "manual" ||
+        ad.tags.includes("custom-import") ||
+        ad.tags.includes("custom-upload"))
+  );
+  const isInstagram = Boolean(
+    ad && (ad.source_type === "instagram" || ad.tags.includes("instagram"))
+  );
 
   const activeDays = useMemo(
     () => (ad ? getActiveDays(ad.started_running_at) : 0),
     [ad]
   );
 
-  // Automatically transcribe video ads via Deepgram when opened (no button click needed)
+  // Stop any synced audio element when switching or closing video
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    return () => {
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.currentTime = 0;
+      }
+    };
+  }, [ad?.id]);
+
+  // Automatically transcribe video ads/organic videos via Deepgram when opened
   useEffect(() => {
     if (!ad) return;
     if (ad.media_type !== "video") return;
-    if (!ad.media_url || !/\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url)) return;
+    const transcribeTarget = ad.audio_url || ad.media_url;
+    if (!transcribeTarget || !/^https?:\/\//i.test(transcribeTarget)) return;
     if (ad.ai_transcript) return;
     if (autoTranscribedRef.current.has(ad.id)) return;
 
@@ -106,7 +134,7 @@ export function AdDetailSheet({
           body: JSON.stringify({
             ad,
             adId: ad.id,
-            videoUrl: ad.media_url,
+            videoUrl: transcribeTarget,
             market: ad.market,
           }),
         });
@@ -268,8 +296,22 @@ export function AdDetailSheet({
               </div>
             )}
             <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-lg bg-[#F5F7FA] px-2.5 py-1 text-[11.5px] font-medium text-[#334155]">
-              <FacebookColorIcon className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{formatLabel}</span>
+              {isInstagram ? (
+                <InstagramColorIcon className="h-3.5 w-3.5 shrink-0" />
+              ) : isOrganic ? (
+                <Film className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
+              ) : (
+                <FacebookColorIcon className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span className="truncate">
+                {isInstagram
+                  ? ad.media_type === "video"
+                    ? "Instagram Reel"
+                    : "Instagram"
+                  : isOrganic
+                    ? "Upload"
+                    : formatLabel}
+              </span>
             </span>
           </div>
 
@@ -340,15 +382,35 @@ export function AdDetailSheet({
               )}
 
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F7FA] px-2.5 py-1 text-[11.5px] font-medium text-[#334155]">
-                <FacebookColorIcon className="h-3.5 w-3.5 shrink-0" />
-                <span>Facebook</span>
-                <span className="text-[#CBD5E1]">·</span>
-                <span className="text-[#64748B]">{formatLabel}</span>
+                {isInstagram ? (
+                  <>
+                    <InstagramColorIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span>Instagram</span>
+                    <span className="text-[#CBD5E1]">·</span>
+                    <span className="text-[#64748B]">
+                      {ad.media_type === "video" ? "Reel" : "Post"}
+                    </span>
+                  </>
+                ) : isOrganic ? (
+                  <>
+                    <Film className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
+                    <span>Upload</span>
+                    <span className="text-[#CBD5E1]">·</span>
+                    <span className="text-[#64748B]">{formatLabel}</span>
+                  </>
+                ) : (
+                  <>
+                    <FacebookColorIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span>Facebook</span>
+                    <span className="text-[#CBD5E1]">·</span>
+                    <span className="text-[#64748B]">{formatLabel}</span>
+                  </>
+                )}
               </span>
             </div>
 
             <div className="flex items-center gap-1.5">
-              {onOpenBrand && (
+              {!isOrganic && onOpenBrand && (
                 <button
                   type="button"
                   onClick={() => {
@@ -419,8 +481,8 @@ export function AdDetailSheet({
           {/* Scrollable Centered Authentic Meta Ad Card */}
           <div className="px-3.5 py-4 lg:flex-1 lg:overflow-y-auto lg:px-8 lg:py-6">
             <div className="mx-auto w-full max-w-[490px] overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)]">
-              {/* Optional Telemetry Pill Bar (Reach / Est. Spend / Daily Spend) */}
-              {(ad.eu_reach || ad.estimated_spend || ad.daily_spend) && (
+              {/* Optional Telemetry Pill Bar (Only for paid Meta Ads) */}
+              {!isOrganic && (ad.eu_reach || ad.estimated_spend || ad.daily_spend) && (
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F4F9] bg-[#FAFBFD] px-3.5 py-2 font-mono-num text-[11px] font-semibold text-[#334155]">
                   <span className="inline-flex items-center gap-1 text-[#0F172A]">
                     <MetaInfinityIcon className="h-3.5 w-3.5" />
@@ -446,45 +508,66 @@ export function AdDetailSheet({
                 </div>
               )}
 
-              {/* Meta Card Header */}
+              {/* Card Header (Clean Organic Creator Header OR Meta Ad Header) */}
               <div className="px-3.5 pb-2.5 pt-3">
                 <div className="flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onOpenBrand) {
-                        onOpenBrand(ad.brand_id);
-                        onClose();
-                      }
-                    }}
-                    className="flex min-w-0 items-center gap-2.5 text-left"
-                  >
-                    {ad.brand_logo_url ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={ad.brand_logo_url}
-                        alt={ad.brand_name}
-                        className="h-9 w-9 shrink-0 rounded-full border border-[#E6E9F0] bg-white object-contain p-0.5"
-                      />
-                    ) : (
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0027eb] font-display text-xs font-bold text-white">
+                  {isOrganic ? (
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0F172A] font-display text-xs font-bold text-white">
                         {ad.brand_avatar_initials}
                       </span>
-                    )}
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 truncate font-display text-[13.5px] font-bold text-[#0F172A]">
-                        <MetaInfinityIcon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{ad.brand_name}</span>
-                      </p>
-                      <p className="font-mono-num text-[11px] text-[#64748B]">
-                        {ad.brand_live_ads
-                          ? `${ad.brand_live_ads.toLocaleString("en-US")} Live Ads`
-                          : ad.brand_handle}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 truncate font-display text-[13.5px] font-bold text-[#0F172A]">
+                          {isInstagram && (
+                            <InstagramColorIcon className="h-3.5 w-3.5 shrink-0" />
+                          )}
+                          <span className="truncate">{ad.brand_name}</span>
+                        </p>
+                        <p className="font-mono-num text-[11px] text-[#64748B]">
+                          {isInstagram
+                            ? ad.brand_handle
+                            : formatReadableDate(ad.created_at) || "Uploaded video"}
+                        </p>
+                      </div>
                     </div>
-                  </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onOpenBrand) {
+                          onOpenBrand(ad.brand_id);
+                          onClose();
+                        }
+                      }}
+                      className="flex min-w-0 items-center gap-2.5 text-left"
+                    >
+                      {ad.brand_logo_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={ad.brand_logo_url}
+                          alt={ad.brand_name}
+                          className="h-9 w-9 shrink-0 rounded-full border border-[#E6E9F0] bg-white object-contain p-0.5"
+                        />
+                      ) : (
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0027eb] font-display text-xs font-bold text-white">
+                          {ad.brand_avatar_initials}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 truncate font-display text-[13.5px] font-bold text-[#0F172A]">
+                          <MetaInfinityIcon className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{ad.brand_name}</span>
+                        </p>
+                        <p className="font-mono-num text-[11px] text-[#64748B]">
+                          {ad.brand_live_ads
+                            ? `${ad.brand_live_ads.toLocaleString("en-US")} Live Ads`
+                            : ad.brand_handle}
+                        </p>
+                      </div>
+                    </button>
+                  )}
 
-                  {ad.duplicated_count && ad.duplicated_count > 1 && (
+                  {!isOrganic && ad.duplicated_count && ad.duplicated_count > 1 && (
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#ECFDF3] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#15803D]">
                       <Layers className="h-3 w-3" />
                       {ad.duplicated_count} Duplicated
@@ -492,25 +575,27 @@ export function AdDetailSheet({
                   )}
                 </div>
 
-                {/* Running status + start date */}
-                <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[#64748B]">
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      ad.is_active ? "bg-[#16A34A]" : "bg-[#94A3B8]"
-                    }`}
-                  />
-                  <span className="font-medium text-[#334155]">
-                    {activeDays} days
-                  </span>
-                  {ad.started_running_at && (
-                    <>
-                      <span className="text-[#CBD5E1]">·</span>
-                      <span>{formatReadableDate(ad.started_running_at)}</span>
-                    </>
-                  )}
-                </div>
+                {/* Running status + start date (Only for paid Meta Ads) */}
+                {!isOrganic && (
+                  <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[#64748B]">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        ad.is_active ? "bg-[#16A34A]" : "bg-[#94A3B8]"
+                      }`}
+                    />
+                    <span className="font-medium text-[#334155]">
+                      {activeDays} days
+                    </span>
+                    {ad.started_running_at && (
+                      <>
+                        <span className="text-[#CBD5E1]">·</span>
+                        <span>{formatReadableDate(ad.started_running_at)}</span>
+                      </>
+                    )}
+                  </div>
+                )}
 
-                {/* Primary Ad Copy */}
+                {/* Primary Ad Copy / Instagram Caption */}
                 {ad.primary_text && (
                   <div className="mt-2.5">
                     <p
@@ -533,18 +618,78 @@ export function AdDetailSheet({
                 )}
               </div>
 
-              {/* Creative Media (Video / Image) */}
+              {/* Creative Media (Video with synced DASH audio support / Image) */}
               <div className="relative bg-[#0B0F19]">
                 {isVideoFile ? (
-                  <video
-                    key={ad.id}
-                    src={ad.media_url}
-                    poster={displayImage}
-                    controls
-                    playsInline
-                    onError={() => setFailedAdId(ad.id)}
-                    className="max-h-[58vh] w-full bg-black object-contain lg:max-h-[68vh]"
-                  />
+                  <>
+                    <video
+                      key={ad.id}
+                      src={ad.media_url}
+                      poster={displayImage}
+                      controls
+                      playsInline
+                      onPlay={(e) => {
+                        const a = audioRef.current;
+                        if (!a) return;
+                        a.currentTime = e.currentTarget.currentTime;
+                        a.muted = e.currentTarget.muted;
+                        a.volume = e.currentTarget.volume;
+                        a.playbackRate = e.currentTarget.playbackRate;
+                        a.play().catch(() => {});
+                      }}
+                      onPause={() => {
+                        audioRef.current?.pause();
+                      }}
+                      onSeeked={(e) => {
+                        const a = audioRef.current;
+                        if (a) a.currentTime = e.currentTarget.currentTime;
+                      }}
+                      onVolumeChange={(e) => {
+                        const a = audioRef.current;
+                        if (!a) return;
+                        a.muted = e.currentTarget.muted;
+                        a.volume = e.currentTarget.volume;
+                      }}
+                      onRateChange={(e) => {
+                        const a = audioRef.current;
+                        if (a) a.playbackRate = e.currentTarget.playbackRate;
+                      }}
+                      onWaiting={() => {
+                        audioRef.current?.pause();
+                      }}
+                      onPlaying={(e) => {
+                        const a = audioRef.current;
+                        if (!a) return;
+                        a.currentTime = e.currentTarget.currentTime;
+                        a.play().catch(() => {});
+                      }}
+                      onEnded={() => {
+                        const a = audioRef.current;
+                        if (a) {
+                          a.pause();
+                          a.currentTime = 0;
+                        }
+                      }}
+                      onTimeUpdate={(e) => {
+                        const a = audioRef.current;
+                        if (!a || e.currentTarget.paused) return;
+                        if (Math.abs(a.currentTime - e.currentTarget.currentTime) > 0.18) {
+                          a.currentTime = e.currentTarget.currentTime;
+                        }
+                      }}
+                      onError={() => setFailedAdId(ad.id)}
+                      className="max-h-[58vh] w-full bg-black object-contain lg:max-h-[68vh]"
+                    />
+                    {ad.audio_url && (
+                      <audio
+                        ref={audioRef}
+                        key={`${ad.id}-audio`}
+                        src={ad.audio_url}
+                        preload="auto"
+                        className="hidden"
+                      />
+                    )}
+                  </>
                 ) : displayImage ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -565,44 +710,46 @@ export function AdDetailSheet({
                 )}
               </div>
 
-              {/* Facebook Bottom CTA Footer */}
-              <div className="flex items-center justify-between gap-3 border-t border-[#ECEFF5] bg-[#F8F9FC] px-3.5 py-2.5">
-                <div className="min-w-0 flex-1">
-                  {domain && (
-                    <p className="truncate font-mono-num text-[10.5px] text-[#64748B]">
-                      {domain}
+              {/* Facebook Bottom CTA Footer (Only for paid Meta Ads) */}
+              {!isOrganic && (
+                <div className="flex items-center justify-between gap-3 border-t border-[#ECEFF5] bg-[#F8F9FC] px-3.5 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    {domain && (
+                      <p className="truncate font-mono-num text-[10.5px] text-[#64748B]">
+                        {domain}
+                      </p>
+                    )}
+                    <p className="truncate text-[12.5px] font-bold text-[#0F172A]">
+                      {ad.headline || ad.brand_name}
                     </p>
-                  )}
-                  <p className="truncate text-[12.5px] font-bold text-[#0F172A]">
-                    {ad.headline || ad.brand_name}
-                  </p>
-                  {ad.link_description && (
-                    <p className="truncate text-[11px] text-[#64748B]">
-                      {ad.link_description}
-                    </p>
+                    {ad.link_description && (
+                      <p className="truncate text-[11px] text-[#64748B]">
+                        {ad.link_description}
+                      </p>
+                    )}
+                  </div>
+
+                  {ad.landing_page_url && (
+                    <a
+                      href={ad.landing_page_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 rounded-lg border border-[#DCE1EC] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+                    >
+                      {ad.cta_text || "Learn more"}
+                    </a>
                   )}
                 </div>
-
-                {ad.landing_page_url && (
-                  <a
-                    href={ad.landing_page_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-lg border border-[#DCE1EC] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
-                  >
-                    {ad.cta_text || "Learn more"}
-                  </a>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* ===================================================================
-            RIGHT PANE: CLEAN TRENDTRACK DETAILS & SCRIPT INSPECTOR
+            RIGHT PANE: CLEAN DETAILS & SCRIPT INSPECTOR
            =================================================================== */}
         <div className="flex shrink-0 flex-col border-t border-[#ECEFF5] bg-white lg:min-h-0 lg:w-[40%] lg:shrink lg:border-t-0">
-          {/* Top 2 Big Equal Tabs (Ad Details | Copy & Notes) + Desktop Close Button */}
+          {/* Top 2 Big Equal Tabs + Desktop Close Button */}
           <div className="flex shrink-0 items-center border-b border-[#ECEFF5]">
             <div className="grid flex-1 grid-cols-2">
               <button
@@ -614,7 +761,7 @@ export function AdDetailSheet({
                     : "border-transparent text-[#64748B] hover:text-[#0F172A]"
                 }`}
               >
-                Ad Details
+                {isOrganic ? "Video Details" : "Ad Details"}
               </button>
               <button
                 type="button"
@@ -625,7 +772,7 @@ export function AdDetailSheet({
                     : "border-transparent text-[#64748B] hover:text-[#0F172A]"
                 }`}
               >
-                <span>Copy &amp; Notes</span>
+                <span>{isOrganic ? "Script & Notes" : "Copy & Notes"}</span>
                 {(ad.ai_transcript || ad.user_notes) && (
                   <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
                 )}
@@ -712,9 +859,98 @@ export function AdDetailSheet({
             {rightTab === "details" && (
               <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
                 <h3 className="mb-3.5 font-display text-[14px] font-bold text-[#0F172A]">
-                  Details
+                  {isOrganic ? "Video Details" : "Details"}
                 </h3>
 
+                {isOrganic ? (
+                  <div className="divide-y divide-[#F3F5F9] text-[12.5px]">
+                    {/* Source */}
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">Kilde</span>
+                      <span className="inline-flex items-center gap-1.5 font-semibold text-[#0F172A]">
+                        {isInstagram ? (
+                          <>
+                            <InstagramColorIcon className="h-3.5 w-3.5 shrink-0" />
+                            Instagram {ad.media_type === "video" ? "Reel" : "Post"}
+                          </>
+                        ) : (
+                          <>
+                            <Film className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
+                            Lokal upload
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Creator / Title */}
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">
+                        {isInstagram ? "Creator" : "Titel"}
+                      </span>
+                      <span className="truncate font-semibold text-[#0F172A]">
+                        {ad.brand_name}
+                        {isInstagram &&
+                        ad.brand_handle &&
+                        ad.brand_handle !== ad.brand_name
+                          ? ` (${ad.brand_handle})`
+                          : ""}
+                      </span>
+                    </div>
+
+                    {/* Format */}
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">Format</span>
+                      <div>
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 text-[11.5px] font-medium text-[#0F172A]">
+                          {ad.media_type === "video" ? (
+                            <Film className="h-3 w-3 text-[#64748B]" />
+                          ) : (
+                            <ImageIcon className="h-3 w-3 text-[#64748B]" />
+                          )}
+                          {formatLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Duration */}
+                    {ad.duration_seconds ? (
+                      <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                        <span className="text-[#64748B]">Varighed</span>
+                        <span className="font-mono-num font-semibold text-[#0F172A]">
+                          {ad.duration_seconds}s
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {/* Posted / Uploaded Date */}
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">
+                        {isInstagram ? "Opslået" : "Tilføjet"}
+                      </span>
+                      <span className="font-mono-num text-[#334155]">
+                        {formatIsoDate(ad.started_running_at || ad.created_at)}
+                      </span>
+                    </div>
+
+                    {/* Original Instagram Link */}
+                    {isInstagram && ad.source_url && (
+                      <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                        <span className="text-[#64748B]">Original</span>
+                        <div>
+                          <a
+                            href={ad.source_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E9F0] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Åbn på Instagram
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
                 <div className="divide-y divide-[#F3F5F9] text-[12.5px]">
                   {/* Brand */}
                   <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
@@ -889,6 +1125,7 @@ export function AdDetailSheet({
                     </div>
                   )}
                 </div>
+                )}
               </div>
             )}
 
@@ -953,7 +1190,7 @@ export function AdDetailSheet({
                   <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">
                     <div className="mb-2 flex items-center justify-between">
                       <h3 className="font-display text-[13.5px] font-bold text-[#0F172A]">
-                        Ad Copy
+                        {isInstagram ? "Caption" : "Ad Copy"}
                       </h3>
                       <button
                         type="button"

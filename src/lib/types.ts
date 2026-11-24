@@ -118,6 +118,7 @@ export interface Ad {
   media_type: MediaType;
   display_format?: DisplayFormat;
   media_url: string;
+  audio_url?: string;
   thumbnail_url: string;
   fallback_image_url?: string;
   aspect_ratio: "3:4" | "1:1" | "9:16";

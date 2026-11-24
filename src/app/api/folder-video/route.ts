@@ -14,12 +14,28 @@ function getSupabaseRestConfig() {
   return { url, serviceKey };
 }
 
-function sanitizeFilename(name: string): string {
-  return name
+function sanitizeFilename(name: string, contentType?: string): string {
+  const cleaned = name
     .toLowerCase()
     .replace(/[^a-z0-9.\-_]+/g, "-")
     .replace(/-+/g, "-")
-    .slice(0, 80);
+    .replace(/^-|-$/g, "")
+    .slice(0, 72);
+
+  if (/\.[a-z0-9]{2,5}$/i.test(cleaned)) return cleaned;
+  const ct = (contentType || "").toLowerCase();
+  const ext = ct.includes("quicktime")
+    ? ".mov"
+    : ct.includes("webm")
+      ? ".webm"
+      : ct.includes("png")
+        ? ".png"
+        : ct.includes("webp")
+          ? ".webp"
+          : ct.includes("image")
+            ? ".jpg"
+            : ".mp4";
+  return `${cleaned || "video"}${ext}`;
 }
 
 async function uploadBufferToStorage(
@@ -43,6 +59,53 @@ async function uploadBufferToStorage(
   return `${url}/storage/v1/object/public/ad-media/${pathKey}`;
 }
 
+async function mirrorRemoteMedia(
+  remoteUrl: string,
+  pathKey: string,
+  fallbackContentType: string
+): Promise<string | null> {
+  if (!remoteUrl) return null;
+  try {
+    const res = await fetch(remoteUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      },
+    });
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength < 400) return null;
+    const ct = res.headers.get("content-type") || fallbackContentType;
+    return await uploadBufferToStorage(pathKey, buf, ct);
+  } catch {
+    return null;
+  }
+}
+
+function toAdRow(ad: Ad) {
+  return {
+    id: ad.id,
+    brand_id: ad.brand_id,
+    brand_name: ad.brand_name,
+    market: ad.market || "US",
+    media_type: ad.media_type,
+    display_format: ad.display_format || null,
+    headline: ad.headline || "",
+    primary_text: ad.primary_text || "",
+    extracted_hook: ad.extracted_hook || "",
+    hook_category: ad.hook_category || null,
+    landing_page_url: ad.landing_page_url || "",
+    landing_page_path: ad.landing_page_path || "/",
+    is_active: ad.is_active ?? true,
+    started_running_at: ad.started_running_at || new Date().toISOString(),
+    duplicated_count: ad.duplicated_count ?? null,
+    board_ids: ad.board_ids || [],
+    user_notes: ad.user_notes || "",
+    payload: ad,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
@@ -59,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     // =========================================================================
     // 1. DIRECT SIGNED UPLOAD URL FOR LOCAL VIDEO / IPHONE PHOTO LIBRARY FILES
-    //    (Bypasses Vercel's 4.5 MB serverless body limit -> supports 50MB+ videos!)
+    //    (Bypasses Vercel's 4.5 MB serverless body limit -> up to 50MB!)
     // =========================================================================
     if (body.action === "sign_upload") {
       if (!supaUrl || !serviceKey) {
@@ -70,7 +133,7 @@ export async function POST(request: NextRequest) {
       }
 
       const rawName = body.filename || "video.mp4";
-      const safe = sanitizeFilename(rawName);
+      const safe = sanitizeFilename(rawName, body.contentType);
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const pathKey = `uploads/${unique}-${safe}`;
 
@@ -90,7 +153,10 @@ export async function POST(request: NextRequest) {
       if (!signRes.ok) {
         const detail = await signRes.text().catch(() => "");
         return NextResponse.json(
-          { ok: false, error: `Kunne ikke klargøre upload: ${detail.slice(0, 120)}` },
+          {
+            ok: false,
+            error: `Kunne ikke klargøre upload: ${detail.slice(0, 140)}`,
+          },
           { status: 500 }
         );
       }
@@ -111,7 +177,8 @@ export async function POST(request: NextRequest) {
     }
 
     // =========================================================================
-    // 2. IMPORT VIDEO / REEL FROM INSTAGRAM LINK VIA APIFY + MIRROR TO STORAGE
+    // 2. IMPORT VIDEO / REEL FROM INSTAGRAM LINK VIA APIFY + PARALLEL MIRROR
+    //    (Mirrors video + separate DASH audio track + thumbnail permanently!)
     // =========================================================================
     if (body.action === "import_instagram") {
       const rawUrl = (body.url || "").trim();
@@ -121,7 +188,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             ok: false,
-            error: "Indsæt et gyldigt Instagram Reel- eller opslagslink (fx instagram.com/reel/...).",
+            error:
+              "Indsæt et gyldigt Instagram Reel- eller opslagslink (fx instagram.com/reel/...).",
           },
           { status: 400 }
         );
@@ -174,13 +242,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             ok: false,
-            error: "Kunne ikke hente opslaget fra Instagram (tjek at opslaget er offentligt).",
+            error:
+              "Kunne ikke hente opslaget fra Instagram (tjek at opslaget er offentligt).",
           },
           { status: 404 }
         );
       }
 
       const igVideoUrl: string = post.videoUrl || "";
+      const igAudioUrl: string =
+        post.audioUrl || post.musicInfo?.audio_url || "";
       const igImageUrl: string =
         post.displayUrl ||
         (Array.isArray(post.images) ? post.images[0] : "") ||
@@ -188,60 +259,35 @@ export async function POST(request: NextRequest) {
 
       if (!igVideoUrl && !igImageUrl) {
         return NextResponse.json(
-          { ok: false, error: "Ingen video eller billede fundet på det Instagram-link." },
+          {
+            ok: false,
+            error: "Ingen video eller billede fundet på det Instagram-link.",
+          },
           { status: 404 }
         );
       }
 
-      // Mirror media permanently into Supabase Storage so Instagram signed URLs never expire!
-      let storedMediaUrl = igVideoUrl || igImageUrl;
-      let storedThumbUrl = igImageUrl || igVideoUrl;
+      // Mirror video + separate Instagram DASH audio track + thumbnail IN PARALLEL!
+      const [mirroredVideo, mirroredAudio, mirroredImage] = await Promise.all([
+        igVideoUrl
+          ? mirrorRemoteMedia(igVideoUrl, `ig/${shortcode}.mp4`, "video/mp4")
+          : Promise.resolve(null),
+        igAudioUrl
+          ? mirrorRemoteMedia(
+              igAudioUrl,
+              `ig/${shortcode}-audio.m4a`,
+              "audio/mp4"
+            )
+          : Promise.resolve(null),
+        igImageUrl
+          ? mirrorRemoteMedia(igImageUrl, `ig/${shortcode}.jpg`, "image/jpeg")
+          : Promise.resolve(null),
+      ]);
 
-      if (igVideoUrl) {
-        try {
-          const vidRes = await fetch(igVideoUrl, {
-            headers: { "User-Agent": "Mozilla/5.0" },
-          });
-          if (vidRes.ok) {
-            const vidBuf = await vidRes.arrayBuffer();
-            if (vidBuf.byteLength > 1000) {
-              const mirrored = await uploadBufferToStorage(
-                `ig/${shortcode}.mp4`,
-                vidBuf,
-                "video/mp4"
-              );
-              if (mirrored) storedMediaUrl = mirrored;
-            }
-          }
-        } catch {
-          // keep igVideoUrl fallback
-        }
-      }
-
-      if (igImageUrl) {
-        try {
-          const imgRes = await fetch(igImageUrl, {
-            headers: { "User-Agent": "Mozilla/5.0" },
-          });
-          if (imgRes.ok) {
-            const imgBuf = await imgRes.arrayBuffer();
-            const ct = imgRes.headers.get("content-type") || "image/jpeg";
-            if (imgBuf.byteLength > 500) {
-              const mirroredImg = await uploadBufferToStorage(
-                `ig/${shortcode}.jpg`,
-                imgBuf,
-                ct
-              );
-              if (mirroredImg) {
-                storedThumbUrl = mirroredImg;
-                if (!igVideoUrl) storedMediaUrl = mirroredImg;
-              }
-            }
-          }
-        } catch {
-          // keep igImageUrl fallback
-        }
-      }
+      const storedMediaUrl =
+        mirroredVideo || igVideoUrl || mirroredImage || igImageUrl;
+      const storedAudioUrl = mirroredAudio || igAudioUrl || undefined;
+      const storedThumbUrl = mirroredImage || igImageUrl || storedMediaUrl;
 
       const ownerUsername: string =
         post.ownerUsername || post.username || "instagram";
@@ -268,6 +314,7 @@ export async function POST(request: NextRequest) {
         media_type: isVideo ? "video" : "image",
         display_format: isVideo ? "VIDEO" : "IMAGE",
         media_url: storedMediaUrl,
+        audio_url: storedAudioUrl,
         thumbnail_url: storedThumbUrl,
         fallback_image_url: storedThumbUrl,
         aspect_ratio: isVideo ? "9:16" : "3:4",
@@ -276,10 +323,13 @@ export async function POST(request: NextRequest) {
             ? Math.round(post.videoDuration)
             : undefined,
         primary_text: caption,
-        headline: body.title?.trim() || caption.split(/\n/)[0]?.slice(0, 80) || `Instagram Reel (@${ownerUsername})`,
-        cta_text: "Open Instagram",
-        landing_page_url: cleanUrl,
-        landing_page_path: `/reel/${shortcode}`,
+        headline:
+          body.title?.trim() ||
+          caption.split(/\n/)[0]?.slice(0, 80) ||
+          `@${ownerUsername}`,
+        cta_text: "",
+        landing_page_url: "",
+        landing_page_path: "",
         is_active: true,
         started_running_at: post.timestamp || new Date().toISOString(),
         platforms: ["Instagram"],
@@ -293,14 +343,12 @@ export async function POST(request: NextRequest) {
 
       const supabase = getSupabaseServerClient();
       if (supabase) {
-        await supabase.from("adtrack_ads").upsert({
-          id: ad.id,
-          brand_id: ad.brand_id,
-          brand_name: ad.brand_name,
-          market: ad.market,
-          payload: ad,
-          updated_at: new Date().toISOString(),
-        });
+        const { error: upsertErr } = await supabase
+          .from("adtrack_ads")
+          .upsert(toAdRow(ad), { onConflict: "id" });
+        if (upsertErr) {
+          console.error("adtrack_ads upsert error:", upsertErr);
+        }
       }
 
       return NextResponse.json({ ok: true, ad });
