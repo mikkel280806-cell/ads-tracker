@@ -23,6 +23,7 @@ import {
   Radar,
   Search,
   Store,
+  X,
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
@@ -1030,21 +1031,20 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
              ================================================================= */}
           {view === "explore" && (
             <div className="animate-view-in space-y-4">
-              {/* Clean Minimal Header: Title + Live White Count Badge */}
-              <div className="flex items-center gap-3">
-                <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
-                  Ads
-                </h1>
-                <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[12.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
-                  {visibleAds.length.toLocaleString("fr-FR")}
-                </span>
-              </div>
+              {/* Header: Title + live count left · Centered top search middle · balanced spacer right */}
+              <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_minmax(260px,420px)_1fr]">
+                <div className="flex items-center gap-3">
+                  <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+                    Ads
+                  </h1>
+                  <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[12.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+                    {visibleAds.length.toLocaleString("fr-FR")}
+                  </span>
+                </div>
 
-              {/* Single Clean Toolbar Row: Search Left · Sort / Brands / All time / Filters Right */}
-              <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-                {/* Search brands or keywords */}
-                <div className="relative w-full lg:w-[270px]">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#94A3B8]" />
+                {/* Centered Top Search Bar */}
+                <div className="relative w-full">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
                   <input
                     id="explore-search-input"
                     type="search"
@@ -1053,12 +1053,31 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       setSearch(e.target.value);
                       setVisibleLimit(24);
                     }}
-                    placeholder="Search brands or keywords"
-                    className="w-full rounded-lg border border-[#E6E9F0] bg-white py-1.5 pl-8 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#CBD5E1] sm:text-[12.5px]"
+                    placeholder="Search brands or keywords..."
+                    className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9.5 pr-8 text-[16px] text-[#0F172A] shadow-[0_1px_3px_rgba(15,23,42,0.03)] outline-none transition-all placeholder:text-[#94A3B8] focus:border-[#CBD5E1] focus:shadow-[0_4px_14px_-4px_rgba(15,23,42,0.08)] sm:text-[13px]"
                   />
+                  {search && (
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setSearch("");
+                        setVisibleLimit(24);
+                      }}
+                      aria-label="Clear search"
+                      className="absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[#94A3B8] transition-colors hover:bg-[#F1F5F9] hover:text-[#475569]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
 
-                {/* Inline Clean Right Controls: Sort · Brands · All time · Ad Rank · Filters */}
+                <div className="hidden md:block" />
+              </div>
+
+              {/* Clean Filter Row: Sort · Brands · All time · Ad Rank · Filters */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                {/* Inline Clean Controls: Sort · Brands · All time · Ad Rank · Filters */}
                 <div className="flex flex-wrap items-center gap-1 text-[12.5px]">
                   {/* Sort */}
                   <FlakeSelect

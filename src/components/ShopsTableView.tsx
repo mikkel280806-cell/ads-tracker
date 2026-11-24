@@ -1,17 +1,23 @@
 "use client";
 
-import React, { useDeferredValue, useEffect, useId, useMemo, useState } from "react";
+import React, { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
+  ArrowUpDown,
   Bookmark,
   Calendar,
   Check,
+  ChevronDown,
   ChevronRight,
   Globe,
+  Layers,
+  ListFilter,
   Loader2,
   Package,
   Play,
   Plus,
   Search,
+  Star,
+  Tag,
   Users,
   X,
 } from "lucide-react";
@@ -29,7 +35,11 @@ import {
   ShopifyBagIcon,
   TechBrandIcon,
 } from "./BrandIcons";
-import { FlakeSelect, type FlakeSelectOption } from "./ui/FlakeDropdown";
+import {
+  FlakePopover,
+  FlakeSelect,
+  type FlakeSelectOption,
+} from "./ui/FlakeDropdown";
 
 interface ShopsTableViewProps {
   brands: Brand[];
@@ -40,7 +50,12 @@ interface ShopsTableViewProps {
   onToggleBrandFolder: (brandId: string, boardId: string) => void;
 }
 
-type SortKey = "ads" | "visits" | "products" | "tech";
+type SortKey = "ads" | "visits" | "growth" | "trustpilot" | "products" | "tech";
+type MinAdsFilter = "all" | "50" | "250" | "1000" | "5000";
+type MinVisitsFilter = "all" | "50k" | "250k" | "1m";
+type GrowthFilter = "all" | "positive" | "fast";
+type TrustpilotFilter = "all" | "4.0" | "4.5";
+type PlatformFilter = "all" | "shopify";
 
 const QUICK_SUGGESTIONS = [
   "bareen.com",
@@ -190,7 +205,15 @@ export const ShopsTableView = React.memo(function ShopsTableView({
   const [mobileScraperOpen, setMobileScraperOpen] = useState(false);
 
   const [marketFilter, setMarketFilter] = useState<"ALL" | MarketCode>("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [techFilter, setTechFilter] = useState<string>("all");
+  const [minAdsFilter, setMinAdsFilter] = useState<MinAdsFilter>("all");
+  const [minVisitsFilter, setMinVisitsFilter] = useState<MinVisitsFilter>("all");
+  const [growthFilter, setGrowthFilter] = useState<GrowthFilter>("all");
+  const [trustpilotFilter, setTrustpilotFilter] = useState<TrustpilotFilter>("all");
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("ads");
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -259,6 +282,25 @@ export const ShopsTableView = React.memo(function ShopsTableView({
     [brands]
   );
 
+  const allCategories = useMemo(() => {
+    const freq = new Map<string, number>();
+    for (const b of brands) {
+      const cat = (b.category || "").trim();
+      if (cat) freq.set(cat, (freq.get(cat) || 0) + 1);
+    }
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([name]) => name);
+  }, [brands]);
+
+  const categorySelectOptions = useMemo<FlakeSelectOption[]>(
+    () => [
+      { value: "all", label: "Alle kategorier" },
+      ...allCategories.map((c) => ({ value: c, label: c })),
+    ],
+    [allCategories]
+  );
+
   const allTechTools = useMemo(() => {
     const freq = new Map<string, number>();
     for (const b of brands) {
@@ -274,7 +316,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
 
   const techSelectOptions = useMemo<FlakeSelectOption[]>(
     () => [
-      { value: "all", label: "Alle pixels & apps" },
+      { value: "all", label: "Pixels & apps" },
       ...allTechTools.map((t) => ({
         value: t,
         label: t,
@@ -288,20 +330,79 @@ export const ShopsTableView = React.memo(function ShopsTableView({
     () => [
       { value: "ads", label: "Flest Live Ads" },
       { value: "visits", label: "Højest Visits" },
+      { value: "growth", label: "Størst Vækst" },
+      { value: "trustpilot", label: "Højest Trustpilot" },
       { value: "products", label: "Flest Produkter" },
       { value: "tech", label: "Flest Apps" },
     ],
     []
   );
 
+  const advancedFilterCount =
+    (minAdsFilter !== "all" ? 1 : 0) +
+    (minVisitsFilter !== "all" ? 1 : 0) +
+    (growthFilter !== "all" ? 1 : 0) +
+    (trustpilotFilter !== "all" ? 1 : 0) +
+    (platformFilter !== "all" ? 1 : 0);
+
+  const hasAnyShopFilter =
+    marketFilter !== "ALL" ||
+    categoryFilter !== "all" ||
+    techFilter !== "all" ||
+    advancedFilterCount > 0 ||
+    searchQuery.trim().length > 0;
+
+  const resetAllShopFilters = () => {
+    setMarketFilter("ALL");
+    setCategoryFilter("all");
+    setTechFilter("all");
+    setMinAdsFilter("all");
+    setMinVisitsFilter("all");
+    setGrowthFilter("all");
+    setTrustpilotFilter("all");
+    setPlatformFilter("all");
+    setSearchQuery("");
+  };
+
   const filteredBrands = useMemo(() => {
     const q = deferredSearchQuery.trim().toLowerCase();
     const list = brands.filter((b) => {
       if (marketFilter === "DK" && b.market !== "DK") return false;
       if (marketFilter === "US" && b.market === "DK") return false;
+      if (categoryFilter !== "all" && (b.category || "").trim() !== categoryFilter) {
+        return false;
+      }
       if (techFilter !== "all") {
         const allTech = [...(b.pixels || []), ...(b.shopify_apps || [])];
         if (!allTech.includes(techFilter)) return false;
+      }
+      if (minAdsFilter !== "all") {
+        const minAds = Number(minAdsFilter);
+        const liveAds = b.active_ads_count ?? (adsByBrand.get(b.id)?.length || 0);
+        if (liveAds < minAds) return false;
+      }
+      if (minVisitsFilter !== "all") {
+        const visits = b.monthly_visits || 0;
+        const threshold =
+          minVisitsFilter === "1m"
+            ? 1_000_000
+            : minVisitsFilter === "250k"
+              ? 250_000
+              : 50_000;
+        if (visits < threshold) return false;
+      }
+      if (growthFilter === "positive" && (b.traffic_growth_pct ?? 0) <= 0) {
+        return false;
+      }
+      if (growthFilter === "fast" && (b.traffic_growth_pct ?? 0) < 15) {
+        return false;
+      }
+      if (trustpilotFilter !== "all") {
+        const minScore = Number(trustpilotFilter);
+        if ((b.trustpilot_score ?? 0) < minScore) return false;
+      }
+      if (platformFilter === "shopify" && !b.is_shopify) {
+        return false;
       }
       if (q) {
         const hay = [
@@ -309,6 +410,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           b.website_url,
           b.myshopify_domain,
           b.category,
+          ...(b.sub_categories || []),
           b.shopify_theme,
           ...(b.pixels || []),
           ...(b.shopify_apps || []),
@@ -325,6 +427,12 @@ export const ShopsTableView = React.memo(function ShopsTableView({
       if (sortBy === "visits") {
         return (b.monthly_visits || 0) - (a.monthly_visits || 0);
       }
+      if (sortBy === "growth") {
+        return (b.traffic_growth_pct ?? -999) - (a.traffic_growth_pct ?? -999);
+      }
+      if (sortBy === "trustpilot") {
+        return (b.trustpilot_score ?? 0) - (a.trustpilot_score ?? 0);
+      }
       if (sortBy === "products") {
         return (b.products_count || 0) - (a.products_count || 0);
       }
@@ -335,7 +443,20 @@ export const ShopsTableView = React.memo(function ShopsTableView({
       }
       return (b.active_ads_count || 0) - (a.active_ads_count || 0);
     });
-  }, [brands, marketFilter, techFilter, deferredSearchQuery, sortBy]);
+  }, [
+    brands,
+    adsByBrand,
+    marketFilter,
+    categoryFilter,
+    techFilter,
+    minAdsFilter,
+    minVisitsFilter,
+    growthFilter,
+    trustpilotFilter,
+    platformFilter,
+    deferredSearchQuery,
+    sortBy,
+  ]);
 
   const getFlag = (brand: Brand) =>
     brand.country_code === "FR"
@@ -348,8 +469,8 @@ export const ShopsTableView = React.memo(function ShopsTableView({
 
   return (
     <div className="animate-view-in space-y-4 lg:space-y-5">
-      {/* HEADER — Clean minimal title + live white count badge + primary add action */}
-      <div className="flex items-center justify-between gap-3">
+      {/* HEADER — Title + live count left · Centered top search middle · "+" primary action right */}
+      <div className="grid grid-cols-[1fr_auto] items-center gap-3 md:grid-cols-[1fr_minmax(260px,420px)_1fr]">
         <div className="flex items-center gap-3">
           <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
             Shops
@@ -359,19 +480,44 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           </span>
         </div>
 
+        {/* Centered Top Search Bar */}
+        <div className="relative order-3 col-span-2 w-full md:order-2 md:col-span-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Søg shop, kategori eller app..."
+            className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9.5 pr-8 text-[16px] text-[#0F172A] shadow-[0_1px_3px_rgba(15,23,42,0.03)] outline-none transition-all placeholder:text-[#94A3B8] focus:border-[#CBD5E1] focus:shadow-[0_4px_14px_-4px_rgba(15,23,42,0.08)] sm:text-[13px]"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setSearchQuery("")}
+              aria-label="Ryd søgning"
+              className="absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[#94A3B8] transition-colors hover:bg-[#F1F5F9] hover:text-[#475569]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
         {/* Clean "+" Icon Trigger (opens Add Shop popup modal) */}
-        <button
-          type="button"
-          onClick={() => {
-            setError(null);
-            setMobileScraperOpen(true);
-          }}
-          aria-label="Tilføj shop"
-          title="Tilføj shop"
-          className="adtrack-btn-primary inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors"
-        >
-          <Plus className="h-4.5 w-4.5" />
-        </button>
+        <div className="order-2 flex justify-end md:order-3">
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setMobileScraperOpen(true);
+            }}
+            aria-label="Tilføj shop"
+            title="Tilføj shop"
+            className="adtrack-btn-primary inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors"
+          >
+            <Plus className="h-4.5 w-4.5" />
+          </button>
+        </div>
       </div>
 
       {/* ADD SHOP POPUP MODAL */}
@@ -486,7 +632,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         </div>
       )}
 
-      {/* UNIFIED FILTER BAR — Hick's Law: Market · Search · Tech · Sort */}
+      {/* UNIFIED FILTER BAR — Market left · Category · Tech · Advanced Filters · Sort right */}
       <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-3 lg:space-y-0">
         {/* Clean Segmented Market Control */}
         <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold lg:inline-flex lg:w-fit">
@@ -520,43 +666,263 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           })}
         </div>
 
-        {/* Search + Tech + Sort */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1 sm:w-56 sm:flex-none">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Søg shop eller app..."
-              className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9 pr-3 text-[16px] text-[#0F172A] outline-none transition-colors focus:border-[#94A3B8] sm:text-xs"
-            />
-          </div>
+        {/* Category · Pixels & Apps · Advanced Filters · Sort */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <FlakeSelect
+            ariaLabel="Filtrer efter kategori"
+            value={categoryFilter}
+            onChange={(val) => setCategoryFilter(val)}
+            options={categorySelectOptions}
+            icon={<Tag className="h-3.5 w-3.5 text-[#475569]" />}
+            variant="bordered"
+            align="left"
+            menuWidth={230}
+            isActive={categoryFilter !== "all"}
+            triggerClassName="w-auto max-w-[175px]"
+          />
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-            <FlakeSelect
-              ariaLabel="Filtrer efter pixel eller Shopify app"
-              value={techFilter}
-              onChange={(val) => setTechFilter(val)}
-              options={techSelectOptions}
-              variant="bordered"
-              align="left"
-              menuWidth={240}
-              isActive={techFilter !== "all"}
-            />
+          <FlakeSelect
+            ariaLabel="Filtrer efter pixel eller Shopify app"
+            value={techFilter}
+            onChange={(val) => setTechFilter(val)}
+            options={techSelectOptions}
+            icon={<Layers className="h-3.5 w-3.5 text-[#475569]" />}
+            variant="bordered"
+            align="left"
+            menuWidth={240}
+            isActive={techFilter !== "all"}
+            triggerClassName="w-auto max-w-[170px]"
+          />
 
-            <FlakeSelect
-              ariaLabel="Sortér shops"
-              value={sortBy}
-              onChange={(val) => setSortBy(val as SortKey)}
-              options={shopSortOptions}
-              variant="bordered"
+          {/* Advanced Shop Filters Popover (Live Ads, Visits, Growth, Trustpilot, Platform) */}
+          <div className="relative">
+            <button
+              ref={filtersTriggerRef}
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13.5px] font-medium transition-colors sm:text-xs ${
+                advancedFilterCount > 0 || filtersOpen
+                  ? "border-[#CBD5E1] text-[#0F172A]"
+                  : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
+              }`}
+            >
+              <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
+              <span>Filters</span>
+              {advancedFilterCount > 0 && (
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[10px] font-bold text-white">
+                  {advancedFilterCount}
+                </span>
+              )}
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-[#64748B] transition-transform duration-150 ${
+                  filtersOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <FlakePopover
+              open={filtersOpen}
+              onOpenChange={setFiltersOpen}
+              anchorRef={filtersTriggerRef}
               align="right"
-              menuWidth={205}
-              isActive={sortBy !== "ads"}
-              triggerClassName="font-semibold text-[#0F172A]"
-            />
+              width={310}
+              maxHeight={420}
+            >
+              <div className="workspace-scroll space-y-3.5 overflow-y-auto overscroll-contain p-3.5">
+                {/* Live Meta Ads */}
+                <div>
+                  <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Live Meta Ads
+                  </p>
+                  <div className="grid grid-cols-5 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                    {(
+                      [
+                        { id: "all", label: "Alle" },
+                        { id: "50", label: "50+" },
+                        { id: "250", label: "250+" },
+                        { id: "1000", label: "1K+" },
+                        { id: "5000", label: "5K+" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setMinAdsFilter(opt.id)}
+                        className={`rounded-lg py-1 transition-all ${
+                          minAdsFilter === opt.id
+                            ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Monthly Visits */}
+                <div>
+                  <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Månedlige Visits
+                  </p>
+                  <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                    {(
+                      [
+                        { id: "all", label: "Alle" },
+                        { id: "50k", label: "50K+" },
+                        { id: "250k", label: "250K+" },
+                        { id: "1m", label: "1M+" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setMinVisitsFilter(opt.id)}
+                        className={`rounded-lg py-1 transition-all ${
+                          minVisitsFilter === opt.id
+                            ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Traffic Growth */}
+                <div>
+                  <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Trafikvækst
+                  </p>
+                  <div className="grid grid-cols-3 gap-1.5 text-[11.5px] font-medium">
+                    {(
+                      [
+                        { id: "all", label: "Alle" },
+                        { id: "positive", label: "Voksende" },
+                        { id: "fast", label: "+15% vækst" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setGrowthFilter(opt.id)}
+                        className={`rounded-lg border px-2 py-1.5 transition-colors ${
+                          growthFilter === opt.id
+                            ? "border-[#0F172A] bg-[#0F172A] text-white"
+                            : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Trustpilot + Platform */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      Trustpilot
+                    </p>
+                    <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                      {(
+                        [
+                          { id: "all", label: "Alle" },
+                          { id: "4.0", label: "4+" },
+                          { id: "4.5", label: "4.5+" },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setTrustpilotFilter(opt.id)}
+                          className={`inline-flex items-center justify-center gap-0.5 rounded-lg py-1 transition-all ${
+                            trustpilotFilter === opt.id
+                              ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                              : "text-[#64748B] hover:text-[#0F172A]"
+                          }`}
+                        >
+                          {opt.id !== "all" && (
+                            <Star className="h-2.5 w-2.5 fill-[#00B67A] text-[#00B67A]" />
+                          )}
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      Platform
+                    </p>
+                    <div className="grid grid-cols-2 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
+                      {(
+                        [
+                          { id: "all", label: "Alle" },
+                          { id: "shopify", label: "Shopify" },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setPlatformFilter(opt.id)}
+                          className={`rounded-lg py-1 transition-all ${
+                            platformFilter === opt.id
+                              ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                              : "text-[#64748B] hover:text-[#0F172A]"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {advancedFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMinAdsFilter("all");
+                      setMinVisitsFilter("all");
+                      setGrowthFilter("all");
+                      setTrustpilotFilter("all");
+                      setPlatformFilter("all");
+                    }}
+                    className="w-full rounded-xl border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                  >
+                    Nulstil filtre
+                  </button>
+                )}
+              </div>
+            </FlakePopover>
           </div>
+
+          <FlakeSelect
+            ariaLabel="Sortér shops"
+            value={sortBy}
+            onChange={(val) => setSortBy(val as SortKey)}
+            options={shopSortOptions}
+            icon={<ArrowUpDown className="h-3.5 w-3.5 text-[#475569]" />}
+            variant="bordered"
+            align="right"
+            menuWidth={210}
+            isActive={sortBy !== "ads"}
+            triggerClassName="w-auto font-semibold text-[#0F172A]"
+          />
+
+          {hasAnyShopFilter && (
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={resetAllShopFilters}
+              className="inline-flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+            >
+              <X className="h-3.5 w-3.5" />
+              Nulstil
+            </button>
+          )}
         </div>
       </div>
 
@@ -748,8 +1114,17 @@ export const ShopsTableView = React.memo(function ShopsTableView({
               Ingen shops matcher dit filter
             </p>
             <p className="mt-1 text-xs text-[#64748B]">
-              Ryd søgefeltet eller tryk på + Scrape Shop øverst.
+              Nulstil dine filtre eller tryk på + øverst for at tilføje en ny shop.
             </p>
+            {hasAnyShopFilter && (
+              <button
+                type="button"
+                onClick={resetAllShopFilters}
+                className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl border border-[#E2E6EF] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC]"
+              >
+                Nulstil alle filtre
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1039,8 +1414,17 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                 Ingen shops matcher dit filter
               </p>
               <p className="mt-1 text-xs text-[#64748B]">
-                Ryd søgefeltet eller klik på + øverst til højre for at tilføje en ny shop.
+                Nulstil dine filtre eller klik på + øverst til højre for at tilføje en ny shop.
               </p>
+              {hasAnyShopFilter && (
+                <button
+                  type="button"
+                  onClick={resetAllShopFilters}
+                  className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl border border-[#E2E6EF] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC]"
+                >
+                  Nulstil alle filtre
+                </button>
+              )}
             </div>
           )}
         </div>
