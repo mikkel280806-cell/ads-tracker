@@ -326,11 +326,16 @@ export const ShopsTableView = React.memo(function ShopsTableView({
 
   return (
     <div className="animate-view-in space-y-4 lg:space-y-5">
-      {/* HEADER — Clean minimal title + primary add action */}
+      {/* HEADER — Clean minimal title + live white count badge + primary add action */}
       <div className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
-          Shops
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+            Shops
+          </h1>
+          <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[12.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+            {filteredBrands.length.toLocaleString("fr-FR")}
+          </span>
+        </div>
 
         {/* Clean "+" Icon Trigger (opens Add Shop popup modal) */}
         <button

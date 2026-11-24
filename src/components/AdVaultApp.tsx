@@ -726,7 +726,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 className="h-[17px] w-[17px]"
                 style={{ color: view === "explore" ? "#60A5FA" : undefined }}
               />
-              Explore
+              Ads
             </span>
           </button>
         </div>
@@ -937,23 +937,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {/* =================================================================
-              VIEW 2: EXPLORE (Konvert-inspired Clean Masonry Ad Discovery)
+              VIEW 2: ADS (Clean Masonry Ad Discovery)
              ================================================================= */}
           {view === "explore" && (
             <div className="animate-view-in space-y-4">
-              {/* Konvert-style Explore Header: Icon Badge + Title + Subtitle */}
-              <div className="flex items-center gap-3 border-b border-[#EFEFF4] pb-4">
-                <span className="adtrack-icon-badge flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
-                  <Compass className="h-[18px] w-[18px]" />
+              {/* Clean Minimal Header: Title + Live White Count Badge */}
+              <div className="flex items-center gap-3">
+                <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
+                  Ads
+                </h1>
+                <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[12.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+                  {visibleAds.length.toLocaleString("fr-FR")}
                 </span>
-                <div className="min-w-0">
-                  <h1 className="font-display text-[18px] font-bold leading-tight text-[#0F172A]">
-                    Explore
-                  </h1>
-                  <p className="mt-0.5 truncate text-[12px] text-[#64748B]">
-                    Browse through new and winning ads from top performing brands
-                  </p>
-                </div>
               </div>
 
               {/* Single Clean Toolbar Row: Search Left · Sort / Brands / All time / Filters Right */}
@@ -1337,7 +1332,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           <GlassTabBarItem
             value="explore"
             icon={<Compass strokeWidth={view === "explore" ? 2.25 : 1.85} />}
-            label="Explore"
+            label="Ads"
           />
           <GlassTabBarItem
             value="folders"

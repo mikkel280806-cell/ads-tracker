@@ -1008,7 +1008,7 @@ export function CollectionsView({
               Denne folder er tom endnu
             </p>
             <p className="mt-1 text-xs text-[#64748B]">
-              Klik på <strong>+ Tilføj video</strong> øverst for at uploade fra Fotos/Filer eller importere et Instagram-link – eller gem ads fra <strong>Explore</strong>.
+              Klik på <strong>+ Tilføj video</strong> øverst for at uploade fra Fotos/Filer eller importere et Instagram-link – eller gem ads fra <strong>Ads</strong>.
             </p>
           </div>
         )}
