@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Folder,
+  Hammer,
   Info,
   ListFilter,
   PackagePlus,
@@ -25,6 +26,7 @@ import {
   Radar,
   Search,
   Store,
+  Users,
   X,
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
@@ -1080,8 +1082,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           </div>
         </div>
 
-        {/* Bottom Sidebar Footer: Chrome Extension + Profile Placeholder */}
-        <div className="relative z-10 mt-3 shrink-0 space-y-2 border-t border-white/[0.08] pt-3">
+        {/* Bottom Sidebar Footer: Chrome Extension + Request a Feature + Affiliate + Profile Placeholder */}
+        <div className="relative z-10 mt-3 shrink-0 space-y-1 border-t border-white/[0.08] pt-3">
           <button
             type="button"
             data-no-glass="true"
@@ -1099,7 +1101,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           <button
             type="button"
             data-no-glass="true"
-            className="flex w-full items-center justify-between gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
+            className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-white/85 transition-colors hover:bg-white/[0.06] hover:text-white"
+          >
+            <Hammer className="h-[17px] w-[17px] shrink-0 text-white/75" />
+            <span className="truncate">Request a feature</span>
+          </button>
+
+          <button
+            type="button"
+            data-no-glass="true"
+            className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-white/85 transition-colors hover:bg-white/[0.06] hover:text-white"
+          >
+            <Users className="h-[17px] w-[17px] shrink-0 text-white/75" />
+            <span className="truncate">Affiliate program</span>
+          </button>
+
+          <button
+            type="button"
+            data-no-glass="true"
+            className="mt-1 flex w-full items-center justify-between gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
           >
             <span className="flex min-w-0 items-center gap-2.5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2A3142] font-display text-[13px] font-bold text-white ring-1 ring-white/15">
