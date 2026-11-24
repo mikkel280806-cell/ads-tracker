@@ -126,16 +126,21 @@ function InteractiveAreaChart({
   gradientId,
   valuePrefix = "",
   formatVal,
+  fillHeight = false,
 }: {
   points: { label: string; value: number }[];
   color: string;
   gradientId: string;
   valuePrefix?: string;
   formatVal: (v: number) => string;
+  fillHeight?: boolean;
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(560);
+  const [containerSize, setContainerSize] = useState({
+    width: 560,
+    height: fillHeight ? 340 : 205,
+  });
   const [revealed, setRevealed] = useState(false);
 
   const pointsSignature = useMemo(
@@ -169,25 +174,36 @@ function InteractiveAreaChart({
     const el = containerRef.current;
     if (!el) return;
     const update = () => {
-      const next = Math.round(el.getBoundingClientRect().width);
-      if (next > 0) setContainerWidth(next);
+      const rect = el.getBoundingClientRect();
+      const nextW = Math.round(rect.width);
+      const nextH = Math.round(rect.height);
+      setContainerSize((prev) => {
+        const w = nextW > 0 ? nextW : prev.width;
+        const h = fillHeight && nextH > 0 ? nextH : prev.height;
+        if (w === prev.width && h === prev.height) return prev;
+        return { width: w, height: h };
+      });
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [fillHeight]);
 
   if (points.length < 2) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-xs text-[#94A3B8]">
+      <div
+        className={`flex items-center justify-center text-xs text-[#94A3B8] ${
+          fillHeight ? "min-h-[260px] flex-1" : "h-[200px]"
+        }`}
+      >
         Ingen historiske datapunkter endnu
       </div>
     );
   }
 
-  const w = Math.max(280, containerWidth);
-  const h = 205;
+  const w = Math.max(280, containerSize.width);
+  const h = fillHeight ? Math.max(240, containerSize.height) : 205;
   const padL = 36;
   const padR = 10;
   const padT = 18;
@@ -205,21 +221,32 @@ function InteractiveAreaChart({
   const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(1)},${h - padB} L ${coords[0].x.toFixed(1)},${h - padB} Z`;
   const clipId = `${gradientId}-reveal-clip`;
 
-  const gridLines = [0, 0.33, 0.66, 1].map((r) => ({
-    y: h - padB - r * (h - padT - padB),
-    val: Math.round(maxVal * r),
-  }));
+  const gridLines = (fillHeight ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.33, 0.66, 1]).map(
+    (r) => ({
+      y: h - padB - r * (h - padT - padB),
+      val: Math.round(maxVal * r),
+    })
+  );
 
   const activePt = hoveredIdx !== null ? coords[hoveredIdx] : null;
   const hitBand = Math.max(24, (w - padL - padR) / Math.max(points.length - 1, 1));
 
   return (
-    <div ref={containerRef} className="relative w-full select-none">
+    <div
+      ref={containerRef}
+      className={`relative w-full select-none ${
+        fillHeight ? "min-h-[260px] flex-1" : ""
+      }`}
+    >
       <svg
         width={w}
         height={h}
         viewBox={`0 0 ${w} ${h}`}
-        className="block h-[205px] w-full overflow-visible"
+        className={
+          fillHeight
+            ? "absolute inset-0 block h-full w-full overflow-visible"
+            : "block h-[205px] w-full overflow-visible"
+        }
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -1902,8 +1929,8 @@ export function ShopAnalyticsView({
             <div className="space-y-5">
               {/* Top Insights Bento Row (Historic Chart + Media Mix + Top Landing Pages) */}
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                <div className="adtrack-card rounded-2xl p-5 xl:col-span-8">
-                  <div className="mb-3 flex items-center justify-between">
+                <div className="adtrack-card flex flex-col rounded-2xl p-5 xl:col-span-8">
+                  <div className="mb-3 flex shrink-0 items-center justify-between">
                     <div>
                       <h2 className="font-display text-[15px] font-bold text-[#0F172A]">
                         Historic of Live Ads{" "}
@@ -1938,7 +1965,37 @@ export function ShopAnalyticsView({
                     gradientId="adtrackHistoricAdsGrad"
                     valuePrefix="Active Ads: "
                     formatVal={(v) => formatReach(v)}
+                    fillHeight
                   />
+                  {(() => {
+                    const countryList =
+                      shopAudience.countries.length > 0
+                        ? shopAudience.countries.slice(0, 6).map((c) => ({
+                            code: c.code,
+                            flag: c.flag,
+                            pct: c.pct,
+                          }))
+                        : (brand.targeted_countries || []).slice(0, 6);
+                    if (countryList.length === 0) return null;
+                    return (
+                      <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[#EFF2F6] pt-3 text-xs">
+                        <span className="font-medium text-[#64748B]">
+                          Targeted Countries
+                        </span>
+                        <div className="flex flex-wrap items-center gap-3">
+                          {countryList.map((c) => (
+                            <span
+                              key={c.code}
+                              className="inline-flex items-center gap-1 font-mono-num text-[11.5px] font-semibold text-[#0F172A]"
+                            >
+                              <span>{c.flag}</span>
+                              {c.pct > 0 && <span>{c.pct}%</span>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Right Stacked Cards: Ads - Media Mix & Top Landing Pages */}
