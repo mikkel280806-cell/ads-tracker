@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
   Bookmark,
@@ -581,17 +582,19 @@ export const ShopsTableView = React.memo(function ShopsTableView({
       </div>
 
       {/* ADD SHOP POPUP MODAL */}
-      {mobileScraperOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#050811]/45 p-4 backdrop-blur-xs"
-          onClick={() => {
-            if (!loading) setMobileScraperOpen(false);
-          }}
-        >
+      {mobileScraperOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className="animate-sheet-up w-full max-w-md rounded-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="flake-modal-backdrop z-[90] flex items-center justify-center bg-[#050811]/55 p-4 backdrop-blur-[2px]"
+            onClick={() => {
+              if (!loading) setMobileScraperOpen(false);
+            }}
           >
+            <div
+              className="animate-sheet-up max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="mb-3.5 flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-display text-[17px] font-bold text-[#0F172A]">
@@ -688,9 +691,10 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* UNIFIED FILTER BAR — Market left · Category · Tech · Advanced Filters · Sort right */}
       <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-3 lg:space-y-0">

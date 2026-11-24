@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   Check,
@@ -209,15 +210,17 @@ export function CollectionsView({
     setEditingBoard(null);
   };
 
-  const editFolderModal = editingBoard ? (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/50 p-0 backdrop-blur-xs sm:items-center sm:p-4"
-      onClick={() => setEditingBoard(null)}
-    >
-      <div
-        className="animate-sheet-up w-full max-w-md rounded-t-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl sm:rounded-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+  const editFolderModal =
+    editingBoard && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="flake-modal-backdrop z-[90] flex items-center justify-center bg-[#050811]/55 p-4 backdrop-blur-[2px]"
+            onClick={() => setEditingBoard(null)}
+          >
+            <div
+              className="animate-sheet-up max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <span
@@ -316,8 +319,10 @@ export function CollectionsView({
           </div>
         </form>
       </div>
-    </div>
-  ) : null;
+    </div>,
+          document.body
+        )
+      : null;
 
   // Add Video Modal state (Instagram link or local file / iPhone Photos upload)
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -639,18 +644,20 @@ export function CollectionsView({
 
         {editFolderModal}
 
-        {/* ADD VIDEO MODAL (Instagram Link OR Local File / iPhone Photo Library) */}
-        {addModalOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/50 p-0 backdrop-blur-xs sm:items-center sm:p-4"
-            onClick={() => {
-              if (!submitting) setAddModalOpen(false);
-            }}
-          >
+        {/* ADD VIDEO MODAL (Portaled above topbar & bottom nav, centered cleanly on mobile + desktop) */}
+        {addModalOpen &&
+          typeof document !== "undefined" &&
+          createPortal(
             <div
-              className="animate-sheet-up w-full max-w-md rounded-t-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl sm:rounded-2xl"
-              onClick={(e) => e.stopPropagation()}
+              className="flake-modal-backdrop z-[90] flex items-center justify-center bg-[#050811]/55 p-4 backdrop-blur-[2px]"
+              onClick={() => {
+                if (!submitting) setAddModalOpen(false);
+              }}
             >
+              <div
+                className="animate-sheet-up max-h-[84dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-[#E6E9F0] bg-white p-5 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-[17px] font-bold text-[#0F172A]">
@@ -719,7 +726,6 @@ export function CollectionsView({
                     <input
                       type="url"
                       required
-                      autoFocus
                       value={igUrl}
                       onChange={(e) => setIgUrl(e.target.value)}
                       placeholder="https://www.instagram.com/reel/..."
@@ -759,19 +765,19 @@ export function CollectionsView({
                     </p>
                   )}
 
-                  <div className="flex items-center justify-end gap-2 pt-1">
+                  <div className="flex items-center justify-end gap-2 pt-2">
                     <button
                       type="button"
                       disabled={submitting}
                       onClick={() => setAddModalOpen(false)}
-                      className="rounded-xl px-3.5 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A] disabled:opacity-40"
+                      className="rounded-xl px-4 py-2.5 text-xs font-semibold text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A] disabled:opacity-40"
                     >
                       Annuller
                     </button>
                     <button
                       type="submit"
                       disabled={submitting || !igUrl.trim()}
-                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-50"
                     >
                       {submitting ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -865,19 +871,19 @@ export function CollectionsView({
                     </p>
                   )}
 
-                  <div className="flex items-center justify-end gap-2 pt-1">
+                  <div className="flex items-center justify-end gap-2 pt-2">
                     <button
                       type="button"
                       disabled={submitting}
                       onClick={() => setAddModalOpen(false)}
-                      className="rounded-xl px-3.5 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A] disabled:opacity-40"
+                      className="rounded-xl px-4 py-2.5 text-xs font-semibold text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A] disabled:opacity-40"
                     >
                       Annuller
                     </button>
                     <button
                       type="submit"
                       disabled={submitting || !selectedFile}
-                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-50"
                     >
                       {submitting ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -889,9 +895,10 @@ export function CollectionsView({
                   </div>
                 </form>
               )}
-            </div>
-          </div>
-        )}
+              </div>
+            </div>,
+            document.body
+          )}
 
         {/* Saved Ads, Custom Videos & Live Loading Cards inside Folder */}
         {folderEntries.length > 0 && (

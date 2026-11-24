@@ -475,7 +475,7 @@ export function AdDetailSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#050811]/60 p-0 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-[2px] lg:pt-14"
+      className="flake-modal-backdrop z-[80] flex items-end justify-center bg-[#050811]/60 p-0 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-[2px] lg:pt-14"
       onClick={onClose}
     >
       <div
