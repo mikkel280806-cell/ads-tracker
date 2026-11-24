@@ -434,18 +434,24 @@ export const AdCard = React.memo(function AdCard({
 
       {/* 4. FULL-WIDTH "Save to collection" FOOTER BAR */}
       <div
-        className="relative mt-2 border-t border-[#F1F3F7]"
+        className={`relative mt-2 border-t ${
+          inFolders ? "border-[#0027eb]/15" : "border-[#F1F3F7]"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           ref={folderBtnRef}
           type="button"
           onClick={() => setFolderMenuOpen((v) => !v)}
-          className="flex w-full items-center justify-between gap-2 rounded-b-[14px] px-3 py-2.5 text-[12px] font-medium text-[#334155] transition-colors hover:bg-[#FAFBFD] hover:text-[#0F172A]"
+          className={`flex w-full items-center justify-between gap-2 rounded-b-[13px] px-3 py-2.5 text-[12px] transition-colors ${
+            inFolders
+              ? "bg-[#0027eb]/[0.07] font-semibold text-[#0027eb] hover:bg-[#0027eb]/[0.11]"
+              : "font-medium text-[#334155] hover:bg-[#FAFBFD] hover:text-[#0F172A]"
+          }`}
         >
           <span className="flex min-w-0 items-center gap-2">
             {inFolders ? (
-              <Bookmark className="h-3.5 w-3.5 shrink-0 fill-[#0F172A] text-[#0F172A]" />
+              <Bookmark className="h-3.5 w-3.5 shrink-0 fill-[#0027eb] text-[#0027eb]" />
             ) : (
               <BookmarkPlus className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
             )}
@@ -458,9 +464,9 @@ export const AdCard = React.memo(function AdCard({
             </span>
           </span>
           <ChevronDown
-            className={`h-3.5 w-3.5 shrink-0 text-[#94A3B8] transition-transform duration-150 ${
-              folderMenuOpen ? "rotate-180" : ""
-            }`}
+            className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
+              inFolders ? "text-[#0027eb]/75" : "text-[#94A3B8]"
+            } ${folderMenuOpen ? "rotate-180" : ""}`}
           />
         </button>
 
@@ -489,7 +495,11 @@ export const AdCard = React.memo(function AdCard({
                     type="button"
                     data-no-glass="true"
                     onClick={() => onToggleBoard(ad.id, board.id)}
-                    className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F3F5F9]"
+                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-colors ${
+                      selected
+                        ? "bg-[#0027eb]/[0.08] font-semibold text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
+                        : "font-medium text-[#0F172A] hover:bg-[#F3F5F9]"
+                    }`}
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span

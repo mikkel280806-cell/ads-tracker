@@ -1132,7 +1132,7 @@ export function AdDetailSheet({
                 onClick={() => setFolderMenuOpen((v) => !v)}
                 className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
                   savedFoldersCount > 0
-                    ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
+                    ? "border-[#0027eb]/25 bg-[#0027eb]/[0.08] text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
                     : "border-[#E6E9F0] bg-white text-[#0F172A] hover:bg-[#FAFBFD]"
                 }`}
               >
@@ -1174,7 +1174,11 @@ export function AdDetailSheet({
                           type="button"
                           data-no-glass="true"
                           onClick={() => onToggleBoard(ad.id, board.id)}
-                          className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F5F7FA]"
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs transition-colors ${
+                            active
+                              ? "bg-[#0027eb]/[0.08] font-semibold text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
+                              : "font-medium text-[#0F172A] hover:bg-[#F5F7FA]"
+                          }`}
                         >
                           <span className="flex min-w-0 items-center gap-2">
                             <span
