@@ -1,16 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
 
 const geist = Geist({
   variable: "--font-geist",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
@@ -57,7 +50,7 @@ export default function RootLayout({
     <html
       lang="da"
       suppressHydrationWarning
-      className={`${geist.variable} ${geistMono.variable}`}
+      className={geist.variable}
     >
       <body className="h-full overflow-hidden bg-[#F7F8FB] text-[#0F172A] antialiased selection:bg-[#0027eb]/15 selection:text-[#0027eb] lg:bg-[#05060B]">
         {children}
