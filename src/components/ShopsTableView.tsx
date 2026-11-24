@@ -543,8 +543,8 @@ export const ShopsTableView = React.memo(function ShopsTableView({
 
   return (
     <div className="animate-view-in space-y-4 lg:space-y-5">
-      {/* HEADER — Title + live count left · Centered top search middle · "+" primary action right */}
-      <div className="grid grid-cols-[1fr_auto] items-center gap-3 md:grid-cols-[1fr_minmax(260px,420px)_1fr]">
+      {/* HEADER — Title + live count left · Centered top search middle · balanced spacer right */}
+      <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_minmax(260px,420px)_1fr]">
         <div className="flex items-center gap-3">
           <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
             Shops
@@ -555,7 +555,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         </div>
 
         {/* Centered Top Search Bar */}
-        <div className="relative order-3 col-span-2 w-full md:order-2 md:col-span-1">
+        <div className="relative w-full">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
           <input
             type="search"
@@ -577,21 +577,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           )}
         </div>
 
-        {/* Clean "+" Icon Trigger (opens Add Shop popup modal) */}
-        <div className="order-2 flex justify-end md:order-3">
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setMobileScraperOpen(true);
-            }}
-            aria-label="Tilføj shop"
-            title="Tilføj shop"
-            className="adtrack-btn-primary inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors"
-          >
-            <Plus className="h-4.5 w-4.5" />
-          </button>
-        </div>
+        <div className="hidden md:block" />
       </div>
 
       {/* ADD SHOP POPUP MODAL */}
