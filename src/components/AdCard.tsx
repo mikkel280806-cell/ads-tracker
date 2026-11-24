@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Bookmark,
-  BookmarkPlus,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -432,41 +431,36 @@ export const AdCard = React.memo(function AdCard({
         </div>
       </div>
 
-      {/* 4. FULL-WIDTH "Save to collection" FOOTER BAR */}
+      {/* 4. FULL-WIDTH "Save to Folder" BUTTON (matches AdDetailSheet's Liquid Glass specular button) */}
       <div
-        className={`relative mt-2 border-t ${
-          inFolders ? "border-[#0027eb]/15" : "border-[#F1F3F7]"
-        }`}
+        className="relative px-2 pb-2 pt-2"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           ref={folderBtnRef}
           type="button"
           onClick={() => setFolderMenuOpen((v) => !v)}
-          className={`flex w-full items-center justify-between gap-2 rounded-b-[13px] px-3 py-2.5 text-[12px] transition-colors ${
+          className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors ${
             inFolders
-              ? "bg-[#0027eb]/[0.07] font-semibold text-[#0027eb] hover:bg-[#0027eb]/[0.11]"
-              : "font-medium text-[#334155] hover:bg-[#FAFBFD] hover:text-[#0F172A]"
+              ? "border-[#0027eb]/25 bg-[#0027eb]/[0.08] text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
+              : "border-[#E6E9F0] bg-white text-[#0F172A] hover:bg-[#FAFBFD]"
           }`}
         >
-          <span className="flex min-w-0 items-center gap-2">
-            {inFolders ? (
-              <Bookmark className="h-3.5 w-3.5 shrink-0 fill-[#0027eb] text-[#0027eb]" />
-            ) : (
-              <BookmarkPlus className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
-            )}
-            <span className="truncate">
-              {inFolders
-                ? ad.board_ids.length > 1
-                  ? `Saved in ${ad.board_ids.length} collections`
-                  : savedBoardName || "Saved to collection"
-                : "Save to collection"}
-            </span>
+          <Bookmark
+            className="h-3.5 w-3.5 shrink-0"
+            fill={inFolders ? "currentColor" : "none"}
+          />
+          <span className="truncate">
+            {inFolders
+              ? ad.board_ids.length > 1
+                ? `Saved in ${ad.board_ids.length} folders`
+                : savedBoardName || "Saved in folder"
+              : "Save to Folder"}
           </span>
           <ChevronDown
             className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
-              inFolders ? "text-[#0027eb]/75" : "text-[#94A3B8]"
-            } ${folderMenuOpen ? "rotate-180" : ""}`}
+              folderMenuOpen ? "rotate-180" : ""
+            }`}
           />
         </button>
 

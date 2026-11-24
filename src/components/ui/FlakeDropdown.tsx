@@ -209,7 +209,7 @@ export function FlakePopover({
           e.stopPropagation();
           onOpenChange(false);
         }}
-        className={`fixed inset-0 z-[65] ${
+        className={`fixed inset-0 z-[110] ${
           open ? "pointer-events-auto" : "pointer-events-none"
         }`}
       />
@@ -235,7 +235,7 @@ export function FlakePopover({
             "opacity 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 170ms cubic-bezier(0.22, 1, 0.36, 1)",
           willChange: "opacity, transform",
         }}
-        className={`z-[70] flex flex-col overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.13),0_2px_8px_rgba(15,23,42,0.05)] ${
+        className={`z-[120] flex flex-col overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.13),0_2px_8px_rgba(15,23,42,0.05)] ${
           open ? "pointer-events-auto" : "pointer-events-none"
         } ${className}`}
       >
