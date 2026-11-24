@@ -82,10 +82,12 @@ async function mirrorRemoteMedia(
   }
 }
 
+const CUSTOM_MEDIA_BRAND_ID = "custom-media";
+
 function toAdRow(ad: Ad) {
   return {
     id: ad.id,
-    brand_id: ad.brand_id,
+    brand_id: CUSTOM_MEDIA_BRAND_ID,
     brand_name: ad.brand_name,
     market: ad.market || "US",
     media_type: ad.media_type,
@@ -101,7 +103,7 @@ function toAdRow(ad: Ad) {
     duplicated_count: ad.duplicated_count ?? null,
     board_ids: ad.board_ids || [],
     user_notes: ad.user_notes || "",
-    payload: ad,
+    payload: { ...ad, brand_id: CUSTOM_MEDIA_BRAND_ID },
     updated_at: new Date().toISOString(),
   };
 }
@@ -302,7 +304,7 @@ export async function POST(request: NextRequest) {
 
       const ad: Ad = {
         id: `ig-${shortcode}-${Date.now().toString(36)}`,
-        brand_id: `ig-${ownerUsername.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
+        brand_id: CUSTOM_MEDIA_BRAND_ID,
         brand_name: ownerFullName,
         brand_handle: `@${ownerUsername}`,
         brand_avatar_initials: initials || "IG",
@@ -343,11 +345,46 @@ export async function POST(request: NextRequest) {
 
       const supabase = getSupabaseServerClient();
       if (supabase) {
+        await supabase.from("adtrack_brands").upsert(
+          {
+            id: CUSTOM_MEDIA_BRAND_ID,
+            name: "Custom Media",
+            market: "DK",
+            website_url: "",
+            meta_page_id: null,
+            is_shopify: false,
+            active_ads_count: 0,
+            monthly_visits: 0,
+            products_count: 0,
+            pixels: [],
+            shopify_apps: [],
+            folder_ids: [],
+            payload: {
+              id: CUSTOM_MEDIA_BRAND_ID,
+              name: "Custom Media",
+              handle: "@custom",
+              avatar_initials: "CM",
+              avatar_color: "#0F172A",
+              website_url: "",
+              category: "System",
+              market: "DK",
+              is_shopify: false,
+              is_tracked: false,
+              last_synced_at: new Date().toISOString(),
+            },
+            last_synced_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
         const { error: upsertErr } = await supabase
           .from("adtrack_ads")
           .upsert(toAdRow(ad), { onConflict: "id" });
         if (upsertErr) {
           console.error("adtrack_ads upsert error:", upsertErr);
+          return NextResponse.json(
+            { ok: false, error: `Kunne ikke gemme i databasen: ${upsertErr.message}` },
+            { status: 500 }
+          );
         }
       }
 

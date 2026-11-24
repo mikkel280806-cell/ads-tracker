@@ -531,7 +531,7 @@ export function CollectionsView({
 
       const uploadedAd: Ad = {
         id: `upload-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-        brand_id: "custom-upload",
+        brand_id: "custom-media",
         brand_name: cleanTitle,
         brand_handle: "@upload",
         brand_avatar_initials: initials,

@@ -26,10 +26,10 @@ create index if not exists idx_adtrack_brands_market on public.adtrack_brands (m
 create index if not exists idx_adtrack_brands_active_ads on public.adtrack_brands (active_ads_count desc);
 create index if not exists idx_adtrack_brands_visits on public.adtrack_brands (monthly_visits desc);
 
--- 2. META ADS
+-- 2. META ADS (also stores standalone folder uploads & organic Instagram Reels)
 create table if not exists public.adtrack_ads (
   id text primary key,
-  brand_id text not null references public.adtrack_brands(id) on delete cascade,
+  brand_id text not null,
   brand_name text not null,
   market text not null default 'US',
   media_type text not null default 'image',

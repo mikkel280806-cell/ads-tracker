@@ -145,6 +145,17 @@ export function dedupeAds(ads: Ad[]): Ad[] {
   const byKey = new Map<string, Ad>();
 
   for (const ad of ads) {
+    // Never merge user-uploaded files or imported Instagram Reels into each other
+    if (
+      ad.source_type === "manual" ||
+      ad.source_type === "instagram" ||
+      ad.tags?.includes("custom-upload") ||
+      ad.tags?.includes("custom-import")
+    ) {
+      byKey.set(ad.id, ad);
+      continue;
+    }
+
     const mediaFp =
       normalizeMediaFingerprint(ad.media_url) ||
       normalizeMediaFingerprint(ad.thumbnail_url);

@@ -3,6 +3,56 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import type { Ad, Board, Brand } from "@/lib/types";
 
+const CUSTOM_MEDIA_BRAND_ID = "custom-media";
+
+function isCustomMediaAd(ad: Ad): boolean {
+  return (
+    ad.source_type === "manual" ||
+    ad.source_type === "instagram" ||
+    ad.brand_id === "custom-upload" ||
+    ad.brand_id === CUSTOM_MEDIA_BRAND_ID ||
+    ad.brand_id.startsWith("ig-") ||
+    (Array.isArray(ad.tags) &&
+      (ad.tags.includes("custom-upload") || ad.tags.includes("custom-import")))
+  );
+}
+
+async function ensureCustomMediaBrand(
+  supabase: NonNullable<ReturnType<typeof getSupabaseServerClient>>
+) {
+  await supabase.from("adtrack_brands").upsert(
+    {
+      id: CUSTOM_MEDIA_BRAND_ID,
+      name: "Custom Media",
+      market: "DK",
+      website_url: "",
+      meta_page_id: null,
+      is_shopify: false,
+      active_ads_count: 0,
+      monthly_visits: 0,
+      products_count: 0,
+      pixels: [],
+      shopify_apps: [],
+      folder_ids: [],
+      payload: {
+        id: CUSTOM_MEDIA_BRAND_ID,
+        name: "Custom Media",
+        handle: "@custom",
+        avatar_initials: "CM",
+        avatar_color: "#0F172A",
+        website_url: "",
+        category: "System",
+        market: "DK",
+        is_shopify: false,
+        is_tracked: false,
+        last_synced_at: new Date().toISOString(),
+      },
+      last_synced_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
+}
+
 function toBrandRow(brand: Brand) {
   return {
     id: brand.id,
@@ -23,9 +73,10 @@ function toBrandRow(brand: Brand) {
 }
 
 function toAdRow(ad: Ad) {
+  const safeBrandId = isCustomMediaAd(ad) ? CUSTOM_MEDIA_BRAND_ID : ad.brand_id;
   return {
     id: ad.id,
-    brand_id: ad.brand_id,
+    brand_id: safeBrandId,
     brand_name: ad.brand_name,
     market: ad.market || "US",
     media_type: ad.media_type,
@@ -41,7 +92,7 @@ function toAdRow(ad: Ad) {
     duplicated_count: ad.duplicated_count ?? null,
     board_ids: ad.board_ids || [],
     user_notes: ad.user_notes || "",
-    payload: ad,
+    payload: { ...ad, brand_id: safeBrandId },
   };
 }
 
@@ -111,7 +162,9 @@ export async function GET() {
       });
     }
 
-    let brands = (brandsRes.data || []).map((r) => r.payload as Brand);
+    let brands = (brandsRes.data || [])
+      .map((r) => r.payload as Brand)
+      .filter((b) => b && b.id !== CUSTOM_MEDIA_BRAND_ID && b.is_tracked !== false);
     let ads = (adsRes.data || []).map((r) => r.payload as Ad);
     let folders = (foldersRes.data || []) as Board[];
 
@@ -290,6 +343,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "upsert_ad" && body.ad) {
+      if (isCustomMediaAd(body.ad)) {
+        await ensureCustomMediaBrand(supabase);
+      }
       const { error } = await supabase
         .from("adtrack_ads")
         .upsert(toAdRow(body.ad), { onConflict: "id" });

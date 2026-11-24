@@ -153,12 +153,17 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     setTimeout(() => setToast(null), 3200);
   };
 
-  const syncCatalog = (payload: Record<string, unknown>) => {
-    fetch("/api/catalog", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
+  const syncCatalog = async (payload: Record<string, unknown>): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/catalog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -205,7 +210,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               "brand-groovelife-com",
             ]);
             const refreshed = parsed
-              .filter((b) => !removedIds.has(b.id))
+              .filter(
+                (b) =>
+                  !removedIds.has(b.id) &&
+                  b.id !== "custom-media" &&
+                  b.is_tracked !== false
+              )
               .map((b) => {
                 const sb = seedById.get(b.id);
                 if (!sb) return b;
@@ -493,8 +503,13 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   const handleAddCustomAd = (newAd: Ad) => {
     setAds((prev) => [newAd, ...prev.filter((a) => a.id !== newAd.id)]);
-    syncCatalog({ action: "upsert_ad", ad: newAd });
-    showToast(`Video tilføjet til folder`);
+    void syncCatalog({ action: "upsert_ad", ad: newAd }).then((ok) => {
+      if (ok) {
+        showToast("Medie gemt i folder");
+      } else {
+        showToast("Advarsel: Kunne ikke gemme medie i databasen");
+      }
+    });
   };
 
   const openShopAnalytics = useCallback(
