@@ -89,6 +89,8 @@ export function AdDetailSheet({
   const folderBtnRef = useRef<HTMLButtonElement | null>(null);
   const [rightTab, setRightTab] = useState<"details" | "script">("details");
   const [failedAdId, setFailedAdId] = useState<string | null>(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
 
   // Inline edit state for uploaded / imported organic media
   const [editingMedia, setEditingMedia] = useState(false);
@@ -105,12 +107,13 @@ export function AdDetailSheet({
   const thumbFileRef = useRef<HTMLInputElement | null>(null);
   const mediaFileRef = useRef<HTMLInputElement | null>(null);
 
-  // Reset inline edit state when switching ads
+  // Reset inline edit & carousel slide state when switching ads
   useEffect(() => {
     setEditingMedia(false);
     setConfirmDelete(false);
     setEditError(null);
     setUploadingAsset(null);
+    setCarouselIdx(0);
   }, [ad?.id]);
 
   const startEditMedia = () => {
@@ -399,23 +402,55 @@ export function AdDetailSheet({
   const mediaFailed = failedAdId === ad.id;
   const transcribeError = transcribeErrorByAdId[ad.id] || null;
 
+  const carouselSlides =
+    Array.isArray(ad.carousel_cards) && ad.carousel_cards.length >= 2
+      ? ad.carousel_cards
+      : null;
+  const safeSlideIdx = carouselSlides
+    ? Math.min(carouselIdx, carouselSlides.length - 1)
+    : 0;
+  const activeSlide = carouselSlides ? carouselSlides[safeSlideIdx] : null;
+
+  const activeMediaUrl = activeSlide ? activeSlide.media_url : ad.media_url;
+  const activeMediaType = activeSlide ? activeSlide.media_type : ad.media_type;
+
   const isVideoFile =
     !mediaFailed &&
-    ad.media_type === "video" &&
-    /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
+    activeMediaType === "video" &&
+    /\.(mp4|webm|mov)(\?|$)/i.test(activeMediaUrl);
 
   const displayImage = mediaFailed
     ? ad.fallback_image_url || ""
-    : ad.thumbnail_url || ad.fallback_image_url || ad.media_url || "";
+    : activeSlide
+      ? activeSlide.thumbnail_url ||
+        (!isVideoFile ? activeSlide.media_url : "") ||
+        ad.thumbnail_url ||
+        ""
+      : ad.thumbnail_url || ad.fallback_image_url || ad.media_url || "";
 
-  const downloadUrl = isVideoFile ? ad.media_url : displayImage;
-  const domain = ad.landing_page_url
-    ? ad.landing_page_url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/.*$/, "")
+  const downloadUrl = isVideoFile ? activeMediaUrl : displayImage;
+  const activeLandingUrl = activeSlide?.landing_page_url || ad.landing_page_url;
+  const activeHeadline = activeSlide?.headline || ad.headline || ad.brand_name;
+  const activeLinkDescription =
+    activeSlide?.link_description || ad.link_description;
+  const activeCtaText = activeSlide?.cta_text || ad.cta_text || "Learn more";
+
+  const domain = activeLandingUrl
+    ? activeLandingUrl.replace(/^https?:\/\/(www\.)?/, "").replace(/\/.*$/, "")
     : "";
 
+  const stepCarousel = (delta: number) => {
+    if (!carouselSlides) return;
+    setFailedAdId(null);
+    setCarouselIdx(
+      (prev) => (prev + delta + carouselSlides.length) % carouselSlides.length
+    );
+  };
+
   const savedFoldersCount = ad.board_ids.length;
-  const formatLabel =
-    ad.display_format === "VIDEO" || ad.media_type === "video"
+  const formatLabel = carouselSlides
+    ? `Carousel (${carouselSlides.length})`
+    : ad.display_format === "VIDEO" || ad.media_type === "video"
       ? "Video"
       : ad.display_format === "CAROUSEL" || ad.media_type === "carousel"
         ? "Carousel"
@@ -799,14 +834,37 @@ export function AdDetailSheet({
                 )}
               </div>
 
-              {/* Creative Media (Video with synced DASH audio support / Image) */}
-              <div className="relative bg-[#0B0F19]">
+              {/* Creative Media (Swipeable Carousel / Video with synced DASH audio / Image) */}
+              <div
+                className="relative bg-[#0B0F19]"
+                onTouchStart={
+                  carouselSlides
+                    ? (e) => {
+                        touchStartXRef.current = e.touches[0]?.clientX ?? null;
+                      }
+                    : undefined
+                }
+                onTouchEnd={
+                  carouselSlides
+                    ? (e) => {
+                        const startX = touchStartXRef.current;
+                        touchStartXRef.current = null;
+                        if (startX === null) return;
+                        const endX = e.changedTouches[0]?.clientX ?? startX;
+                        const dx = endX - startX;
+                        if (Math.abs(dx) >= 36) {
+                          stepCarousel(dx < 0 ? 1 : -1);
+                        }
+                      }
+                    : undefined
+                }
+              >
                 {isVideoFile ? (
                   <>
                     <video
                       ref={videoRef}
-                      key={ad.id}
-                      src={ad.media_url}
+                      key={`${ad.id}-${safeSlideIdx}-${activeMediaUrl}`}
+                      src={activeMediaUrl}
                       poster={displayImage}
                       autoPlay
                       loop
@@ -892,7 +950,7 @@ export function AdDetailSheet({
                         Slå lyd til
                       </button>
                     )}
-                    {ad.audio_url && (
+                    {!carouselSlides && ad.audio_url && (
                       <audio
                         ref={audioRef}
                         key={`${ad.id}-audio`}
@@ -906,7 +964,7 @@ export function AdDetailSheet({
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={displayImage}
-                    alt={ad.headline || ad.brand_name}
+                    alt={activeHeadline}
                     onError={() => {
                       if (!mediaFailed) setFailedAdId(ad.id);
                     }}
@@ -920,9 +978,75 @@ export function AdDetailSheet({
                     <p className="text-xs text-[#64748B]">Medie utilgængeligt</p>
                   </div>
                 )}
+
+                {/* Carousel Left/Right Arrows & Slide Counter */}
+                {carouselSlides && (
+                  <>
+                    <span className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-white/25 bg-black/60 px-2.5 py-1 font-mono-num text-[11px] font-semibold text-white backdrop-blur-md">
+                      <Layers className="h-3 w-3" />
+                      {safeSlideIdx + 1} / {carouselSlides.length}
+                    </span>
+
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => stepCarousel(-1)}
+                      aria-label="Forrige slide"
+                      className="absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-white shadow-md backdrop-blur-md transition-all hover:bg-black/80 active:scale-95"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => stepCarousel(1)}
+                      aria-label="Næste slide"
+                      className="absolute right-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-white shadow-md backdrop-blur-md transition-all hover:bg-black/80 active:scale-95"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
               </div>
 
-              {/* Facebook Bottom CTA Footer (Only for paid Meta Ads) */}
+              {/* Clickable Carousel Slide Thumbnail Strip */}
+              {carouselSlides && (
+                <div className="no-scrollbar flex items-center gap-2 overflow-x-auto border-t border-[#ECEFF5] bg-white px-3 py-2">
+                  {carouselSlides.map((slide, idx) => {
+                    const active = idx === safeSlideIdx;
+                    return (
+                      <button
+                        key={`${idx}-${slide.thumbnail_url}`}
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => {
+                          setFailedAdId(null);
+                          setCarouselIdx(idx);
+                        }}
+                        aria-label={`Vis slide ${idx + 1}`}
+                        className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                          active
+                            ? "border-[#0027eb] ring-2 ring-[#0027eb]/20"
+                            : "border-transparent opacity-65 hover:opacity-100"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={slide.thumbnail_url || slide.media_url}
+                          alt={`Slide ${idx + 1}`}
+                          className="h-full w-full bg-[#F3F5F9] object-cover"
+                        />
+                        <span className="absolute bottom-0.5 right-0.5 rounded bg-black/65 px-1 font-mono-num text-[9px] font-bold text-white">
+                          {idx + 1}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Facebook Bottom CTA Footer (Only for paid Meta Ads — updates per carousel slide!) */}
               {!isOrganic && (
                 <div className="flex items-center justify-between gap-3 border-t border-[#ECEFF5] bg-[#F8F9FC] px-3.5 py-2.5">
                   <div className="min-w-0 flex-1">
@@ -932,23 +1056,23 @@ export function AdDetailSheet({
                       </p>
                     )}
                     <p className="truncate text-[12.5px] font-bold text-[#0F172A]">
-                      {ad.headline || ad.brand_name}
+                      {activeHeadline}
                     </p>
-                    {ad.link_description && (
+                    {activeLinkDescription && (
                       <p className="truncate text-[11px] text-[#64748B]">
-                        {ad.link_description}
+                        {activeLinkDescription}
                       </p>
                     )}
                   </div>
 
-                  {ad.landing_page_url && (
+                  {activeLandingUrl && (
                     <a
-                      href={ad.landing_page_url}
+                      href={activeLandingUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="shrink-0 rounded-lg border border-[#DCE1EC] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
                     >
-                      {ad.cta_text || "Learn more"}
+                      {activeCtaText}
                     </a>
                   )}
                 </div>

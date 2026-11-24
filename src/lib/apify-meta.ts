@@ -1,5 +1,6 @@
 import type {
   Ad,
+  CarouselCard,
   CountryReachBreakdown,
   DisplayFormat,
   MarketCode,
@@ -207,34 +208,53 @@ export function mapApifyMetaAd(
     "";
 
   const fmt = (snap.display_format || "").toUpperCase();
-  const distinctCardMedia = new Set(
-    cards
-      .map(
-        (c) =>
-          c.original_image_url ||
-          c.resized_image_url ||
-          c.video_hd_url ||
-          c.video_sd_url ||
-          ""
-      )
-      .filter(Boolean)
-  ).size;
+  const isCarouselFormat =
+    fmt === "CAROUSEL" || fmt === "MULTI_IMAGES" || fmt === "DPA";
+
+  const seenCardMedia = new Set<string>();
+  const extractedCarouselCards: CarouselCard[] = [];
+  if (isCarouselFormat && cards.length >= 2) {
+    for (const c of cards) {
+      const cVid = c.video_hd_url || c.video_sd_url || "";
+      const cImg =
+        c.original_image_url ||
+        c.resized_image_url ||
+        c.video_preview_image_url ||
+        "";
+      const primary = cVid || cImg;
+      if (!primary || seenCardMedia.has(primary)) continue;
+      seenCardMedia.add(primary);
+      extractedCarouselCards.push({
+        media_type: cVid ? "video" : "image",
+        media_url: primary,
+        thumbnail_url: cImg || primary,
+        headline: (c.title || "").replace(/\{\{[^}]+\}\}/g, "").trim() || undefined,
+        body: (c.body || "").replace(/\{\{[^}]+\}\}/g, "").trim() || undefined,
+        link_description:
+          (c.link_description || c.caption || "")
+            .replace(/\{\{[^}]+\}\}/g, "")
+            .trim() || undefined,
+        cta_text: (c.cta_text || "").trim() || undefined,
+        landing_page_url: c.link_url ? cleanLandingUrl(c.link_url) || c.link_url : undefined,
+      });
+      if (extractedCarouselCards.length >= 10) break;
+    }
+  }
+
+  const carouselCards =
+    extractedCarouselCards.length >= 2 ? extractedCarouselCards : undefined;
 
   let mediaType: MediaType = "image";
   let displayFormat: DisplayFormat = "IMAGE";
-  if (videoUrl || fmt === "VIDEO") {
+  if (carouselCards) {
+    mediaType = "carousel";
+    displayFormat = "CAROUSEL";
+  } else if (videoUrl || fmt === "VIDEO") {
     mediaType = "video";
     displayFormat = fmt === "DCO" || fmt === "DPA" ? "DCO" : "VIDEO";
   } else if (fmt === "DCO" || fmt === "DPA") {
     mediaType = "image";
     displayFormat = "DCO";
-  } else if (
-    fmt === "CAROUSEL" ||
-    fmt === "MULTI_IMAGES" ||
-    (cards.length > 1 && distinctCardMedia > 1)
-  ) {
-    mediaType = "carousel";
-    displayFormat = "CAROUSEL";
   }
 
   const archiveId = String(
@@ -374,6 +394,7 @@ export function mapApifyMetaAd(
     media_url: videoUrl || imageUrl || matchedFallback,
     thumbnail_url: imageUrl || matchedFallback || videoUrl,
     fallback_image_url: matchedFallback,
+    carousel_cards: carouselCards,
     aspect_ratio: mediaType === "video" ? "3:4" : "1:1",
     primary_text: primaryText,
     extracted_hook: hook,

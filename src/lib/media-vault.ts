@@ -235,7 +235,15 @@ export async function archiveAdMedia(
   const needAudio =
     Boolean(ad.audio_url) && !isPermanentMediaUrl(ad.audio_url);
 
-  if (!needMedia && !needThumb && !needAudio) {
+  const needCarouselCards =
+    Array.isArray(ad.carousel_cards) &&
+    ad.carousel_cards.some(
+      (c) =>
+        (c.media_url && !isPermanentMediaUrl(c.media_url)) ||
+        (c.thumbnail_url && !isPermanentMediaUrl(c.thumbnail_url))
+    );
+
+  if (!needMedia && !needThumb && !needAudio && !needCarouselCards) {
     return {
       ad,
       archived: false,
@@ -243,7 +251,7 @@ export async function archiveAdMedia(
     };
   }
 
-  const [newMedia, newThumb, newAudio] = await Promise.all([
+  const [newMedia, newThumb, newAudio, newCarouselCards] = await Promise.all([
     needMedia
       ? downloadAndArchive(
           ad.media_url,
@@ -265,6 +273,36 @@ export async function archiveAdMedia(
           "audio/mp4"
         )
       : Promise.resolve(null),
+    needCarouselCards && ad.carousel_cards
+      ? Promise.all(
+          ad.carousel_cards.map(async (card, idx) => {
+            const isCardVid = card.media_type === "video";
+            const [mUrl, tUrl] = await Promise.all([
+              !isPermanentMediaUrl(card.media_url) && (!isCardVid || includeVideo)
+                ? downloadAndArchive(
+                    card.media_url,
+                    `carousel/${safeId}/slide-${idx}${isCardVid ? "-vid.mp4" : ""}`,
+                    isCardVid ? "video/mp4" : "image/jpeg"
+                  )
+                : Promise.resolve(null),
+              card.thumbnail_url &&
+              card.thumbnail_url !== card.media_url &&
+              !isPermanentMediaUrl(card.thumbnail_url)
+                ? downloadAndArchive(
+                    card.thumbnail_url,
+                    `carousel/${safeId}/slide-${idx}-thumb.jpg`,
+                    "image/jpeg"
+                  )
+                : Promise.resolve(null),
+            ]);
+            return {
+              ...card,
+              media_url: mUrl || card.media_url,
+              thumbnail_url: tUrl || (!isCardVid && mUrl ? mUrl : card.thumbnail_url),
+            };
+          })
+        )
+      : Promise.resolve(null),
   ]);
 
   const updated: Ad = {
@@ -275,11 +313,12 @@ export async function archiveAdMedia(
     fallback_image_url:
       newThumb || (!isVideo && newMedia ? newMedia : ad.fallback_image_url),
     audio_url: newAudio || ad.audio_url,
+    carousel_cards: newCarouselCards || ad.carousel_cards,
   };
 
   return {
     ad: updated,
-    archived: Boolean(newMedia || newThumb || newAudio),
+    archived: Boolean(newMedia || newThumb || newAudio || newCarouselCards),
     backend: isR2Configured() ? "r2" : "supabase",
   };
 }

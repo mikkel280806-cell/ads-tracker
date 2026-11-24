@@ -529,10 +529,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
       if (mediaFilter !== "all") {
         const isRealCarousel =
-          ad.display_format === "CAROUSEL" ||
-          (ad.media_type === "carousel" && ad.display_format !== "DCO");
+          Array.isArray(ad.carousel_cards) && ad.carousel_cards.length >= 2;
         if (mediaFilter === "carousel" && !isRealCarousel) return false;
-        if (mediaFilter === "video" && ad.media_type !== "video") return false;
+        if (mediaFilter === "video" && (ad.media_type !== "video" || isRealCarousel)) return false;
         if (
           mediaFilter === "image" &&
           (ad.media_type === "video" || isRealCarousel)

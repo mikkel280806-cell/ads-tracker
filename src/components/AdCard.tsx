@@ -6,6 +6,8 @@ import {
   BookmarkPlus,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Film,
   Layers,
   Play,
@@ -42,15 +44,38 @@ export const AdCard = React.memo(function AdCard({
   const [imgLoaded, setImgLoaded] = useState(false);
   const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
   const [nearViewport, setNearViewport] = useState(false);
+  const [slideIdx, setSlideIdx] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
+  const didSwipeRef = useRef(false);
   const cardRef = useRef<HTMLElement | null>(null);
   const folderBtnRef = useRef<HTMLButtonElement | null>(null);
 
+  const carouselSlides =
+    Array.isArray(ad.carousel_cards) && ad.carousel_cards.length >= 2
+      ? ad.carousel_cards
+      : null;
+  const safeSlideIdx = carouselSlides
+    ? Math.min(slideIdx, carouselSlides.length - 1)
+    : 0;
+  const activeSlide = carouselSlides ? carouselSlides[safeSlideIdx] : null;
+
+  const activeMediaUrl = activeSlide ? activeSlide.media_url : ad.media_url;
+  const activeMediaType = activeSlide ? activeSlide.media_type : ad.media_type;
+
   const isVideoFile =
-    ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
+    activeMediaType === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(activeMediaUrl);
 
   const primaryImg = imgFailed
     ? ad.fallback_image_url || ""
-    : ad.thumbnail_url || ad.fallback_image_url || (!isVideoFile ? ad.media_url : "") || "";
+    : activeSlide
+      ? activeSlide.thumbnail_url || (!isVideoFile ? activeSlide.media_url : "") || ad.thumbnail_url || ""
+      : ad.thumbnail_url || ad.fallback_image_url || (!isVideoFile ? ad.media_url : "") || "";
+
+  const stepSlide = (delta: number) => {
+    if (!carouselSlides) return;
+    setImgFailed(false);
+    setSlideIdx((prev) => (prev + delta + carouselSlides.length) % carouselSlides.length);
+  };
 
   // Instagram/TikTok-style predictive lookahead: warm poster + video ~1200px before entering viewport
   useEffect(() => {
@@ -234,7 +259,36 @@ export const AdCard = React.memo(function AdCard({
         <div
           role="button"
           tabIndex={0}
-          onClick={() => onOpen(ad)}
+          onClick={() => {
+            if (didSwipeRef.current) {
+              didSwipeRef.current = false;
+              return;
+            }
+            onOpen(ad);
+          }}
+          onTouchStart={
+            carouselSlides
+              ? (e) => {
+                  touchStartXRef.current = e.touches[0]?.clientX ?? null;
+                  didSwipeRef.current = false;
+                }
+              : undefined
+          }
+          onTouchEnd={
+            carouselSlides
+              ? (e) => {
+                  const startX = touchStartXRef.current;
+                  touchStartXRef.current = null;
+                  if (startX === null) return;
+                  const endX = e.changedTouches[0]?.clientX ?? startX;
+                  const dx = endX - startX;
+                  if (Math.abs(dx) >= 34) {
+                    didSwipeRef.current = true;
+                    stepSlide(dx < 0 ? 1 : -1);
+                  }
+                }
+              : undefined
+          }
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -251,7 +305,8 @@ export const AdCard = React.memo(function AdCard({
         >
           {isVideoFile && (isHovered || !primaryImg) && !imgFailed ? (
             <video
-              src={ad.media_url}
+              key={activeMediaUrl}
+              src={activeMediaUrl}
               poster={primaryImg || undefined}
               autoPlay={isHovered}
               muted
@@ -275,7 +330,7 @@ export const AdCard = React.memo(function AdCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={primaryImg}
-                alt={`${ad.brand_name} — ${ad.headline}`}
+                alt={`${ad.brand_name} — ${activeSlide?.headline || ad.headline}`}
                 loading={nearViewport ? "eager" : "lazy"}
                 decoding="async"
                 onLoad={(e) => {
@@ -306,7 +361,7 @@ export const AdCard = React.memo(function AdCard({
           )}
 
           {/* Frosted Translucent Circular Play Button */}
-          {ad.media_type === "video" && (
+          {activeMediaType === "video" && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-black/55">
                 <Play className="ml-0.5 h-4 w-4 fill-current" />
@@ -314,15 +369,65 @@ export const AdCard = React.memo(function AdCard({
             </div>
           )}
 
-          {/* Subtle Carousel Badge for genuine multi-card carousels */}
-          {(ad.display_format === "CAROUSEL" ||
-            (ad.media_type === "carousel" && ad.display_format !== "DCO")) && (
-            <div className="pointer-events-none absolute right-2 top-2">
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/45 px-2 py-0.5 text-[10.5px] font-semibold text-white shadow-sm backdrop-blur-md">
-                <Layers className="h-3 w-3" />
-                Carousel
-              </span>
-            </div>
+          {/* Interactive Carousel Controls (Arrows + Slide Counter + Dots) */}
+          {carouselSlides && (
+            <>
+              <div className="pointer-events-none absolute right-2 top-2">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/55 px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white shadow-sm backdrop-blur-md">
+                  <Layers className="h-3 w-3" />
+                  {safeSlideIdx + 1}/{carouselSlides.length}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                aria-label="Forrige slide"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  stepSlide(-1);
+                }}
+                className="absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-sm backdrop-blur-md transition-all hover:bg-black/75 sm:opacity-0 sm:group-hover:opacity-100"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                aria-label="Næste slide"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  stepSlide(1);
+                }}
+                className="absolute right-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-sm backdrop-blur-md transition-all hover:bg-black/75 sm:opacity-0 sm:group-hover:opacity-100"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+
+              <div
+                className="absolute inset-x-0 bottom-2 z-10 flex items-center justify-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {carouselSlides.slice(0, 8).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    data-no-glass="true"
+                    aria-label={`Slide ${idx + 1}`}
+                    onClick={() => {
+                      setImgFailed(false);
+                      setSlideIdx(idx);
+                    }}
+                    className={`h-1.5 rounded-full transition-all ${
+                      idx === safeSlideIdx
+                        ? "w-4 bg-white shadow-xs"
+                        : "w-1.5 bg-white/55 hover:bg-white/85"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

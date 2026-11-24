@@ -30,6 +30,17 @@ export interface CountryReachBreakdown {
   age_gender_breakdowns: AgeGenderReachRow[];
 }
 
+export interface CarouselCard {
+  media_type: "video" | "image";
+  media_url: string;
+  thumbnail_url: string;
+  headline?: string;
+  body?: string;
+  link_description?: string;
+  cta_text?: string;
+  landing_page_url?: string;
+}
+
 export interface TrafficPoint {
   label: string;
   visits: number;
@@ -146,6 +157,7 @@ export interface Ad {
   audio_url?: string;
   thumbnail_url: string;
   fallback_image_url?: string;
+  carousel_cards?: CarouselCard[];
   aspect_ratio: "3:4" | "1:1" | "9:16";
   duration_seconds?: number;
   primary_text: string;

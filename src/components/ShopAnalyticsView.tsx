@@ -660,10 +660,9 @@ export function ShopAnalyticsView({
     if (creativeFormat === "all") return sortedMetaAds;
     return sortedMetaAds.filter((a) => {
       const isRealCarousel =
-        a.display_format === "CAROUSEL" ||
-        (a.media_type === "carousel" && a.display_format !== "DCO");
+        Array.isArray(a.carousel_cards) && a.carousel_cards.length >= 2;
       if (creativeFormat === "carousel") return isRealCarousel;
-      if (creativeFormat === "video") return a.media_type === "video";
+      if (creativeFormat === "video") return a.media_type === "video" && !isRealCarousel;
       if (creativeFormat === "image")
         return a.media_type !== "video" && !isRealCarousel;
       return true;
