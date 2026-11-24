@@ -10,12 +10,12 @@ import React, {
   useState,
 } from "react";
 import {
+  ArrowUpDown,
   Award,
   Building2,
   Calendar,
   Check,
   ChevronDown,
-  Clock,
   Folder,
   Info,
   ListFilter,
@@ -590,8 +590,29 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     return cols;
   }, [visibleAds, visibleLimit, masonryCols]);
 
-  const activeFilterCount =
-    (marketFilter !== "ALL" ? 1 : 0) + (mediaFilter !== "all" ? 1 : 0);
+  const activeFilterCount = mediaFilter !== "all" ? 1 : 0;
+
+  const hasAnyAdsFilter =
+    marketFilter !== "ALL" ||
+    brandFilter !== "all" ||
+    timeFilter !== "all" ||
+    mediaFilter !== "all" ||
+    rankMin !== null ||
+    rankMax !== null ||
+    search.trim().length > 0;
+
+  const resetAllAdsFilters = () => {
+    setMarketFilter("ALL");
+    setBrandFilter("all");
+    setTimeFilter("all");
+    setMediaFilter("all");
+    setRankMin(null);
+    setRankMax(null);
+    setRankMinDraft("");
+    setRankMaxDraft("");
+    setSearch("");
+    setVisibleLimit(48);
+  };
 
   // Predictive Instagram/TikTok-style media lookahead for Explore feed
   useEffect(() => {
@@ -681,8 +702,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     [brands, selectedShopId]
   );
 
-  const dkAdsCount = useMemo(() => ads.filter((a) => a.market === "DK").length, [ads]);
-  const usAdsCount = useMemo(() => ads.filter((a) => a.market !== "DK").length, [ads]);
+  const paidAds = useMemo(
+    () =>
+      dedupedAds.filter(
+        (ad) =>
+          ad.source_type !== "instagram" &&
+          ad.source_type !== "manual" &&
+          !ad.tags.includes("custom-import") &&
+          !ad.tags.includes("custom-upload")
+      ),
+    [dedupedAds]
+  );
+  const dkAdsCount = useMemo(
+    () => paidAds.filter((a) => a.market === "DK").length,
+    [paidAds]
+  );
+  const usAdsCount = useMemo(
+    () => paidAds.filter((a) => a.market !== "DK").length,
+    [paidAds]
+  );
 
   const sortSelectOptions = useMemo<FlakeSelectOption[]>(
     () => [
@@ -1065,34 +1103,60 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 <div className="hidden md:block" />
               </div>
 
-              {/* Clean Filter Row: Sort · Brands · All time · Ad Rank · Filters */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                {/* Inline Clean Controls: Sort · Brands · All time · Ad Rank · Filters */}
-                <div className="flex flex-wrap items-center gap-1 text-[12.5px]">
-                  {/* Sort */}
-                  <FlakeSelect
-                    ariaLabel="Sortér"
-                    value={sortBy}
-                    onChange={(val) => setSortBy(val as SortOption)}
-                    options={sortSelectOptions}
-                    icon={<Clock className="h-3.5 w-3.5 text-[#475569]" />}
-                    menuWidth={210}
-                    isActive={sortBy !== "top"}
-                  />
+              {/* UNIFIED FILTER BAR — Exact same layout & bordered pill design as Shops */}
+              <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-3 lg:space-y-0">
+                {/* Clean Segmented Market Control (Alle · DK · US & Global) */}
+                <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold lg:inline-flex lg:w-fit">
+                  {[
+                    { id: "ALL" as const, label: "Alle", count: paidAds.length },
+                    { id: "DK" as const, label: "DK", count: dkAdsCount },
+                    { id: "US" as const, label: "US & Global", count: usAdsCount },
+                  ].map((m) => {
+                    const active = marketFilter === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          setMarketFilter(m.id);
+                          setVisibleLimit(48);
+                        }}
+                        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-all lg:px-3 ${
+                          active
+                            ? "bg-white text-[#0F172A] shadow-xs"
+                            : "text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        <span>{m.label}</span>
+                        <span
+                          className={`font-mono-num text-[10.5px] font-semibold ${
+                            active ? "text-[#475569]" : "text-[#94A3B8]"
+                          }`}
+                        >
+                          {m.count.toLocaleString("fr-FR")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
+                {/* Right Bordered Controls: Brands · All time · Ad Rank · Filters · Sort */}
+                <div className="flex flex-wrap items-center gap-1.5">
                   {/* Brands */}
                   <FlakeSelect
                     ariaLabel="Vælg shop"
                     value={brandFilter}
                     onChange={(val) => {
                       setBrandFilter(val);
-                      setVisibleLimit(24);
+                      setVisibleLimit(48);
                     }}
                     options={brandSelectOptions}
                     icon={<Building2 className="h-3.5 w-3.5 text-[#475569]" />}
+                    variant="bordered"
+                    align="left"
                     menuWidth={240}
                     isActive={brandFilter !== "all"}
-                    triggerClassName="max-w-[165px]"
+                    triggerClassName="w-auto max-w-[170px]"
                   />
 
                   {/* Timeframe */}
@@ -1101,15 +1165,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     value={timeFilter}
                     onChange={(val) => {
                       setTimeFilter(val as "all" | "7d" | "30d" | "90d");
-                      setVisibleLimit(24);
+                      setVisibleLimit(48);
                     }}
                     options={timeSelectOptions}
                     icon={<Calendar className="h-3.5 w-3.5 text-[#475569]" />}
+                    variant="bordered"
+                    align="left"
                     menuWidth={195}
                     isActive={timeFilter !== "all"}
+                    triggerClassName="w-auto"
                   />
 
-                  {/* Ad Rank Min-Max Popover (viewport-clamped & animated) */}
+                  {/* Ad Rank Min-Max Popover (bordered pill matching Shops) */}
                   <div className="relative">
                     <button
                       ref={rankTriggerRef}
@@ -1120,10 +1187,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         setRankMaxDraft(rankMax !== null ? String(rankMax) : "");
                         setRankOpen((v) => !v);
                       }}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+                      className={`inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13.5px] font-medium transition-colors sm:text-xs ${
                         rankMin !== null || rankMax !== null || rankOpen
-                          ? "bg-[#F1F5F9] text-[#0F172A]"
-                          : "text-[#1E293B] hover:bg-[#F3F5F9]"
+                          ? "border-[#CBD5E1] text-[#0F172A]"
+                          : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
                       }`}
                     >
                       <Award className="h-3.5 w-3.5 text-[#475569]" />
@@ -1185,7 +1252,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             setRankMax(null);
                             setRankMinDraft("");
                             setRankMaxDraft("");
-                            setVisibleLimit(24);
+                            setVisibleLimit(48);
                             setRankOpen(false);
                           }}
                           className="text-[13px] font-medium text-[#334155] transition-colors hover:text-[#0F172A]"
@@ -1199,7 +1266,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             const parsedMax = parseInt(rankMaxDraft, 10);
                             setRankMin(Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null);
                             setRankMax(Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null);
-                            setVisibleLimit(24);
+                            setVisibleLimit(48);
                             setRankOpen(false);
                           }}
                           className="rounded-xl bg-[#0F172A] px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1E293B]"
@@ -1210,7 +1277,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     </FlakePopover>
                   </div>
 
-                  {/* Filters Popover (Market + Format, viewport-clamped & animated) */}
+                  {/* Filters Popover (Format, bordered pill matching Shops) */}
                   <div className="relative">
                     <button
                       ref={filtersTriggerRef}
@@ -1219,10 +1286,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         setRankOpen(false);
                         setFiltersOpen((v) => !v);
                       }}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+                      className={`inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13.5px] font-medium transition-colors sm:text-xs ${
                         activeFilterCount > 0 || filtersOpen
-                          ? "bg-[#F1F5F9] text-[#0F172A]"
-                          : "text-[#1E293B] hover:bg-[#F3F5F9]"
+                          ? "border-[#CBD5E1] text-[#0F172A]"
+                          : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
                       }`}
                     >
                       <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
@@ -1249,35 +1316,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       <div className="space-y-3.5 p-3.5">
                         <div>
                           <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                            Marked
-                          </p>
-                          <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-xs font-medium">
-                            {[
-                              { id: "ALL" as const, label: "Alle", count: ads.length },
-                              { id: "DK" as const, label: "DK", count: dkAdsCount },
-                              { id: "US" as const, label: "US", count: usAdsCount },
-                            ].map((m) => (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => {
-                                  setMarketFilter(m.id);
-                                  setVisibleLimit(24);
-                                }}
-                                className={`rounded-lg py-1 transition-all ${
-                                  marketFilter === m.id
-                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
-                                    : "text-[#64748B] hover:text-[#0F172A]"
-                                }`}
-                              >
-                                {m.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
                             Format
                           </p>
                           <div className="grid grid-cols-2 gap-1.5 text-xs font-medium">
@@ -1287,7 +1325,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                                 type="button"
                                 onClick={() => {
                                   setMediaFilter(fmt);
-                                  setVisibleLimit(24);
+                                  setVisibleLimit(48);
                                 }}
                                 className={`rounded-lg border px-2.5 py-1.5 capitalize transition-colors ${
                                   mediaFilter === fmt
@@ -1305,11 +1343,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           <button
                             type="button"
                             onClick={() => {
-                              setMarketFilter("ALL");
                               setMediaFilter("all");
-                              setVisibleLimit(24);
+                              setVisibleLimit(48);
                             }}
-                            className="w-full rounded-lg border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                            className="w-full rounded-xl border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
                           >
                             Nulstil filtre
                           </button>
@@ -1317,6 +1354,32 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       </div>
                     </FlakePopover>
                   </div>
+
+                  {/* Sort (bordered pill on right, matching Shops) */}
+                  <FlakeSelect
+                    ariaLabel="Sortér"
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val as SortOption)}
+                    options={sortSelectOptions}
+                    icon={<ArrowUpDown className="h-3.5 w-3.5 text-[#475569]" />}
+                    variant="bordered"
+                    align="right"
+                    menuWidth={210}
+                    isActive={sortBy !== "top"}
+                    triggerClassName="w-auto font-semibold text-[#0F172A]"
+                  />
+
+                  {hasAnyAdsFilter && (
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={resetAllAdsFilters}
+                      className="inline-flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Nulstil
+                    </button>
+                  )}
                 </div>
               </div>
 
