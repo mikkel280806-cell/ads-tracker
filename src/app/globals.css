@@ -447,14 +447,30 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   }
 }
 
-/* Seamless #F7F8FB stationary header matching root/status-bar color so iOS 26 never shows a top gray-to-white fade */
+/* Solid fixed status-bar anchor for iOS 26 WebKit top-edge color sampling */
+.ios-statusbar-anchor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: max(12px, env(safe-area-inset-top, 0px));
+  background-color: #f7f8fb;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* Seamless #F7F8FB stationary header sitting cleanly below iOS 26's ~34pt top status-bar blur tail */
 .mobile-pwa-header {
   padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
 }
 @media (display-mode: standalone) {
   .mobile-pwa-header {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 18px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
   }
+}
+html.ios-pwa-standalone .mobile-pwa-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
 }
 
 ::-webkit-scrollbar {

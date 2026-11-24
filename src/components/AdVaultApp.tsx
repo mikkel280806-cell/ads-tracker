@@ -914,83 +914,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     };
   }, []);
 
-  // iOS 26 standalone PWA compositor-reflow workaround (clears stuck system top status-bar white gradient/blur)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const nav = window.navigator as Navigator & { standalone?: boolean };
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      nav.standalone === true;
-    const isIos =
-      /iPhone|iPad|iPod/i.test(window.navigator.userAgent) ||
-      (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
-    if (!isStandalone || !isIos) return;
-
-    let running = false;
-    const timers: number[] = [];
-
-    const clearIosTopBlur = () => {
-      if (running) return;
-      running = true;
-
-      const cover = document.createElement("div");
-      cover.setAttribute("aria-hidden", "true");
-      cover.style.cssText =
-        "display:none;position:fixed;inset:0;z-index:2147483646;background:rgba(255,255,255,0.01);pointer-events:none;";
-
-      const panel = document.createElement("div");
-      panel.setAttribute("aria-hidden", "true");
-      panel.style.cssText =
-        "position:fixed;top:0;right:0;bottom:0;width:90%;height:100%;z-index:2147483647;background:rgba(255,255,255,0.01);pointer-events:none;transform:translateX(110%);transition:transform 0.28s ease;will-change:transform;";
-
-      document.body.append(cover, panel);
-      void panel.offsetWidth;
-
-      requestAnimationFrame(() => {
-        cover.style.display = "block";
-        panel.style.transform = "translateX(0%)";
-        const closeTimer = window.setTimeout(() => {
-          cover.style.display = "none";
-          panel.style.transform = "translateX(110%)";
-          const cleanupTimer = window.setTimeout(() => {
-            cover.remove();
-            panel.remove();
-            running = false;
-          }, 320);
-          timers.push(cleanupTimer);
-        }, 420);
-        timers.push(closeTimer);
-      });
-    };
-
-    const initTimer = window.setTimeout(clearIosTopBlur, 120);
-    timers.push(initTimer);
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        const t = window.setTimeout(clearIosTopBlur, 100);
-        timers.push(t);
-      }
-    };
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        const t = window.setTimeout(clearIosTopBlur, 100);
-        timers.push(t);
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("pageshow", onPageShow);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pageshow", onPageShow);
-      timers.forEach((id) => window.clearTimeout(id));
-    };
-  }, []);
-
   return (
     <>
+    {/* Real fixed solid top-bar anchor for iOS 26 WebKit status-bar color sampling */}
+    <div aria-hidden="true" className="ios-statusbar-anchor lg:hidden" />
     <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
           ADTRACK OBSIDIAN SIDEBAR — FIXED APP SHELL FRAME (EXTENDS 24PX UNDER ROUNDED CORNER)
