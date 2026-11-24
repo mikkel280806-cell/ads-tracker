@@ -794,11 +794,17 @@ export function AdDetailSheet({
                 {/* Running status + start date (Only for paid Meta Ads) */}
                 {!isOrganic && (
                   <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[#64748B]">
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        ad.is_active ? "bg-[#16A34A]" : "bg-[#94A3B8]"
-                      }`}
-                    />
+                    {ad.is_active ? (
+                      <span className="relative flex h-2 w-2">
+                        <span
+                          className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#16A34A] opacity-40"
+                          style={{ animationDuration: "2.4s" }}
+                        />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#16A34A]" />
+                      </span>
+                    ) : (
+                      <span className="h-2 w-2 rounded-full bg-[#94A3B8]" />
+                    )}
                     <span className="font-medium text-[#334155]">
                       {activeDays} days
                     </span>
@@ -1499,11 +1505,17 @@ export function AdDetailSheet({
                   <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
                     <span className="text-[#64748B]">Status</span>
                     <span className="inline-flex items-center gap-1.5 font-medium text-[#0F172A]">
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          ad.is_active ? "bg-[#16A34A]" : "bg-[#94A3B8]"
-                        }`}
-                      />
+                      {ad.is_active ? (
+                        <span className="relative flex h-2 w-2">
+                          <span
+                            className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#16A34A] opacity-40"
+                            style={{ animationDuration: "2.4s" }}
+                          />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#16A34A]" />
+                        </span>
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-[#94A3B8]" />
+                      )}
                       {ad.is_active ? "Running" : "Not Running"}
                     </span>
                   </div>
