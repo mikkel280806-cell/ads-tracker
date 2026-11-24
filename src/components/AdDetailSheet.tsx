@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import type { AdRankingMeta } from "@/lib/ad-ranking";
-import { summarizeAdAudience } from "@/lib/audience-insights";
+import { getAdSpendDkk, summarizeAdAudience } from "@/lib/audience-insights";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
 import { preloadImage, preloadVideo } from "@/lib/media-preloader";
 import {
@@ -246,6 +246,11 @@ export function AdDetailSheet({
   const audience = useMemo(
     () => (ad && !isOrganic ? summarizeAdAudience(ad) : null),
     [ad, isOrganic]
+  );
+
+  const spendInfo = useMemo(
+    () => (ad && !isOrganic ? getAdSpendDkk(ad, activeDays) : null),
+    [ad, isOrganic, activeDays]
   );
 
   // Stop any synced audio element when switching or closing video
@@ -698,7 +703,7 @@ export function AdDetailSheet({
           <div className="px-3.5 py-4 lg:flex-1 lg:overflow-y-auto lg:px-8 lg:py-6">
             <div className="mx-auto w-full max-w-[490px] overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)]">
               {/* Optional Telemetry Pill Bar (Only for paid Meta Ads) */}
-              {!isOrganic && (ad.eu_reach || ad.estimated_spend || ad.daily_spend) && (
+              {!isOrganic && (ad.eu_reach || spendInfo) && (
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F4F9] bg-[#FAFBFD] px-3.5 py-2 font-mono-num text-[11px] font-semibold text-[#334155]">
                   <span className="inline-flex items-center gap-1 text-[#0F172A]">
                     <MetaInfinityIcon className="h-3.5 w-3.5" />
@@ -710,15 +715,15 @@ export function AdDetailSheet({
                         {formatReach(ad.eu_reach)} reach
                       </span>
                     ) : null}
-                    {ad.estimated_spend ? (
-                      <span className="rounded-md border border-[#E6E9F0] bg-white px-2 py-0.5">
-                        ${formatReach(ad.estimated_spend)}
-                      </span>
-                    ) : null}
-                    {ad.daily_spend ? (
-                      <span className="rounded-md border border-[#E6E9F0] bg-white px-2 py-0.5">
-                        ${formatReach(ad.daily_spend)}/d
-                      </span>
+                    {spendInfo ? (
+                      <>
+                        <span className="rounded-md border border-[#E6E9F0] bg-white px-2 py-0.5">
+                          ~{spendInfo.formattedTotal}
+                        </span>
+                        <span className="rounded-md border border-[#E6E9F0] bg-white px-2 py-0.5">
+                          ~{spendInfo.formattedDaily}/dag
+                        </span>
+                      </>
                     ) : null}
                   </div>
                 </div>
@@ -1546,6 +1551,21 @@ export function AdDetailSheet({
                         </span>
                         <span className="font-mono-num text-[11px] text-[#64748B]">
                           ({formatReach(Math.max(1, Math.round(ad.eu_reach / Math.max(1, activeDays))))}/dag)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Estimated Ad Spend (DKK) */}
+                  {spendInfo && (
+                    <div className="grid grid-cols-[118px_1fr] items-center gap-3 py-2.5">
+                      <span className="text-[#64748B]">Est. Spend</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-mono-num font-semibold text-[#0F172A]">
+                          ~{spendInfo.formattedTotal}
+                        </span>
+                        <span className="font-mono-num text-[11px] text-[#64748B]">
+                          ({spendInfo.formattedDaily}/dag)
                         </span>
                       </div>
                     </div>

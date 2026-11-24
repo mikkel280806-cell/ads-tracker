@@ -610,6 +610,49 @@ export function estimateShopRevenueSummary(
   };
 }
 
+const formatCompactDkkValue = (val: number) => {
+  const abs = Math.abs(val);
+  let numStr: string;
+  if (abs >= 1_000_000) numStr = `${(val / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  else if (abs >= 1_000) numStr = `${Math.round(val / 1_000)}K`;
+  else numStr = `${Math.round(val)}`;
+  return `${numStr.replace(".", ",")} kr.`;
+};
+
+/**
+ * Returns estimated total & daily ad spend in DKK for any paid Meta Ad.
+ * Uses scraper-provided `estimated_spend` (USD) or computes from `eu_reach`
+ * using a realistic EU Meta CPM (~62 kr. / $9 per 1,000 reach).
+ */
+export function getAdSpendDkk(
+  ad: Pick<Ad, "eu_reach" | "estimated_spend" | "daily_spend">,
+  activeDays: number
+): {
+  totalDkk: number;
+  dailyDkk: number;
+  formattedTotal: string;
+  formattedDaily: string;
+} | null {
+  const days = Math.max(1, activeDays || 1);
+  let totalDkk = 0;
+
+  if (typeof ad.estimated_spend === "number" && ad.estimated_spend > 0) {
+    totalDkk = Math.round(convertToDkk(ad.estimated_spend, "USD"));
+  } else if (typeof ad.eu_reach === "number" && ad.eu_reach > 0) {
+    totalDkk = Math.max(10, Math.round((ad.eu_reach / 1000) * 62));
+  }
+
+  if (totalDkk <= 0) return null;
+
+  const dailyDkk = Math.max(1, Math.round(totalDkk / days));
+  return {
+    totalDkk,
+    dailyDkk,
+    formattedTotal: formatCompactDkkValue(totalDkk),
+    formattedDaily: formatCompactDkkValue(dailyDkk),
+  };
+}
+
 export type OfferLeverId =
   | "discount"
   | "bundles"
