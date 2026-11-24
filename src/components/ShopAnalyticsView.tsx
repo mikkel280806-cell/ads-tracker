@@ -108,6 +108,34 @@ function InteractiveAreaChart({
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(560);
+  const [revealed, setRevealed] = useState(false);
+
+  const pointsSignature = useMemo(
+    () => points.map((p) => `${p.label}:${p.value}`).join("|"),
+    [points]
+  );
+
+  // Trigger silky left-to-right line draw + dot pop-in on open and range change
+  useEffect(() => {
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) {
+      setRevealed(true);
+      return;
+    }
+    setRevealed(false);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        setRevealed(true);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [pointsSignature]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -147,6 +175,7 @@ function InteractiveAreaChart({
 
   const linePath = buildSmoothPath(coords);
   const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(1)},${h - padB} L ${coords[0].x.toFixed(1)},${h - padB} Z`;
+  const clipId = `${gradientId}-reveal-clip`;
 
   const gridLines = [0, 0.33, 0.66, 1].map((r) => ({
     y: h - padB - r * (h - padT - padB),
@@ -170,6 +199,19 @@ function InteractiveAreaChart({
             <stop offset="65%" stopColor={color} stopOpacity="0.06" />
             <stop offset="100%" stopColor={color} stopOpacity="0.0" />
           </linearGradient>
+          <clipPath id={clipId}>
+            <rect
+              x={padL - 6}
+              y={0}
+              width={revealed ? w - padL + 20 : 0}
+              height={h}
+              style={{
+                transition: revealed
+                  ? "width 760ms cubic-bezier(0.22, 1, 0.36, 1)"
+                  : "none",
+              }}
+            />
+          </clipPath>
         </defs>
 
         {/* Subtle horizontal dashed grid */}
@@ -195,16 +237,25 @@ function InteractiveAreaChart({
           </g>
         ))}
 
-        {/* Area + Smooth Line */}
-        <path d={areaPath} fill={`url(#${gradientId})`} />
-        <path
-          d={linePath}
-          fill="none"
-          stroke={color}
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        {/* Animated Area + Smooth Line Reveal */}
+        <g clipPath={`url(#${clipId})`}>
+          <path
+            d={areaPath}
+            fill={`url(#${gradientId})`}
+            style={{
+              opacity: revealed ? 1 : 0,
+              transition: revealed ? "opacity 620ms ease-out 90ms" : "none",
+            }}
+          />
+          <path
+            d={linePath}
+            fill="none"
+            stroke={color}
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
 
         {/* Hover vertical crosshair */}
         {activePt && (
@@ -223,6 +274,9 @@ function InteractiveAreaChart({
         {/* Data points & X-axis labels */}
         {coords.map((c, idx) => {
           const isActive = hoveredIdx === idx;
+          const dotDelay = Math.round(
+            120 + (idx / Math.max(1, coords.length - 1)) * 480
+          );
           return (
             <g
               key={`${c.label}-${idx}`}
@@ -247,6 +301,15 @@ function InteractiveAreaChart({
                 fill="#FFFFFF"
                 stroke={color}
                 strokeWidth={isActive ? 2.6 : 2}
+                style={{
+                  transformBox: "fill-box",
+                  transformOrigin: "center",
+                  opacity: revealed ? 1 : 0,
+                  transform: revealed ? "scale(1)" : "scale(0.25)",
+                  transition: revealed
+                    ? `opacity 220ms ease-out ${dotDelay}ms, transform 320ms cubic-bezier(0.34, 1.45, 0.64, 1) ${dotDelay}ms`
+                    : "none",
+                }}
               />
               <text
                 x={c.x}
