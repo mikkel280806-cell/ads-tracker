@@ -377,6 +377,170 @@ function InteractiveAreaChart({
   );
 }
 
+interface MediaMixRow {
+  key: string;
+  count: number;
+  pct: number;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}
+
+function MediaMixPieChart({
+  rows,
+  totalCount,
+  compact = false,
+}: {
+  rows: MediaMixRow[];
+  totalCount: number;
+  compact?: boolean;
+}) {
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+
+  const activeRows = rows.filter((r) => r.count > 0);
+  const sumCount = Math.max(
+    1,
+    activeRows.reduce((s, r) => s + r.count, 0)
+  );
+
+  const size = compact ? 132 : 156;
+  const strokeWidth = compact ? 22 : 26;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  let cumulativeFraction = 0;
+  const segments = activeRows.map((row) => {
+    const fraction = row.count / sumCount;
+    const dash = fraction * circumference;
+    const offset = -cumulativeFraction * circumference;
+    cumulativeFraction += fraction;
+    return { ...row, dash, offset };
+  });
+
+  const hovered = hoveredKey
+    ? activeRows.find((r) => r.key === hoveredKey) || null
+    : null;
+
+  if (totalCount === 0 || activeRows.length === 0) {
+    return (
+      <div className="flex h-36 items-center justify-center text-xs text-[#94A3B8]">
+        Ingen annoncer analyseret endnu
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+      {/* Donut / Pie SVG */}
+      <div
+        className="relative shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="-rotate-90 overflow-visible"
+        >
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#F1F5F9"
+            strokeWidth={strokeWidth}
+          />
+          {segments.map((seg) => {
+            const isHovered = hoveredKey === seg.key;
+            const dimmed = hoveredKey !== null && !isHovered;
+            return (
+              <circle
+                key={seg.key}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
+                strokeDasharray={`${Math.max(0, seg.dash - (segments.length > 1 ? 2 : 0))} ${circumference}`}
+                strokeDashoffset={seg.offset}
+                strokeLinecap="butt"
+                onMouseEnter={() => setHoveredKey(seg.key)}
+                onMouseLeave={() => setHoveredKey(null)}
+                onClick={() =>
+                  setHoveredKey((prev) => (prev === seg.key ? null : seg.key))
+                }
+                className="cursor-pointer transition-all duration-200"
+                style={{ opacity: dimmed ? 0.35 : 1 }}
+              />
+            );
+          })}
+        </svg>
+
+        {/* Center Label */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          {hovered ? (
+            <>
+              <span className="font-display text-[17px] font-bold leading-none text-[#0F172A]">
+                {hovered.pct}%
+              </span>
+              <span className="mt-1 text-[10.5px] font-semibold text-[#64748B]">
+                {hovered.key}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="font-display text-[18px] font-bold leading-none text-[#0F172A]">
+                {totalCount.toLocaleString("en-US")}
+              </span>
+              <span className="mt-1 text-[10.5px] font-medium text-[#94A3B8]">
+                ads
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Interactive Legend */}
+      <div className="w-full min-w-0 flex-1 space-y-1.5">
+        {rows.map((row) => {
+          const isHovered = hoveredKey === row.key;
+          return (
+            <button
+              key={row.key}
+              type="button"
+              onMouseEnter={() => row.count > 0 && setHoveredKey(row.key)}
+              onMouseLeave={() => setHoveredKey(null)}
+              onClick={() =>
+                row.count > 0 &&
+                setHoveredKey((prev) => (prev === row.key ? null : row.key))
+              }
+              className={`flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 py-1.5 text-left text-xs transition-colors ${
+                isHovered
+                  ? "border-[#CBD5E1] bg-white shadow-2xs"
+                  : "border-[#EFF2F6] bg-[#FAFBFD] hover:border-[#DCE1EC]"
+              } ${row.count === 0 ? "opacity-50" : ""}`}
+            >
+              <span className="flex min-w-0 items-center gap-2 font-medium text-[#0F172A]">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: row.color }}
+                />
+                <span className="truncate">{row.key}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 font-mono-num">
+                <span className="font-bold text-[#0F172A]">{row.count}</span>
+                <span className="w-8 text-right text-[11px] text-[#64748B]">
+                  {row.pct}%
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ShopAnalyticsView({
   brand,
   ads,
@@ -1297,9 +1461,35 @@ export function ShopAnalyticsView({
             </div>
           </div>
 
-          {/* SMART MÅLGRUPPE & REAL META REACH CARD (Aggregated from scraped Meta Transparency breakdowns) */}
-          {shopAudience.hasData && (
-            <div className="adtrack-card rounded-2xl p-5">
+          {/* MEDIA MIX PIE CHART + SMART MÅLGRUPPE & REAL META REACH */}
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+            {/* Media Mix Pie Chart */}
+            <div
+              className={`adtrack-card rounded-2xl p-5 ${
+                shopAudience.hasData ? "xl:col-span-4" : "xl:col-span-12"
+              }`}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="font-display text-[15px] font-bold text-[#0F172A]">
+                    Media Mix
+                  </h2>
+                  <p className="text-[11.5px] text-[#64748B]">
+                    Fordeling af annonceformater
+                  </p>
+                </div>
+                <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-0.5 font-mono-num text-[11.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+                  {brandAds.length.toLocaleString("fr-FR")}
+                </span>
+              </div>
+              <MediaMixPieChart
+                rows={mediaMix}
+                totalCount={brandAds.length}
+              />
+            </div>
+
+            {shopAudience.hasData && (
+              <div className="adtrack-card rounded-2xl p-5 xl:col-span-8">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -1469,7 +1659,8 @@ export function ShopAnalyticsView({
                 )}
               </div>
             </div>
-          )}
+            )}
+          </div>
 
           {/* 2-COLUMN PRODUCTS + PIXELS / SHOPIFY APPS ROW (Exact Trendtrack Layout!) */}
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
@@ -1779,7 +1970,7 @@ export function ShopAnalyticsView({
 
                 {/* Right Stacked Cards: Ads - Media Mix & Top Landing Pages */}
                 <div className="flex flex-col gap-4 xl:col-span-4">
-                  {/* Ads - Media Mix */}
+                  {/* Ads - Media Mix (Pie Chart) */}
                   <div className="adtrack-card rounded-2xl p-4">
                     <div className="mb-3 flex items-center justify-between">
                       <h3 className="font-display text-[13.5px] font-bold text-[#0F172A]">
@@ -1789,39 +1980,11 @@ export function ShopAnalyticsView({
                         {brandAds.length.toLocaleString("fr-FR")}
                       </span>
                     </div>
-                    <div className="space-y-2">
-                      {mediaMix.map((row) => {
-                        const Icon = row.icon;
-                        return (
-                          <div
-                            key={row.key}
-                            className="relative overflow-hidden rounded-xl border border-[#EFF2F6] bg-[#FAFBFD] px-3 py-2"
-                          >
-                            <div
-                              className="pointer-events-none absolute inset-y-0 left-0 opacity-[0.12]"
-                              style={{
-                                width: `${row.pct}%`,
-                                backgroundColor: row.color,
-                              }}
-                            />
-                            <div className="relative flex items-center justify-between text-xs">
-                              <span className="flex items-center gap-2 font-medium text-[#0F172A]">
-                                <Icon className="h-3.5 w-3.5 text-[#64748B]" />
-                                {row.key}
-                              </span>
-                              <span className="flex items-center gap-2 font-mono-num">
-                                <span className="font-bold text-[#0F172A]">
-                                  {row.count}
-                                </span>
-                                <span className="w-10 text-right text-[11px] text-[#64748B]">
-                                  {row.pct}%
-                                </span>
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <MediaMixPieChart
+                      rows={mediaMix}
+                      totalCount={brandAds.length}
+                      compact
+                    />
                   </div>
 
                   {/* Top Landing Pages */}
