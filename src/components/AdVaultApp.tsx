@@ -884,36 +884,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     []
   );
 
-  // Sync true physical screen height on iOS standalone PWA (fixes ~59pt bottom gap where 100%/100dvh excludes safe-area-inset-top)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const syncPwaHeight = () => {
-      const nav = window.navigator as Navigator & { standalone?: boolean };
-      const isStandalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        nav.standalone === true;
-      if (isStandalone && window.innerWidth < 1024) {
-        const isPortrait = window.innerHeight >= window.innerWidth;
-        const physicalH = isPortrait
-          ? Math.max(window.screen.height, window.screen.width)
-          : Math.min(window.screen.height, window.screen.width);
-        const fullH = Math.max(window.innerHeight, physicalH);
-        document.documentElement.classList.add("ios-pwa-standalone");
-        document.documentElement.style.setProperty("--pwa-height", `${fullH}px`);
-      } else {
-        document.documentElement.classList.remove("ios-pwa-standalone");
-        document.documentElement.style.removeProperty("--pwa-height");
-      }
-    };
-    syncPwaHeight();
-    window.addEventListener("resize", syncPwaHeight);
-    window.addEventListener("orientationchange", syncPwaHeight);
-    return () => {
-      window.removeEventListener("resize", syncPwaHeight);
-      window.removeEventListener("orientationchange", syncPwaHeight);
-    };
-  }, []);
-
   return (
     <>
     {/* COMPACT FIXED SOLID WHITE MOBILE TOP BAR (root-level fixed at top: 0 for WebKit edge sampling, Antigravity-tight height) */}

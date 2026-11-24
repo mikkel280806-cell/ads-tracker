@@ -403,7 +403,7 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   padding-top: env(safe-area-inset-top);
 }
 
-/* Edge-to-edge app shell (fixes iOS standalone PWA ~59pt bottom gap where 100% omits safe-area-inset-top) */
+/* Edge-to-edge app shell (without viewport-fit=cover, iOS renders a crisp solid native status bar with zero blur and 100% fills down to the bottom edge) */
 .flake-app-shell {
   position: fixed;
   top: 0;
@@ -412,65 +412,16 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   bottom: 0;
   height: 100%;
 }
-@media (max-width: 1023px) and (display-mode: standalone) {
-  html,
-  body {
-    height: var(--pwa-height, 100lvh) !important;
-    min-height: var(--pwa-height, 100lvh) !important;
-    overflow: hidden;
-  }
-  .flake-app-shell {
-    bottom: auto;
-    height: var(--pwa-height, 100lvh) !important;
-  }
-  .flake-mobile-nav {
-    bottom: auto !important;
-    top: var(--pwa-height, 100lvh);
-    transform: translateY(-100%);
-  }
-}
-@media (max-width: 1023px) {
-  html.ios-pwa-standalone,
-  html.ios-pwa-standalone body {
-    height: var(--pwa-height, 100lvh) !important;
-    min-height: var(--pwa-height, 100lvh) !important;
-    overflow: hidden;
-  }
-  html.ios-pwa-standalone .flake-app-shell {
-    bottom: auto;
-    height: var(--pwa-height, 100lvh) !important;
-  }
-  html.ios-pwa-standalone .flake-mobile-nav {
-    bottom: auto !important;
-    top: var(--pwa-height, 100lvh);
-    transform: translateY(-100%);
-  }
-}
 
-/* Compact solid fixed mobile top bar (tight padding directly below safe-area-inset-top) */
+/* Compact solid fixed mobile top bar */
 .mobile-pwa-header {
   padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
 }
 
-/* Full-screen modal backdrop covering top bar + bottom floating nav even on iOS standalone PWA */
+/* Full-screen modal backdrop covering top bar + bottom floating nav */
 .flake-modal-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-@media (max-width: 1023px) and (display-mode: standalone) {
-  .flake-modal-backdrop {
-    bottom: auto;
-    height: var(--pwa-height, 100lvh);
-  }
-}
-@media (max-width: 1023px) {
-  html.ios-pwa-standalone .flake-modal-backdrop {
-    bottom: auto;
-    height: var(--pwa-height, 100lvh);
-  }
+  inset: 0;
 }
 
 ::-webkit-scrollbar {
