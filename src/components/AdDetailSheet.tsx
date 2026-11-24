@@ -1712,24 +1712,26 @@ export function AdDetailSheet({
                 {(audience.hasBreakdown || audience.targetGender) && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[11.5px]">
-                      <span className="font-medium text-[#334155]">
+                      <span className="inline-flex items-center gap-1.5 font-medium text-[#334155]">
+                        <span className="h-2 w-2 rounded-full bg-[#EC4899]" />
                         Kvinder{" "}
                         <span className="font-mono-num font-bold text-[#0F172A]">
                           {audience.femalePct}%
                         </span>
                         {audience.femaleReach > 0 && (
-                          <span className="ml-1 font-mono-num text-[10.5px] text-[#94A3B8]">
+                          <span className="font-mono-num text-[10.5px] text-[#94A3B8]">
                             ({formatReach(audience.femaleReach)})
                           </span>
                         )}
                       </span>
-                      <span className="font-medium text-[#334155]">
+                      <span className="inline-flex items-center gap-1.5 font-medium text-[#334155]">
+                        <span className="h-2 w-2 rounded-full bg-[#3B82F6]" />
                         Mænd{" "}
                         <span className="font-mono-num font-bold text-[#0F172A]">
                           {audience.malePct}%
                         </span>
                         {audience.maleReach > 0 && (
-                          <span className="ml-1 font-mono-num text-[10.5px] text-[#94A3B8]">
+                          <span className="font-mono-num text-[10.5px] text-[#94A3B8]">
                             ({formatReach(audience.maleReach)})
                           </span>
                         )}
@@ -1738,13 +1740,13 @@ export function AdDetailSheet({
                     <div className="flex h-2 w-full overflow-hidden rounded-full bg-[#EEF2F6]">
                       {audience.femalePct > 0 && (
                         <div
-                          className="h-full bg-[#0027eb] transition-all duration-300"
+                          className="h-full bg-[#EC4899] transition-all duration-300"
                           style={{ width: `${audience.femalePct}%` }}
                         />
                       )}
                       {audience.malePct > 0 && (
                         <div
-                          className="h-full bg-[#94A3B8] transition-all duration-300"
+                          className="h-full bg-[#3B82F6] transition-all duration-300"
                           style={{ width: `${audience.malePct}%` }}
                         />
                       )}
@@ -1757,11 +1759,6 @@ export function AdDetailSheet({
                   <div className="space-y-1.5 pt-0.5">
                     <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
                       <span>Aldersfordeling</span>
-                      {audience.peakAgeRange && (
-                        <span className="normal-case tracking-normal text-[#0027eb]">
-                          Top: {audience.peakAgeRange} år
-                        </span>
-                      )}
                     </div>
                     <div className="space-y-1.5">
                       {audience.ageBands.map((band) => {
