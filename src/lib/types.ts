@@ -53,6 +53,13 @@ export interface ProductPreview {
   created_at?: string;
   product_type?: string;
   vendor?: string;
+  review_count?: number;
+  effective_aov?: number;
+  bundle_tiers?: Array<{
+    label: string;
+    price: number;
+    is_default?: boolean;
+  }>;
 }
 
 export interface Brand {
@@ -89,6 +96,11 @@ export interface Brand {
   folder_ids?: string[];
   active_ads_count?: number;
   estimated_monthly_reach?: number;
+  estimated_aov?: number;
+  estimated_aov_currency?: string;
+  aov_source?: "firecrawl" | "estimated";
+  aov_has_bundles?: boolean;
+  aov_note?: string;
   monthly_visits?: number;
   traffic_source?: "similarweb" | "tranco_estimate";
   tranco_rank?: number;

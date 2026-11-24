@@ -258,10 +258,10 @@ export const ShopsTableView = React.memo(function ShopsTableView({
   const revenueByBrand = useMemo(() => {
     const map = new Map<string, ReturnType<typeof estimateShopRevenueSummary>>();
     for (const b of brands) {
-      map.set(b.id, estimateShopRevenueSummary(b));
+      map.set(b.id, estimateShopRevenueSummary(b, adsByBrand.get(b.id)));
     }
     return map;
-  }, [brands]);
+  }, [brands, adsByBrand]);
 
   const audienceByBrand = useMemo(() => {
     const map = new Map<string, ReturnType<typeof summarizeAdsAudience>>();

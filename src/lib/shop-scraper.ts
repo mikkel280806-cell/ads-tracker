@@ -1189,3 +1189,202 @@ export function detectMarketFromStore(opts: {
     language: langMatch === "de" ? "German" : langMatch === "fr" ? "French" : "English",
   };
 }
+
+const HERO_ACCESSORY_RE =
+  /\b(shipping protection|ekstra fyld|kopholder|beskyttelses|replacement filter|pillowcase|pillow case|travel bag|refresh set|gift card|gavekort|add-on|refill|spare|extra cover|betræk|etui|cover only|case only)\b/i;
+
+function parseOfferNum(raw?: string): number | null {
+  const cleaned = String(raw || "").replace(/[^0-9.,]/g, "").trim();
+  if (!cleaned) return null;
+  let normalized = cleaned;
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    normalized =
+      cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")
+        ? cleaned.replace(/\./g, "").replace(",", ".")
+        : cleaned.replace(/,/g, "");
+  } else if (cleaned.includes(",")) {
+    const parts = cleaned.split(",");
+    normalized =
+      parts[parts.length - 1].length <= 2
+        ? cleaned.replace(",", ".")
+        : cleaned.replace(/,/g, "");
+  }
+  const n = Number(normalized);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * Scrapes the #1 non-accessory hero product page with Firecrawl (1 credit) to extract
+ * real review counts, rendered Shopify in-page bundle tiers (Kaching/Rebuy/Wide Bundles),
+ * and true native currency pricing for high-precision AOV estimation.
+ */
+export async function estimateHeroAovViaFirecrawl(opts: {
+  topProducts: ProductPreview[];
+  market: MarketCode;
+  currency?: string;
+}): Promise<{
+  estimatedAov: number;
+  currency: string;
+  hasBundles: boolean;
+  note: string;
+  heroReviewCount?: number;
+} | null> {
+  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+  if (!firecrawlKey || !Array.isArray(opts.topProducts) || opts.topProducts.length === 0) {
+    return null;
+  }
+
+  const withUrl = opts.topProducts.filter(
+    (p) => Boolean(p.url && /^https?:\/\//i.test(p.url))
+  );
+  const hero =
+    withUrl.find((p) => !HERO_ACCESSORY_RE.test(p.title || "")) || withUrl[0];
+  if (!hero?.url) return null;
+
+  const expectedCurrency =
+    opts.market === "DK"
+      ? "DKK"
+      : (opts.currency || "USD").toUpperCase();
+  const country = opts.market === "DK" ? "DK" : opts.market === "EU" ? "DE" : "US";
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 14000);
+    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${firecrawlKey}`,
+      },
+      body: JSON.stringify({
+        url: hero.url,
+        formats: ["markdown"],
+        onlyMainContent: true,
+        waitFor: 1800,
+        location: { country, languages: opts.market === "DK" ? ["da-DK", "en-US"] : ["en-US"] },
+      }),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const md: string = data?.data?.markdown || "";
+    if (md.length < 150) return null;
+
+    // Extract review count
+    let heroReviewCount: number | undefined;
+    const revMatches = Array.from(
+      md
+        .slice(0, 14000)
+        .matchAll(
+          /(?:based on|baseret på)?\s*([\d.,]+)\s*(?:\+?\s*)?(?:verified\s+)?(?:customer\s+)?(?:reviews?|anmeldelser|ratings?)\b/gi
+        )
+    )
+      .map((m) => parseInt(m[1].replace(/[^\d]/g, ""), 10))
+      .filter((n) => Number.isFinite(n) && n >= 5 && n <= 500_000);
+    if (revMatches.length > 0) heroReviewCount = Math.max(...revMatches);
+
+    const addIdx = md.search(
+      /\b(add to cart|tilføj til kurv|læg i kurv|buy now|køb nu|add to bag)\b/i
+    );
+    const offerWindow =
+      addIdx > 200
+        ? md.slice(Math.max(0, addIdx - 3600), Math.min(md.length, addIdx + 800))
+        : md.slice(0, 4800);
+
+    const priceRe =
+      /(?:(\$|€|£)\s*(\d{1,4}(?:[.,]\d{3})*(?:[.,]\d{2})?))|(?:(\d{1,5}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(kr\.?|DKK|EUR|USD))/gi;
+    const extractPrices = (text: string) => {
+      const out: Array<{ val: number; cur: string; index: number }> = [];
+      let m: RegExpExecArray | null;
+      priceRe.lastIndex = 0;
+      while ((m = priceRe.exec(text)) !== null) {
+        const sym = (m[1] || m[4] || "").toUpperCase();
+        const val = parseOfferNum(m[2] || m[3]);
+        if (!val || val < 3 || val > 50_000) continue;
+        let cur = expectedCurrency;
+        if (sym === "$" || sym === "USD") cur = "USD";
+        else if (sym === "€" || sym === "EUR") cur = "EUR";
+        else if (sym === "£") cur = "GBP";
+        else if (sym.startsWith("KR") || sym === "DKK") cur = "DKK";
+        out.push({ val, cur, index: m.index });
+      }
+      return out;
+    };
+
+    const windowPrices = extractPrices(offerWindow);
+    const curFreq = new Map<string, number>();
+    for (const p of windowPrices) curFreq.set(p.cur, (curFreq.get(p.cur) || 0) + 1);
+    const detectedCurrency =
+      curFreq.size > 0
+        ? Array.from(curFreq.entries()).sort((a, b) => b[1] - a[1])[0][0]
+        : expectedCurrency;
+
+    const lines = offerWindow.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    const BUNDLE_RE =
+      /\b(\d+\s*(?:x|pack|packs|pillows?|bottles?|jars?|bags?|boxes?|sets?|kits?|stk\.?|puder?|par|pairs?|month|months|måneder?|tubs?|units?)|buy\s*\d+|køb\s*\d+|duo|trio|family\s*bundle|starter\s*kit|value\s*pack|bundle|pakke|most\s*popular|best\s*value)\b/i;
+    const SAVE_RE = /\b(you save|save|spar|sparet)\b/i;
+
+    const tiers: number[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.length > 110 || !BUNDLE_RE.test(line) || SAVE_RE.test(line)) continue;
+      for (let j = i; j <= Math.min(lines.length - 1, i + 4); j++) {
+        const cand = lines[j];
+        if (j > i && BUNDLE_RE.test(cand) && !SAVE_RE.test(cand)) break;
+        if (SAVE_RE.test(cand) || /\/(mo|month|serving|dag|day|stk|ea|each)\b/i.test(cand)) {
+          continue;
+        }
+        const ps = extractPrices(cand).filter((p) => p.cur === detectedCurrency);
+        if (ps.length > 0) {
+          if (!tiers.some((t) => Math.abs(t - ps[0].val) < 0.5)) tiers.push(ps[0].val);
+          break;
+        }
+      }
+    }
+
+    const fallbackPrice = parseOfferNum(hero.price);
+    const unitCandidates = windowPrices
+      .filter((p) => {
+        const ctx = offerWindow.slice(Math.max(0, p.index - 24), p.index + 20);
+        return p.cur === detectedCurrency && !SAVE_RE.test(ctx) && !/free\s*shipping|fri\s*fragt/i.test(ctx);
+      })
+      .map((p) => p.val);
+    const singleUnit =
+      tiers.length > 0
+        ? Math.min(...tiers)
+        : unitCandidates[0] || fallbackPrice;
+    if (!singleUnit) return null;
+
+    const validTiers = tiers
+      .filter((t) => t >= singleUnit * 0.75 && t <= singleUnit * 6.5)
+      .sort((a, b) => a - b);
+
+    let estAov = singleUnit * 1.15;
+    let hasBundles = false;
+    if (validTiers.length >= 2) {
+      hasBundles = true;
+      estAov =
+        validTiers.length === 2
+          ? validTiers[0] * 0.44 + validTiers[1] * 0.56
+          : validTiers[0] * 0.32 + validTiers[1] * 0.48 + validTiers[2] * 0.2;
+    }
+
+    return {
+      estimatedAov: Math.round(estAov),
+      currency: detectedCurrency,
+      hasBundles,
+      heroReviewCount,
+      note: [
+        `Vægtet efter ${hero.title.slice(0, 32)}`,
+        heroReviewCount ? `${heroReviewCount.toLocaleString("en-US")} reviews` : null,
+        hasBundles ? "in-page bundles fundet via Firecrawl" : "pris & kurvstørrelse via Firecrawl",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    };
+  } catch {
+    return null;
+  }
+}

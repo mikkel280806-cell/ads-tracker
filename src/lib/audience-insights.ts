@@ -366,12 +366,16 @@ export interface ShopRevenueEstimate {
   bundleProductsCount: number;
   basedOnPrices: number;
   currency: "DKK" | "EUR" | "GBP" | "USD";
+  aovSource: "firecrawl" | "estimated";
+  aovNote?: string;
 }
 
 const BUNDLE_TITLE_RE =
   /\b(bundle|kit|set|pack|duo|trio|combo|system|sæt|pakke|starter|routine|value|multipack|complete|2-pack|3-pack|4-pack)\b/i;
 const BUNDLE_APP_RE =
   /rebuy|kaching|wide bundles|vitals|upcart|aftersell|zipify|bundle/i;
+const FILLER_ACCESSORY_RE =
+  /\b(shipping protection|ekstra fyld|kopholder|beskyttelses|replacement filter|pillowcase|pillow case|travel bag|refresh set|gift card|gavekort|add-on|refill|spare|extra cover|betræk|etui|cover only|case only)\b/i;
 
 function parseNumericPrice(raw?: string): number | null {
   if (!raw) return null;
@@ -394,11 +398,27 @@ function parseNumericPrice(raw?: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function normalizeCurrency(
+  rawCurrency?: string,
+  market?: Brand["market"]
+): "DKK" | "EUR" | "GBP" | "USD" {
+  const c = (rawCurrency || (market === "DK" ? "DKK" : "USD")).toUpperCase();
+  if (c === "DKK" || c === "KR") return "DKK";
+  if (c === "EUR") return "EUR";
+  if (c === "GBP") return "GBP";
+  return "USD";
+}
+
 /**
- * Shared Est. Monthly Revenue model (Monthly Visits × ~2% CVR × Est. AOV from bestsellers & bundles).
- * Used in both ShopAnalyticsView (KPI card) and ShopsTableView (Filters & Sort).
+ * Shared Est. Monthly Revenue model:
+ * 1) Uses Firecrawl-verified review-weighted & in-page bundle AOV when stored on Brand
+ * 2) Otherwise weights hero bestsellers by review counts + Meta Ad LP hits + Pareto rank decay
+ *    (filtering out low-price filler accessories like pillowcases / shipping protection).
  */
-export function estimateShopRevenueSummary(brand: Brand): ShopRevenueEstimate {
+export function estimateShopRevenueSummary(
+  brand: Brand,
+  brandAds?: Ad[]
+): ShopRevenueEstimate {
   const visits = brand.monthly_visits || 0;
   const bestsellers = (
     brand.top_products && brand.top_products.length > 0
@@ -406,42 +426,106 @@ export function estimateShopRevenueSummary(brand: Brand): ShopRevenueEstimate {
       : brand.latest_products || []
   ).slice(0, 12);
 
-  const rawCurrency = (
-    bestsellers.find((p) => p.currency)?.currency ||
-    brand.currency ||
-    (brand.market === "DK" ? "DKK" : "USD")
-  ).toUpperCase();
-  const currency: "DKK" | "EUR" | "GBP" | "USD" =
-    rawCurrency === "DKK" || rawCurrency === "KR"
-      ? "DKK"
-      : rawCurrency === "EUR"
-        ? "EUR"
-        : rawCurrency === "GBP"
-          ? "GBP"
-          : "USD";
-
-  const prices = bestsellers
-    .map((p) => parseNumericPrice(p.price))
-    .filter((n): n is number => n !== null)
-    .sort((a, b) => a - b);
-
-  const medianPrice =
-    prices.length > 0
-      ? prices[Math.floor(prices.length / 2)]
-      : currency === "DKK"
-        ? 399
-        : 58;
-
-  const bundleProductsCount = bestsellers.filter((p) =>
-    BUNDLE_TITLE_RE.test(p.title || "")
+  const bundleProductsCount = bestsellers.filter(
+    (p) =>
+      BUNDLE_TITLE_RE.test(p.title || "") ||
+      (Array.isArray(p.bundle_tiers) && p.bundle_tiers.length >= 2)
   ).length;
   const hasBundleApp = (brand.shopify_apps || []).some((app) =>
     BUNDLE_APP_RE.test(app)
   );
-  const hasBundles = bundleProductsCount > 0 || hasBundleApp;
+  const hasBundles = Boolean(
+    brand.aov_has_bundles || bundleProductsCount > 0 || hasBundleApp
+  );
 
-  const aovMultiplier = bundleProductsCount >= 2 ? 1.32 : hasBundles ? 1.24 : 1.12;
-  const estAov = Math.round(medianPrice * aovMultiplier);
+  // Build Meta Ad landing-page hits per product handle (if ads provided)
+  const lpHitsByHandle = new Map<string, number>();
+  if (Array.isArray(brandAds)) {
+    for (const ad of brandAds) {
+      const lp = String(ad.landing_page_path || ad.landing_page_url || "");
+      const m = lp.match(/\/products\/([^/?#]+)/i);
+      if (m) {
+        const h = m[1].toLowerCase();
+        lpHitsByHandle.set(h, (lpHitsByHandle.get(h) || 0) + (ad.duplicated_count || 1));
+      }
+    }
+  }
+
+  let currency: "DKK" | "EUR" | "GBP" | "USD";
+  let estAov: number;
+  let aovSource: "firecrawl" | "estimated" = "estimated";
+  let basedOnPrices = 0;
+
+  if (typeof brand.estimated_aov === "number" && brand.estimated_aov > 0) {
+    currency = normalizeCurrency(
+      brand.estimated_aov_currency || brand.currency,
+      brand.market
+    );
+    estAov = Math.round(brand.estimated_aov);
+    aovSource = brand.aov_source || "firecrawl";
+    basedOnPrices = bestsellers.length;
+  } else {
+    currency = normalizeCurrency(
+      bestsellers.find((p) => p.currency)?.currency || brand.currency,
+      brand.market
+    );
+
+    const parsedProducts = bestsellers
+      .map((p, idx) => {
+        const unitPrice = parseNumericPrice(p.price);
+        const effPrice =
+          typeof p.effective_aov === "number" && p.effective_aov > 0
+            ? p.effective_aov
+            : unitPrice;
+        const handle = (
+          p.handle ||
+          (p.url || "").match(/\/products\/([^/?#]+)/i)?.[1] ||
+          ""
+        ).toLowerCase();
+        const adHits = handle ? lpHitsByHandle.get(handle) || 0 : 0;
+        const isFiller = FILLER_ACCESSORY_RE.test(p.title || "");
+        return {
+          idx,
+          price: effPrice,
+          hasEffective: typeof p.effective_aov === "number" && p.effective_aov > 0,
+          reviews: typeof p.review_count === "number" && p.review_count > 0 ? p.review_count : 0,
+          adHits,
+          isFiller,
+        };
+      })
+      .filter((x): x is typeof x & { price: number } => x.price !== null);
+
+    basedOnPrices = parsedProducts.length;
+    const nonFillers = parsedProducts.filter((p) => !p.isFiller);
+    const pool = nonFillers.length > 0 ? nonFillers : parsedProducts;
+
+    if (pool.length > 0) {
+      const anyReviews = pool.some((p) => p.reviews > 0);
+      let weightedSum = 0;
+      let totalWeight = 0;
+
+      for (let i = 0; i < pool.length; i++) {
+        const item = pool[i];
+        const adBoost = 1 + Math.min(1.4, item.adHits * 0.14);
+        const weight = anyReviews
+          ? (item.reviews > 0 ? item.reviews : 35) * adBoost
+          : (1 / Math.pow(i + 1, 1.45)) * adBoost;
+        const itemMult = item.hasEffective
+          ? 1
+          : bundleProductsCount >= 2
+            ? 1.3
+            : hasBundles
+              ? 1.24
+              : 1.14;
+        weightedSum += item.price * itemMult * weight;
+        totalWeight += weight;
+      }
+
+      estAov = Math.round(weightedSum / Math.max(0.001, totalWeight));
+    } else {
+      estAov = currency === "DKK" ? 449 : 68;
+    }
+  }
 
   const aovUsd =
     currency === "DKK"
@@ -455,7 +539,7 @@ export function estimateShopRevenueSummary(brand: Brand): ShopRevenueEstimate {
   let cvrPct = 2.0;
   if (aovUsd >= 600) cvrPct = 1.2;
   else if (aovUsd >= 250) cvrPct = 1.6;
-  else if (aovUsd <= 35) cvrPct = 2.4;
+  else if (aovUsd <= 35) cvrPct = 2.3;
   if (hasBundles && aovUsd < 250) cvrPct = Number((cvrPct + 0.1).toFixed(1));
 
   const monthlyRevenue = Math.round(visits * (cvrPct / 100) * estAov);
@@ -488,7 +572,9 @@ export function estimateShopRevenueSummary(brand: Brand): ShopRevenueEstimate {
     cvrPct,
     hasBundles,
     bundleProductsCount,
-    basedOnPrices: prices.length,
+    basedOnPrices,
     currency,
+    aovSource,
+    aovNote: brand.aov_note,
   };
 }

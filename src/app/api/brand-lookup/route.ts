@@ -14,6 +14,7 @@ import {
   detectMarketFromStore,
   detectPixels,
   detectShopifyApps,
+  estimateHeroAovViaFirecrawl,
   extractMeta,
   fetchHtmlSmart,
   fetchTrancoRank,
@@ -379,6 +380,12 @@ export async function POST(request: NextRequest) {
           brandName
         )}`;
 
+    const heroAov = await estimateHeroAovViaFirecrawl({
+      topProducts: productsResult.topProducts,
+      market: marketInfo.market,
+      currency: detectedCurrency,
+    });
+
     const brand: Brand = {
       id: brandId,
       name: companyAdsResult.pageName || brandName,
@@ -418,6 +425,11 @@ export async function POST(request: NextRequest) {
       is_tracked: true,
       folder_ids: [],
       active_ads_count: activeAdsCount,
+      estimated_aov: heroAov?.estimatedAov,
+      estimated_aov_currency: heroAov?.currency,
+      aov_source: heroAov ? "firecrawl" : "estimated",
+      aov_has_bundles: heroAov?.hasBundles,
+      aov_note: heroAov?.note,
       monthly_visits:
         similarWebTraffic?.monthly_visits ?? calibratedTraffic.monthly_visits,
       traffic_source: similarWebTraffic?.monthly_visits

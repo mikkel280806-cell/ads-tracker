@@ -443,10 +443,10 @@ export function ShopAnalyticsView({
   const shopifyApps = brand.shopify_apps || [];
   const savedInFolders = (brand.folder_ids || []).length > 0;
 
-  // Estimate Monthly Revenue from Monthly Visits × Est. CVR (~2%) × Est. AOV (bestsellers + bundles)
+  // Estimate Monthly Revenue from Monthly Visits × Est. CVR (~2%) × Firecrawl/review-weighted Est. AOV
   const revenueEstimate = useMemo(
-    () => estimateShopRevenueSummary(brand),
-    [brand]
+    () => estimateShopRevenueSummary(brand, brandAds),
+    [brand, brandAds]
   );
 
   // Aggregated Real Meta Audience & Reach intelligence across all of this shop's scraped ads
@@ -974,15 +974,8 @@ export function ShopAnalyticsView({
         <div className="animate-view-in space-y-5">
           {/* TOP 4 BALANCED KPI CARDS — Monthly Visits · Est. Monthly Revenue · Live Meta Ads · Trustpilot */}
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-            {/* 1. Monthly Visits */}
-            <div
-              className="adtrack-kpi-card flex flex-col justify-between gap-3 rounded-2xl p-4"
-              title={
-                brand.tranco_rank
-                  ? `Estimeret ud fra global domæne-ranking (#${brand.tranco_rank.toLocaleString("en-US")})`
-                  : "Estimerede månedlige besøg"
-              }
-            >
+            {/* 1. Monthly Visits (RapidAPI SimilarTech — no Est. tag, larger growth badge) */}
+            <div className="adtrack-kpi-card flex flex-col justify-between gap-3.5 rounded-2xl p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B]">
                   <Users className="h-3.5 w-3.5 text-[#64748B]" />
@@ -990,16 +983,16 @@ export function ShopAnalyticsView({
                 </span>
                 {typeof brand.traffic_growth_pct === "number" && (
                   <span
-                    className={`inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 font-mono-num text-[11px] font-bold ${
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-mono-num text-[13px] font-bold leading-none ${
                       brand.traffic_growth_pct >= 0
                         ? "bg-[#ECFDF3] text-[#15803D]"
                         : "bg-[#FFF1F2] text-[#E11D48]"
                     }`}
                   >
                     {brand.traffic_growth_pct >= 0 ? (
-                      <TrendingUp className="h-3 w-3" />
+                      <TrendingUp className="h-3.5 w-3.5" />
                     ) : (
-                      <TrendingDown className="h-3 w-3" />
+                      <TrendingDown className="h-3.5 w-3.5" />
                     )}
                     {brand.traffic_growth_pct >= 0 ? "+" : ""}
                     {brand.traffic_growth_pct}%
@@ -1008,33 +1001,34 @@ export function ShopAnalyticsView({
               </div>
 
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-[30px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
+                <span className="font-display text-[34px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
                   {formatReach(brand.monthly_visits)}
                 </span>
-                <span className="text-[11.5px] font-medium text-[#94A3B8]">
+                <span className="text-[12px] font-medium text-[#94A3B8]">
                   / md
                 </span>
               </div>
 
-              <div className="flex items-center justify-between gap-2 border-t border-[#EFF2F6] pt-2.5 text-[11px] text-[#64748B]">
-                <span className="truncate">
+              <div className="flex items-center justify-between gap-2 border-t border-[#EFF2F6] pt-2.5 text-[11.5px] text-[#64748B]">
+                <span className="truncate font-medium text-[#475569]">
                   {brand.visitor_countries && brand.visitor_countries.length > 0
                     ? brand.visitor_countries
                         .slice(0, 3)
                         .map((c) => `${c.flag} ${c.pct}%`)
                         .join(" · ")
-                    : "Est. websitetrafik"}
-                </span>
-                <span className="shrink-0 font-mono-num text-[10.5px] font-medium text-[#94A3B8]">
-                  {brand.traffic_source === "similarweb" ? "Live" : "Est."}
+                    : "Websitetrafik"}
                 </span>
               </div>
             </div>
 
-            {/* 2. Est. Monthly Revenue (Visits × ~2% CVR × Est. AOV from bestsellers & bundles) */}
+            {/* 2. Est. Monthly Revenue (Review-weighted + Firecrawl bundle AOV, no Bundles badge) */}
             <div
-              className="adtrack-kpi-card flex flex-col justify-between gap-3 rounded-2xl p-4"
-              title={`Est. omsætning = ${formatReach(brand.monthly_visits)} visits × ${revenueEstimate.cvrPct}% CVR × ${revenueEstimate.formattedAov} est. AOV (baseret på ${revenueEstimate.basedOnPrices || "standard"} bestsellers${revenueEstimate.hasBundles ? " + bundles" : ""})`}
+              className="adtrack-kpi-card flex flex-col justify-between gap-3.5 rounded-2xl p-4"
+              title={
+                revenueEstimate.aovNote
+                  ? `${revenueEstimate.aovNote} · ${formatReach(brand.monthly_visits)} visits × ${revenueEstimate.cvrPct}% CVR × ${revenueEstimate.formattedAov} AOV`
+                  : `Est. omsætning = ${formatReach(brand.monthly_visits)} visits × ${revenueEstimate.cvrPct}% CVR × ${revenueEstimate.formattedAov} est. AOV`
+              }
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B]">
@@ -1047,26 +1041,23 @@ export function ShopAnalyticsView({
               </div>
 
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-[30px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
+                <span className="font-display text-[34px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
                   {revenueEstimate.formattedRevenue}
                 </span>
-                <span className="text-[11.5px] font-medium text-[#94A3B8]">
+                <span className="text-[12px] font-medium text-[#94A3B8]">
                   / md
                 </span>
               </div>
 
-              <div className="flex items-center justify-between gap-2 border-t border-[#EFF2F6] pt-2.5 text-[11px] text-[#64748B]">
+              <div className="flex items-center justify-between gap-2 border-t border-[#EFF2F6] pt-2.5 text-[11.5px] text-[#64748B]">
                 <span className="font-mono-num font-medium text-[#475569]">
                   Est. AOV {revenueEstimate.formattedAov}
-                </span>
-                <span className="rounded-md bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
-                  {revenueEstimate.hasBundles ? "Bundles" : "Standard"}
                 </span>
               </div>
             </div>
 
-            {/* 3. Live Meta Ads (clean — no green dot, fills card with format bar) */}
-            <div className="adtrack-kpi-card flex flex-col justify-between gap-3 rounded-2xl p-4">
+            {/* 3. Live Meta Ads (clean & larger — no media mix bar) */}
+            <div className="adtrack-kpi-card flex flex-col justify-between gap-3.5 rounded-2xl p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B]">
                   <MetaInfinityIcon className="h-4 w-4" />
@@ -1082,40 +1073,22 @@ export function ShopAnalyticsView({
               </div>
 
               <div className="flex items-baseline gap-2.5">
-                <span className="font-display text-[30px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
+                <span className="font-display text-[36px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
                   {(brand.active_ads_count ?? brandAds.length).toLocaleString("en-US")}
                 </span>
-                <span className="text-[11.5px] font-medium text-[#94A3B8]">
+                <span className="text-[12px] font-medium text-[#94A3B8]">
                   aktive ads
                 </span>
               </div>
 
-              <div className="space-y-1.5 border-t border-[#EFF2F6] pt-2.5">
-                <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-[#EEF2F6]">
-                  {mediaMix.map(
-                    (row) =>
-                      row.count > 0 && (
-                        <div
-                          key={row.key}
-                          style={{ width: `${row.pct}%`, backgroundColor: row.color }}
-                          title={`${row.key}: ${row.count} (${row.pct}%)`}
-                        />
-                      )
-                  )}
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-[#64748B]">
-                  <span className="font-mono-num">
-                    {mediaMix[0].count} vid · {mediaMix[1].count} img
-                    {mediaMix[3].count > 0 ? ` · ${mediaMix[3].count} car.` : ""}
-                  </span>
-                  <span className="font-mono-num text-[10.5px] text-[#94A3B8]">
-                    {brandAds.length} i Flake
-                  </span>
-                </div>
+              <div className="flex items-center justify-between border-t border-[#EFF2F6] pt-2.5 text-[11.5px] text-[#64748B]">
+                <span className="font-mono-num font-medium text-[#475569]">
+                  {brandAds.length.toLocaleString("en-US")} i Flake
+                </span>
               </div>
             </div>
 
-            {/* 4. Trustpilot Rating */}
+            {/* 4. Trustpilot Rating (larger score + stars, no progress bar or %, keeps review count) */}
             {(() => {
               const tpScore = brand.trustpilot_score;
               const tpReviews = brand.trustpilot_reviews;
@@ -1133,13 +1106,12 @@ export function ShopAnalyticsView({
                           ? "#FF8622"
                           : "#FF3722";
               const filledStars = tpScore ? Math.round(tpScore) : 0;
-              const scorePct = tpScore ? Math.min(100, Math.round((tpScore / 5) * 100)) : 0;
               return (
                 <a
                   href={tpUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="adtrack-kpi-card group flex flex-col justify-between gap-3 rounded-2xl p-4 transition-colors hover:border-[#CBD5E1]"
+                  className="adtrack-kpi-card group flex flex-col justify-between gap-3.5 rounded-2xl p-4 transition-colors hover:border-[#CBD5E1]"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B]">
@@ -1158,47 +1130,36 @@ export function ShopAnalyticsView({
                   {typeof tpScore === "number" ? (
                     <>
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-baseline gap-1">
-                          <span className="font-display text-[30px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="font-display text-[36px] font-bold leading-none tracking-[-0.03em] text-[#0F172A]">
                             {tpScore.toFixed(1)}
                           </span>
-                          <span className="text-[12px] font-medium text-[#94A3B8]">
+                          <span className="text-[13px] font-medium text-[#94A3B8]">
                             / 5
                           </span>
                         </div>
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((idx) => (
                             <span
                               key={idx}
-                              className="flex h-4.5 w-4.5 items-center justify-center rounded-[3px]"
+                              className="flex h-5.5 w-5.5 items-center justify-center rounded-[4px]"
                               style={{
                                 backgroundColor:
                                   idx <= filledStars ? tpColor : "#E2E8F0",
                               }}
                             >
-                              <Star className="h-2.5 w-2.5 fill-white text-white" />
+                              <Star className="h-3.5 w-3.5 fill-white text-white" />
                             </span>
                           ))}
                         </div>
                       </div>
 
-                      <div className="space-y-1.5 border-t border-[#EFF2F6] pt-2.5">
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EEF2F6]">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${scorePct}%`, backgroundColor: tpColor }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#64748B]">
-                          <span className="font-mono-num font-medium">
-                            {typeof tpReviews === "number" && tpReviews > 0
-                              ? `${tpReviews.toLocaleString("en-US")} reviews`
-                              : "TrustScore"}
-                          </span>
-                          <span className="font-mono-num text-[10.5px] text-[#94A3B8]">
-                            {scorePct}%
-                          </span>
-                        </div>
+                      <div className="flex items-center justify-between border-t border-[#EFF2F6] pt-2.5 text-[11.5px] text-[#64748B]">
+                        <span className="font-mono-num font-medium text-[#475569]">
+                          {typeof tpReviews === "number" && tpReviews > 0
+                            ? `${tpReviews.toLocaleString("en-US")} reviews`
+                            : "TrustScore"}
+                        </span>
                       </div>
                     </>
                   ) : (
@@ -1206,7 +1167,7 @@ export function ShopAnalyticsView({
                       <span className="font-display text-[17px] font-semibold text-[#94A3B8]">
                         Ingen profil fundet
                       </span>
-                      <div className="border-t border-[#EFF2F6] pt-2.5 text-[11px] text-[#94A3B8]">
+                      <div className="border-t border-[#EFF2F6] pt-2.5 text-[11.5px] text-[#94A3B8]">
                         Søg på Trustpilot →
                       </div>
                     </>
@@ -1226,7 +1187,7 @@ export function ShopAnalyticsView({
                     Traffic Over Time
                   </h2>
                   <p className="text-[11.5px] text-[#64748B]">
-                    Estimerede månedlige besøg baseret på Tranco &amp; markedssignaler
+                    Månedlige besøg over tid
                   </p>
                 </div>
                 <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] p-0.5 text-[11px] font-semibold">
