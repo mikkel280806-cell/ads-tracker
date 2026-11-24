@@ -452,17 +452,6 @@ function MediaMixPieChart({
           {segments.map((seg) => {
             const isHovered = hoveredKey === seg.key;
             const dimmed = hoveredKey !== null && !isHovered;
-            const currentStroke = isHovered ? strokeWidth + 3 : strokeWidth;
-            // With strokeLinecap="round", each end adds strokeWidth/2; subtract strokeWidth + gap so rounded corners never collide
-            const gap = segments.length > 1 ? 5 : 0;
-            const visibleDash =
-              segments.length > 1
-                ? Math.max(1.5, seg.dash - strokeWidth - gap)
-                : seg.dash;
-            const roundOffset =
-              segments.length > 1
-                ? seg.offset - (strokeWidth + gap) / 2
-                : seg.offset;
             return (
               <circle
                 key={seg.key}
@@ -471,10 +460,10 @@ function MediaMixPieChart({
                 r={radius}
                 fill="none"
                 stroke={seg.color}
-                strokeWidth={currentStroke}
-                strokeDasharray={`${visibleDash} ${circumference}`}
-                strokeDashoffset={roundOffset}
-                strokeLinecap="round"
+                strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
+                strokeDasharray={`${Math.max(0, seg.dash - (segments.length > 1 ? 2 : 0))} ${circumference}`}
+                strokeDashoffset={seg.offset}
+                strokeLinecap="butt"
                 onMouseEnter={() => setHoveredKey(seg.key)}
                 onMouseLeave={() => setHoveredKey(null)}
                 onClick={() =>
