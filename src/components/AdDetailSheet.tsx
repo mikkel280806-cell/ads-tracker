@@ -847,9 +847,6 @@ export function AdDetailSheet({
                 }`}
               >
                 <span>{isOrganic ? "Script & Notes" : "Copy & Notes"}</span>
-                {(ad.ai_transcript || ad.user_notes) && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
-                )}
               </button>
             </div>
 
