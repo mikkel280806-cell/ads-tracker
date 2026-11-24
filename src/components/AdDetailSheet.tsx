@@ -1592,15 +1592,15 @@ export function AdDetailSheet({
                           title={`Rank #${rankMeta.brandRank} of ${rankMeta.brandTotalAds}`}
                           className={`inline-flex shrink-0 aspect-square items-center justify-center rounded-full font-sans font-bold leading-none tabular-nums ${
                             rankMeta.brandRank >= 100
-                              ? "h-7 w-7 text-[10px]"
-                              : "h-6 w-6 text-[11px]"
+                              ? "h-6 w-6 text-[9.5px]"
+                              : "h-5 w-5 text-[10px]"
                           } ${
                             rankMeta.brandRank === 1
-                              ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#CA8A04] text-[#5C3404] ring-[1.5px] ring-[#854D0E] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(133,77,14,0.24)]"
+                              ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#CA8A04] text-[#5C3404] ring-[1.25px] ring-[#854D0E] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(133,77,14,0.24)]"
                               : rankMeta.brandRank === 2
-                                ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#94A3B8] text-[#1E293B] ring-[1.5px] ring-[#475569] shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(71,85,105,0.2)]"
+                                ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#94A3B8] text-[#1E293B] ring-[1.25px] ring-[#475569] shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(71,85,105,0.2)]"
                                 : rankMeta.brandRank === 3
-                                  ? "bg-gradient-to-b from-[#FDE6CE] via-[#D9823B] to-[#A85319] text-[#4A1D06] ring-[1.5px] ring-[#6B2D0B] shadow-[inset_0_1px_1px_rgba(255,255,255,0.65),0_1px_2px_rgba(107,45,11,0.24)]"
+                                  ? "bg-gradient-to-b from-[#FDE6CE] via-[#D9823B] to-[#A85319] text-[#4A1D06] ring-[1.25px] ring-[#6B2D0B] shadow-[inset_0_1px_1px_rgba(255,255,255,0.65),0_1px_2px_rgba(107,45,11,0.24)]"
                                   : "bg-[#F1F5F9] text-[#0F172A] ring-1 ring-[#CBD5E1]/70"
                           }`}
                         >
