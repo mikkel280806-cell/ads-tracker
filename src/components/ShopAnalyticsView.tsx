@@ -452,6 +452,17 @@ function MediaMixPieChart({
           {segments.map((seg) => {
             const isHovered = hoveredKey === seg.key;
             const dimmed = hoveredKey !== null && !isHovered;
+            const currentStroke = isHovered ? strokeWidth + 3 : strokeWidth;
+            // With strokeLinecap="round", each end adds strokeWidth/2; subtract strokeWidth + gap so rounded corners never collide
+            const gap = segments.length > 1 ? 5 : 0;
+            const visibleDash =
+              segments.length > 1
+                ? Math.max(1.5, seg.dash - strokeWidth - gap)
+                : seg.dash;
+            const roundOffset =
+              segments.length > 1
+                ? seg.offset - (strokeWidth + gap) / 2
+                : seg.offset;
             return (
               <circle
                 key={seg.key}
@@ -460,10 +471,10 @@ function MediaMixPieChart({
                 r={radius}
                 fill="none"
                 stroke={seg.color}
-                strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
-                strokeDasharray={`${Math.max(0, seg.dash - (segments.length > 1 ? 2 : 0))} ${circumference}`}
-                strokeDashoffset={seg.offset}
-                strokeLinecap="butt"
+                strokeWidth={currentStroke}
+                strokeDasharray={`${visibleDash} ${circumference}`}
+                strokeDashoffset={roundOffset}
+                strokeLinecap="round"
                 onMouseEnter={() => setHoveredKey(seg.key)}
                 onMouseLeave={() => setHoveredKey(null)}
                 onClick={() =>
@@ -1461,35 +1472,9 @@ export function ShopAnalyticsView({
             </div>
           </div>
 
-          {/* MEDIA MIX PIE CHART + SMART MÅLGRUPPE & REAL META REACH */}
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-            {/* Media Mix Pie Chart */}
-            <div
-              className={`adtrack-card rounded-2xl p-5 ${
-                shopAudience.hasData ? "xl:col-span-4" : "xl:col-span-12"
-              }`}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="font-display text-[15px] font-bold text-[#0F172A]">
-                    Media Mix
-                  </h2>
-                  <p className="text-[11.5px] text-[#64748B]">
-                    Fordeling af annonceformater
-                  </p>
-                </div>
-                <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-0.5 font-mono-num text-[11.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
-                  {brandAds.length.toLocaleString("fr-FR")}
-                </span>
-              </div>
-              <MediaMixPieChart
-                rows={mediaMix}
-                totalCount={brandAds.length}
-              />
-            </div>
-
-            {shopAudience.hasData && (
-              <div className="adtrack-card rounded-2xl p-5 xl:col-span-8">
+          {/* SMART MÅLGRUPPE & REAL META REACH CARD (Aggregated from scraped Meta Transparency breakdowns) */}
+          {shopAudience.hasData && (
+            <div className="adtrack-card rounded-2xl p-5">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -1659,8 +1644,7 @@ export function ShopAnalyticsView({
                 )}
               </div>
             </div>
-            )}
-          </div>
+          )}
 
           {/* 2-COLUMN PRODUCTS + PIXELS / SHOPIFY APPS ROW (Exact Trendtrack Layout!) */}
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
