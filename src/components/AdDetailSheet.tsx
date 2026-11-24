@@ -1046,11 +1046,11 @@ export function AdDetailSheet({
                               : "h-6 w-6 text-[11px]"
                           } ${
                             rankMeta.brandRank === 1
-                              ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#B45309] text-[#422006] ring-1 ring-[#CA8A04]/45 shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.16)]"
+                              ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#B45309] text-[#0F172A] ring-[1.5px] ring-[#0F172A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.18)]"
                               : rankMeta.brandRank === 2
-                                ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#64748B] text-[#0F172A] ring-1 ring-[#94A3B8]/55 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(15,23,42,0.14)]"
+                                ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#64748B] text-[#0F172A] ring-[1.5px] ring-[#0F172A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(15,23,42,0.16)]"
                                 : rankMeta.brandRank === 3
-                                  ? "bg-gradient-to-b from-[#FED7AA] via-[#D97706] to-[#92400E] text-white ring-1 ring-[#B45309]/45 shadow-[inset_0_1px_1px_rgba(255,255,255,0.55),0_1px_2px_rgba(15,23,42,0.16)]"
+                                  ? "bg-gradient-to-b from-[#FDE6CE] via-[#E58A3C] to-[#B45309] text-[#0F172A] ring-[1.5px] ring-[#0F172A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.65),0_1px_2px_rgba(15,23,42,0.18)]"
                                   : "bg-[#F1F5F9] text-[#0F172A] ring-1 ring-[#CBD5E1]/70"
                           }`}
                         >
