@@ -1689,7 +1689,7 @@ export function AdDetailSheet({
               <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4 space-y-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <Users className="h-4 w-4 text-[#0027eb]" />
+                    <Users className="h-4 w-4 text-[#64748B]" />
                     <h3 className="font-display text-[14px] font-bold text-[#0F172A]">
                       Målgruppe
                     </h3>

@@ -1303,7 +1303,7 @@ export function ShopAnalyticsView({
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-[#0027eb]" />
+                    <Users className="h-4 w-4 text-[#64748B]" />
                     <h2 className="font-display text-[15px] font-bold text-[#0F172A]">
                       Målgruppe &amp; Meta Reach
                     </h2>
