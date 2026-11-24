@@ -403,7 +403,7 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   padding-top: env(safe-area-inset-top);
 }
 
-/* Edge-to-edge app shell (fixes iOS standalone PWA ~34px bottom safe-area white gap) */
+/* Edge-to-edge app shell (fixes iOS standalone PWA ~59pt bottom gap where 100% omits safe-area-inset-top) */
 .flake-app-shell {
   position: fixed;
   top: 0;
@@ -413,20 +413,47 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
   height: 100%;
 }
 @media (max-width: 1023px) and (display-mode: standalone) {
+  html,
+  body {
+    height: var(--pwa-height, 100lvh) !important;
+    min-height: var(--pwa-height, 100lvh) !important;
+    overflow: hidden;
+  }
   .flake-app-shell {
-    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-    height: calc(100% + env(safe-area-inset-bottom, 0px));
+    bottom: auto;
+    height: var(--pwa-height, 100lvh) !important;
+  }
+  .flake-mobile-nav {
+    bottom: auto !important;
+    top: var(--pwa-height, 100lvh);
+    transform: translateY(-100%);
+  }
+}
+@media (max-width: 1023px) {
+  html.ios-pwa-standalone,
+  html.ios-pwa-standalone body {
+    height: var(--pwa-height, 100lvh) !important;
+    min-height: var(--pwa-height, 100lvh) !important;
+    overflow: hidden;
+  }
+  html.ios-pwa-standalone .flake-app-shell {
+    bottom: auto;
+    height: var(--pwa-height, 100lvh) !important;
+  }
+  html.ios-pwa-standalone .flake-mobile-nav {
+    bottom: auto !important;
+    top: var(--pwa-height, 100lvh);
+    transform: translateY(-100%);
   }
 }
 
-/* Stationary solid white header sitting just below iOS 26's ~22px top blur tail
-   (minimum possible top margin while keeping the Flake wordmark 100% razor sharp) */
+/* Seamless #F7F8FB stationary header matching root/status-bar color so iOS 26 never shows a top gray-to-white fade */
 .mobile-pwa-header {
   padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
 }
 @media (display-mode: standalone) {
   .mobile-pwa-header {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 25px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 18px);
   }
 }
 

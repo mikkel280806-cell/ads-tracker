@@ -884,6 +884,36 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     []
   );
 
+  // Sync true physical screen height on iOS standalone PWA (fixes ~59pt bottom gap where 100%/100dvh excludes safe-area-inset-top)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncPwaHeight = () => {
+      const nav = window.navigator as Navigator & { standalone?: boolean };
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        nav.standalone === true;
+      if (isStandalone && window.innerWidth < 1024) {
+        const isPortrait = window.innerHeight >= window.innerWidth;
+        const physicalH = isPortrait
+          ? Math.max(window.screen.height, window.screen.width)
+          : Math.min(window.screen.height, window.screen.width);
+        const fullH = Math.max(window.innerHeight, physicalH);
+        document.documentElement.classList.add("ios-pwa-standalone");
+        document.documentElement.style.setProperty("--pwa-height", `${fullH}px`);
+      } else {
+        document.documentElement.classList.remove("ios-pwa-standalone");
+        document.documentElement.style.removeProperty("--pwa-height");
+      }
+    };
+    syncPwaHeight();
+    window.addEventListener("resize", syncPwaHeight);
+    window.addEventListener("orientationchange", syncPwaHeight);
+    return () => {
+      window.removeEventListener("resize", syncPwaHeight);
+      window.removeEventListener("orientationchange", syncPwaHeight);
+    };
+  }, []);
+
   return (
     <>
     <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
@@ -1143,10 +1173,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           STATIONARY WORKSPACE FRAME — ONLY INNER <main> SCROLLS (MOBILE + DESKTOP)
          ===================================================================== */}
       <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:rounded-tl-[24px] lg:bg-white">
-        {/* STATIONARY SOLID WHITE MOBILE TOP BAR
-            Locks the status bar + Flake brand bar above the scroll container so content
-            never scrolls behind the iOS 26 Dynamic Island / top scroll-edge blur zone. */}
-        <header className="mobile-pwa-header relative z-20 flex shrink-0 items-center border-b border-[#ECEFF5] bg-white px-4 pb-2.5 text-[#0F172A] lg:hidden">
+        {/* STATIONARY SEAMLESS MOBILE TOP BAR (#F7F8FB matches html/body/theme-color — eliminates iOS 26 top fade band) */}
+        <header className="mobile-pwa-header relative z-20 flex shrink-0 items-center border-b border-[#E8ECF4]/80 bg-[#F7F8FB] px-4 pb-2.5 text-[#0F172A] lg:hidden">
           <button
             type="button"
             data-no-glass="true"
@@ -1851,9 +1879,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           FLOATING iOS 26 LIQUID GLASS TAB BAR — SHOPS, EXPLORE, FOLDERS
          ===================================================================== */}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-1 lg:hidden"
+        className="flake-mobile-nav pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-1 lg:hidden"
         style={{
-          paddingBottom: "max(0.75rem, calc(env(safe-area-inset-bottom) * 0.72))",
+          paddingBottom: "max(1.125rem, calc(env(safe-area-inset-bottom, 0px) * 0.72))",
         }}
       >
         <GlassTabBar
