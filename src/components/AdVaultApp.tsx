@@ -838,11 +838,15 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           STATIONARY WHITE WORKSPACE FRAME — ONLY INNER CONTENT SCROLLS ON DESKTOP
          ===================================================================== */}
       <div className="flex min-w-0 flex-1 flex-col bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:h-full lg:overflow-hidden lg:rounded-tl-[24px] lg:bg-white">
-        {/* CLEAN SOLID MOBILE TOP BAR (non-sticky so iOS 26 never applies top-edge blur over logo) */}
-        <header
-          className="relative z-10 flex items-center border-b border-[#ECEFF5] bg-white px-4 pb-3 text-[#0F172A] lg:hidden"
-          style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}
-        >
+        {/* SOLID WHITE iOS STATUS BAR ANCHOR (keeps iOS 26 top blur sampling pure white) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 top-0 z-30 bg-white lg:hidden"
+          style={{ height: "env(safe-area-inset-top, 0px)" }}
+        />
+
+        {/* CLEAN SOLID MOBILE TOP BAR (sits cleanly below iOS 26 standalone top blur zone) */}
+        <header className="mobile-pwa-header relative z-10 flex items-center border-b border-[#ECEFF5] bg-white px-4 pb-3 text-[#0F172A] lg:hidden">
           <button
             type="button"
             onClick={() => {

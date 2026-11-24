@@ -151,6 +151,13 @@ body {
   overflow-x: clip;
 }
 
+@media (max-width: 1023px) {
+  html,
+  body {
+    background-color: #ffffff;
+  }
+}
+
 @media (min-width: 1024px) {
   html,
   body {
@@ -266,6 +273,18 @@ h3,
 }
 .pt-safe {
   padding-top: env(safe-area-inset-top);
+}
+
+/* iOS 26 standalone PWA renders a system progressive blur ~30px below safe-area-inset-top.
+   Push the mobile header below that blur zone in standalone mode so the Flake logo stays 100% sharp
+   and the blur only sits over solid white (making it completely invisible). */
+.mobile-pwa-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+@media (display-mode: standalone) {
+  .mobile-pwa-header {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
+  }
 }
 
 ::-webkit-scrollbar {
