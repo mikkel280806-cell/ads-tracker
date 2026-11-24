@@ -30,6 +30,7 @@ import {
   InstagramColorIcon,
   MetaInfinityIcon,
 } from "./BrandIcons";
+import { FlakePopover } from "./ui/FlakeDropdown";
 
 interface AdDetailSheetProps {
   ad: Ad | null;
@@ -75,6 +76,7 @@ export function AdDetailSheet({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyExpanded, setCopyExpanded] = useState(false);
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
+  const folderBtnRef = useRef<HTMLButtonElement | null>(null);
   const [rightTab, setRightTab] = useState<"details" | "script">("details");
   const [failedAdId, setFailedAdId] = useState<string | null>(null);
 
@@ -791,9 +793,10 @@ export function AdDetailSheet({
 
           {/* Scrollable Right Inspector Content */}
           <div className="pb-safe space-y-4 p-4 lg:flex-1 lg:overflow-y-auto lg:p-5">
-            {/* Full-Width "Save to Folder" Button + Inline Selector */}
+            {/* Full-Width "Save to Folder" Button + Animated Clamped Popover */}
             <div className="relative">
               <button
+                ref={folderBtnRef}
                 type="button"
                 onClick={() => setFolderMenuOpen((v) => !v)}
                 className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
@@ -812,48 +815,50 @@ export function AdDetailSheet({
                     : "Save to Folder"}
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 shrink-0 transition-transform ${
+                  className={`h-4 w-4 shrink-0 transition-transform duration-150 ${
                     folderMenuOpen ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
-              {folderMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-20"
-                    onClick={() => setFolderMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-[#E2E6EF] bg-white p-1.5 shadow-[0_14px_38px_rgba(15,23,42,0.18)]">
-                    {boards.length === 0 ? (
-                      <p className="px-3 py-2 text-xs text-[#64748B]">
-                        Opret en folder i sidebaren for at gemme annoncer.
-                      </p>
-                    ) : (
-                      boards.map((board) => {
-                        const active = ad.board_ids.includes(board.id);
-                        return (
-                          <button
-                            key={board.id}
-                            type="button"
-                            onClick={() => onToggleBoard(ad.id, board.id)}
-                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F5F7FA]"
-                          >
-                            <span className="flex min-w-0 items-center gap-2">
-                              <span
-                                className="h-2 w-2 shrink-0 rounded-full"
-                                style={{ backgroundColor: board.accent_color }}
-                              />
-                              <span className="truncate">{board.name}</span>
-                            </span>
-                            {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </>
-              )}
+              <FlakePopover
+                open={folderMenuOpen}
+                onOpenChange={setFolderMenuOpen}
+                anchorRef={folderBtnRef}
+                align="match"
+                preferredPlacement="bottom"
+                maxHeight={260}
+              >
+                <div className="workspace-scroll overflow-y-auto overscroll-contain p-1.5">
+                  {boards.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-[#64748B]">
+                      Opret en folder i sidebaren for at gemme annoncer.
+                    </p>
+                  ) : (
+                    boards.map((board) => {
+                      const active = ad.board_ids.includes(board.id);
+                      return (
+                        <button
+                          key={board.id}
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => onToggleBoard(ad.id, board.id)}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F5F7FA]"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: board.accent_color }}
+                            />
+                            <span className="truncate">{board.name}</span>
+                          </span>
+                          {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </FlakePopover>
             </div>
 
             {rightTab === "details" && (

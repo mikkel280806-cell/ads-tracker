@@ -14,6 +14,7 @@ import type { Ad, Board } from "@/lib/types";
 import { getActiveDays } from "@/lib/url-parser";
 import { preloadImage, preloadVideo } from "@/lib/media-preloader";
 import { InstagramColorIcon } from "./BrandIcons";
+import { FlakePopover } from "./ui/FlakeDropdown";
 
 interface AdCardProps {
   ad: Ad;
@@ -42,6 +43,7 @@ export const AdCard = React.memo(function AdCard({
   const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
   const [nearViewport, setNearViewport] = useState(false);
   const cardRef = useRef<HTMLElement | null>(null);
+  const folderBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const isVideoFile =
     ad.media_type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(ad.media_url);
@@ -117,7 +119,6 @@ export const AdCard = React.memo(function AdCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
-        setFolderMenuOpen(false);
       }}
     >
       {/* 1. CLEAN KONVERT CARD HEADER: Avatar + Brand Name + [● 2 D | Organic Pill] */}
@@ -332,6 +333,7 @@ export const AdCard = React.memo(function AdCard({
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          ref={folderBtnRef}
           type="button"
           onClick={() => setFolderMenuOpen((v) => !v)}
           className="flex w-full items-center justify-between gap-2 rounded-b-[14px] px-3 py-2.5 text-[12px] font-medium text-[#334155] transition-colors hover:bg-[#FAFBFD] hover:text-[#0F172A]"
@@ -351,14 +353,21 @@ export const AdCard = React.memo(function AdCard({
             </span>
           </span>
           <ChevronDown
-            className={`h-3.5 w-3.5 shrink-0 text-[#94A3B8] transition-transform ${
+            className={`h-3.5 w-3.5 shrink-0 text-[#94A3B8] transition-transform duration-150 ${
               folderMenuOpen ? "rotate-180" : ""
             }`}
           />
         </button>
 
-        {folderMenuOpen && (
-          <div className="absolute bottom-full left-2 right-2 z-40 mb-1.5 rounded-xl border border-[#E6E9F0] bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)]">
+        <FlakePopover
+          open={folderMenuOpen}
+          onOpenChange={setFolderMenuOpen}
+          anchorRef={folderBtnRef}
+          align="match"
+          preferredPlacement="top"
+          maxHeight={260}
+        >
+          <div className="workspace-scroll overflow-y-auto overscroll-contain p-1.5">
             <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
               Gem i folder
             </p>
@@ -373,8 +382,9 @@ export const AdCard = React.memo(function AdCard({
                   <button
                     key={board.id}
                     type="button"
+                    data-no-glass="true"
                     onClick={() => onToggleBoard(ad.id, board.id)}
-                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F3F5F9]"
+                    className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs font-medium text-[#0F172A] transition-colors hover:bg-[#F3F5F9]"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span
@@ -384,14 +394,14 @@ export const AdCard = React.memo(function AdCard({
                       <span className="truncate">{board.name}</span>
                     </span>
                     {selected && (
-                      <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />
+                      <Check className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />
                     )}
                   </button>
                 );
               })
             )}
           </div>
-        )}
+        </FlakePopover>
       </div>
     </article>
   );

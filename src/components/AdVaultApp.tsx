@@ -42,6 +42,11 @@ import {
   ShopsSkeleton,
 } from "./Skeletons";
 import { GlassTabBar, GlassTabBarItem } from "@/components/ui/glass-tab-bar";
+import {
+  FlakePopover,
+  FlakeSelect,
+  type FlakeSelectOption,
+} from "@/components/ui/FlakeDropdown";
 
 type ActiveView = "shops" | "explore" | "folders";
 type SortOption = "top" | "longest" | "duplicated" | "newest";
@@ -103,6 +108,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [rankMaxDraft, setRankMaxDraft] = useState("");
   const [rankOpen, setRankOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const rankTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const filtersTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("top");
   const [visibleLimit, setVisibleLimit] = useState(48);
   const [masonryCols, setMasonryCols] = useState(4);
@@ -675,6 +682,52 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const dkAdsCount = useMemo(() => ads.filter((a) => a.market === "DK").length, [ads]);
   const usAdsCount = useMemo(() => ads.filter((a) => a.market !== "DK").length, [ads]);
 
+  const sortSelectOptions = useMemo<FlakeSelectOption[]>(
+    () => [
+      { value: "top", label: "Top Performing" },
+      { value: "newest", label: "Newest" },
+      { value: "longest", label: "Longest Active" },
+      { value: "duplicated", label: "Most Duplicated" },
+    ],
+    []
+  );
+
+  const brandSelectOptions = useMemo<FlakeSelectOption[]>(
+    () => [
+      { value: "all", label: `${brands.length} Brands` },
+      ...brands.map((b) => ({
+        value: b.id,
+        label: b.name,
+        icon: b.logo_url ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={b.logo_url}
+            alt=""
+            className="h-4 w-4 rounded-full border border-[#ECEFF5] bg-white object-contain p-[1px]"
+          />
+        ) : (
+          <span
+            className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
+            style={{ backgroundColor: b.avatar_color || "#0F172A" }}
+          >
+            {b.avatar_initials.slice(0, 2)}
+          </span>
+        ),
+      })),
+    ],
+    [brands]
+  );
+
+  const timeSelectOptions = useMemo<FlakeSelectOption[]>(
+    () => [
+      { value: "all", label: "All time" },
+      { value: "7d", label: "Last 7 days" },
+      { value: "30d", label: "Last 30 days" },
+      { value: "90d", label: "Last 90 days" },
+    ],
+    []
+  );
+
   return (
     <>
     <div className="flex h-dvh w-full overflow-hidden bg-white lg:bg-[#050811]">
@@ -1005,70 +1058,52 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   />
                 </div>
 
-                {/* Inline Clean Right Controls: Sort · Brands · All time · Filters */}
+                {/* Inline Clean Right Controls: Sort · Brands · All time · Ad Rank · Filters */}
                 <div className="flex flex-wrap items-center gap-1 text-[12.5px]">
                   {/* Sort */}
-                  <div className="relative inline-flex items-center rounded-lg transition-colors hover:bg-[#F3F5F9]">
-                    <Clock className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#475569]" />
-                    <select
-                      aria-label="Sortér"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="cursor-pointer appearance-none bg-transparent py-1.5 pl-7.5 pr-6 text-[12.5px] font-medium text-[#1E293B] outline-none"
-                    >
-                      <option value="top">Top Performing</option>
-                      <option value="newest">Newest</option>
-                      <option value="longest">Longest Active</option>
-                      <option value="duplicated">Most Duplicated</option>
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-[#94A3B8]" />
-                  </div>
+                  <FlakeSelect
+                    ariaLabel="Sortér"
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val as SortOption)}
+                    options={sortSelectOptions}
+                    icon={<Clock className="h-3.5 w-3.5 text-[#475569]" />}
+                    menuWidth={210}
+                    isActive={sortBy !== "top"}
+                  />
 
                   {/* Brands */}
-                  <div className="relative inline-flex items-center rounded-lg transition-colors hover:bg-[#F3F5F9]">
-                    <Building2 className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#475569]" />
-                    <select
-                      aria-label="Vælg shop"
-                      value={brandFilter}
-                      onChange={(e) => {
-                        setBrandFilter(e.target.value);
-                        setVisibleLimit(24);
-                      }}
-                      className="max-w-[155px] cursor-pointer appearance-none truncate bg-transparent py-1.5 pl-7.5 pr-6 text-[12.5px] font-medium text-[#1E293B] outline-none"
-                    >
-                      <option value="all">{brands.length} Brands</option>
-                      {brands.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-[#94A3B8]" />
-                  </div>
+                  <FlakeSelect
+                    ariaLabel="Vælg shop"
+                    value={brandFilter}
+                    onChange={(val) => {
+                      setBrandFilter(val);
+                      setVisibleLimit(24);
+                    }}
+                    options={brandSelectOptions}
+                    icon={<Building2 className="h-3.5 w-3.5 text-[#475569]" />}
+                    menuWidth={240}
+                    isActive={brandFilter !== "all"}
+                    triggerClassName="max-w-[165px]"
+                  />
 
                   {/* Timeframe */}
-                  <div className="relative inline-flex items-center rounded-lg transition-colors hover:bg-[#F3F5F9]">
-                    <Calendar className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#475569]" />
-                    <select
-                      aria-label="Tidsperiode"
-                      value={timeFilter}
-                      onChange={(e) => {
-                        setTimeFilter(e.target.value as "all" | "7d" | "30d" | "90d");
-                        setVisibleLimit(24);
-                      }}
-                      className="cursor-pointer appearance-none bg-transparent py-1.5 pl-7.5 pr-6 text-[12.5px] font-medium text-[#1E293B] outline-none"
-                    >
-                      <option value="all">All time</option>
-                      <option value="7d">Last 7 days</option>
-                      <option value="30d">Last 30 days</option>
-                      <option value="90d">Last 90 days</option>
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-[#94A3B8]" />
-                  </div>
+                  <FlakeSelect
+                    ariaLabel="Tidsperiode"
+                    value={timeFilter}
+                    onChange={(val) => {
+                      setTimeFilter(val as "all" | "7d" | "30d" | "90d");
+                      setVisibleLimit(24);
+                    }}
+                    options={timeSelectOptions}
+                    icon={<Calendar className="h-3.5 w-3.5 text-[#475569]" />}
+                    menuWidth={195}
+                    isActive={timeFilter !== "all"}
+                  />
 
-                  {/* Ad Rank Min-Max Popover (exact Konvert/Afterlib style) */}
+                  {/* Ad Rank Min-Max Popover (viewport-clamped & animated) */}
                   <div className="relative">
                     <button
+                      ref={rankTriggerRef}
                       type="button"
                       onClick={() => {
                         setFiltersOpen(false);
@@ -1089,82 +1124,87 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           : "Ad Rank"}
                       </span>
                       <ChevronDown
-                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform ${
+                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform duration-150 ${
                           rankOpen ? "rotate-180" : ""
                         }`}
                       />
                     </button>
 
-                    {rankOpen && (
-                      <div className="absolute right-0 top-10 z-40 w-[330px] overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-                        <div className="space-y-3.5 p-4">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="number"
-                              min={1}
-                              inputMode="numeric"
-                              value={rankMinDraft}
-                              onChange={(e) => setRankMinDraft(e.target.value)}
-                              placeholder="Min"
-                              className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[14px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A]"
-                            />
-                            <span className="text-[#94A3B8]">-</span>
-                            <input
-                              type="number"
-                              min={1}
-                              inputMode="numeric"
-                              value={rankMaxDraft}
-                              onChange={(e) => setRankMaxDraft(e.target.value)}
-                              placeholder="50"
-                              className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[14px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A]"
-                            />
-                          </div>
-
-                          <div className="flex items-start gap-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-3 text-[12px] leading-[1.45] text-[#475569]">
-                            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
-                            <p>
-                              Ads are ranked by comparing impressions to other ads from their brand. The lower the rank, the better the ad is performing.
-                            </p>
-                          </div>
+                    <FlakePopover
+                      open={rankOpen}
+                      onOpenChange={setRankOpen}
+                      anchorRef={rankTriggerRef}
+                      align="right"
+                      width={330}
+                    >
+                      <div className="space-y-3.5 p-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            value={rankMinDraft}
+                            onChange={(e) => setRankMinDraft(e.target.value)}
+                            placeholder="Min"
+                            className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A] sm:text-[14px]"
+                          />
+                          <span className="text-[#94A3B8]">-</span>
+                          <input
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            value={rankMaxDraft}
+                            onChange={(e) => setRankMaxDraft(e.target.value)}
+                            placeholder="50"
+                            className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A] sm:text-[14px]"
+                          />
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-[#ECEFF5] px-4 py-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRankMin(null);
-                              setRankMax(null);
-                              setRankMinDraft("");
-                              setRankMaxDraft("");
-                              setVisibleLimit(24);
-                              setRankOpen(false);
-                            }}
-                            className="text-[13px] font-medium text-[#334155] transition-colors hover:text-[#0F172A]"
-                          >
-                            Clear
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const parsedMin = parseInt(rankMinDraft, 10);
-                              const parsedMax = parseInt(rankMaxDraft, 10);
-                              setRankMin(Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null);
-                              setRankMax(Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null);
-                              setVisibleLimit(24);
-                              setRankOpen(false);
-                            }}
-                            className="rounded-xl bg-[#0F172A] px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1E293B]"
-                          >
-                            Apply
-                          </button>
+                        <div className="flex items-start gap-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-3 text-[12px] leading-[1.45] text-[#475569]">
+                          <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
+                          <p>
+                            Ads are ranked by comparing impressions to other ads from their brand. The lower the rank, the better the ad is performing.
+                          </p>
                         </div>
                       </div>
-                    )}
+
+                      <div className="flex items-center justify-between border-t border-[#ECEFF5] px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRankMin(null);
+                            setRankMax(null);
+                            setRankMinDraft("");
+                            setRankMaxDraft("");
+                            setVisibleLimit(24);
+                            setRankOpen(false);
+                          }}
+                          className="text-[13px] font-medium text-[#334155] transition-colors hover:text-[#0F172A]"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const parsedMin = parseInt(rankMinDraft, 10);
+                            const parsedMax = parseInt(rankMaxDraft, 10);
+                            setRankMin(Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null);
+                            setRankMax(Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null);
+                            setVisibleLimit(24);
+                            setRankOpen(false);
+                          }}
+                          className="rounded-xl bg-[#0F172A] px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1E293B]"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </FlakePopover>
                   </div>
 
-                  {/* Filters Popover (Market + Format) */}
+                  {/* Filters Popover (Market + Format, viewport-clamped & animated) */}
                   <div className="relative">
                     <button
+                      ref={filtersTriggerRef}
                       type="button"
                       onClick={() => {
                         setRankOpen(false);
@@ -1184,85 +1224,89 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         </span>
                       )}
                       <ChevronDown
-                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform ${
+                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform duration-150 ${
                           filtersOpen ? "rotate-180" : ""
                         }`}
                       />
                     </button>
 
-                    {filtersOpen && (
-                      <div className="absolute right-0 top-10 z-40 w-64 rounded-2xl border border-[#E6E9F0] bg-white p-3.5 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-                        <div className="space-y-3.5">
-                          <div>
-                            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                              Marked
-                            </p>
-                            <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-xs font-medium">
-                              {[
-                                { id: "ALL" as const, label: "Alle", count: ads.length },
-                                { id: "DK" as const, label: "DK", count: dkAdsCount },
-                                { id: "US" as const, label: "US", count: usAdsCount },
-                              ].map((m) => (
-                                <button
-                                  key={m.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setMarketFilter(m.id);
-                                    setVisibleLimit(24);
-                                  }}
-                                  className={`rounded-lg py-1 transition-all ${
-                                    marketFilter === m.id
-                                      ? "bg-white font-semibold text-[#0F172A] shadow-xs"
-                                      : "text-[#64748B] hover:text-[#0F172A]"
-                                  }`}
-                                >
-                                  {m.label}
-                                </button>
-                              ))}
-                            </div>
+                    <FlakePopover
+                      open={filtersOpen}
+                      onOpenChange={setFiltersOpen}
+                      anchorRef={filtersTriggerRef}
+                      align="right"
+                      width={264}
+                    >
+                      <div className="space-y-3.5 p-3.5">
+                        <div>
+                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                            Marked
+                          </p>
+                          <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-xs font-medium">
+                            {[
+                              { id: "ALL" as const, label: "Alle", count: ads.length },
+                              { id: "DK" as const, label: "DK", count: dkAdsCount },
+                              { id: "US" as const, label: "US", count: usAdsCount },
+                            ].map((m) => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  setMarketFilter(m.id);
+                                  setVisibleLimit(24);
+                                }}
+                                className={`rounded-lg py-1 transition-all ${
+                                  marketFilter === m.id
+                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
+                                    : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
                           </div>
-
-                          <div>
-                            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                              Format
-                            </p>
-                            <div className="grid grid-cols-2 gap-1.5 text-xs font-medium">
-                              {(["all", "video", "image", "carousel"] as const).map((fmt) => (
-                                <button
-                                  key={fmt}
-                                  type="button"
-                                  onClick={() => {
-                                    setMediaFilter(fmt);
-                                    setVisibleLimit(24);
-                                  }}
-                                  className={`rounded-lg border px-2.5 py-1.5 capitalize transition-colors ${
-                                    mediaFilter === fmt
-                                      ? "border-[#0F172A] bg-[#0F172A] text-white"
-                                      : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
-                                  }`}
-                                >
-                                  {fmt === "all" ? "Alle formater" : fmt}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {activeFilterCount > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setMarketFilter("ALL");
-                                setMediaFilter("all");
-                                setVisibleLimit(24);
-                              }}
-                              className="w-full rounded-lg border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
-                            >
-                              Nulstil filtre
-                            </button>
-                          )}
                         </div>
+
+                        <div>
+                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                            Format
+                          </p>
+                          <div className="grid grid-cols-2 gap-1.5 text-xs font-medium">
+                            {(["all", "video", "image", "carousel"] as const).map((fmt) => (
+                              <button
+                                key={fmt}
+                                type="button"
+                                onClick={() => {
+                                  setMediaFilter(fmt);
+                                  setVisibleLimit(24);
+                                }}
+                                className={`rounded-lg border px-2.5 py-1.5 capitalize transition-colors ${
+                                  mediaFilter === fmt
+                                    ? "border-[#0F172A] bg-[#0F172A] text-white"
+                                    : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
+                                }`}
+                              >
+                                {fmt === "all" ? "Alle formater" : fmt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {activeFilterCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMarketFilter("ALL");
+                              setMediaFilter("all");
+                              setVisibleLimit(24);
+                            }}
+                            className="w-full rounded-lg border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                          >
+                            Nulstil filtre
+                          </button>
+                        )}
                       </div>
-                    )}
+                    </FlakePopover>
                   </div>
                 </div>
               </div>

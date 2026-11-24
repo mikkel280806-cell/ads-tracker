@@ -5,7 +5,6 @@ import {
   Bookmark,
   Calendar,
   Check,
-  ChevronDown,
   ChevronRight,
   Globe,
   Loader2,
@@ -30,6 +29,7 @@ import {
   ShopifyBagIcon,
   TechBrandIcon,
 } from "./BrandIcons";
+import { FlakeSelect, type FlakeSelectOption } from "./ui/FlakeDropdown";
 
 interface ShopsTableViewProps {
   brands: Brand[];
@@ -272,6 +272,28 @@ export const ShopsTableView = React.memo(function ShopsTableView({
       .map(([name]) => name);
   }, [brands]);
 
+  const techSelectOptions = useMemo<FlakeSelectOption[]>(
+    () => [
+      { value: "all", label: "Alle pixels & apps" },
+      ...allTechTools.map((t) => ({
+        value: t,
+        label: t,
+        icon: <TechBrandIcon name={t} className="h-4 w-4" />,
+      })),
+    ],
+    [allTechTools]
+  );
+
+  const shopSortOptions = useMemo<FlakeSelectOption[]>(
+    () => [
+      { value: "ads", label: "Flest Live Ads" },
+      { value: "visits", label: "Højest Visits" },
+      { value: "products", label: "Flest Produkter" },
+      { value: "tech", label: "Flest Apps" },
+    ],
+    []
+  );
+
   const filteredBrands = useMemo(() => {
     const q = deferredSearchQuery.trim().toLowerCase();
     const list = brands.filter((b) => {
@@ -512,37 +534,28 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-            <div className="relative">
-              <select
-                aria-label="Filtrer efter pixel eller Shopify app"
-                value={techFilter}
-                onChange={(e) => setTechFilter(e.target.value)}
-                className="w-full cursor-pointer appearance-none truncate rounded-xl border border-[#E6E9F0] bg-white py-2 pl-3 pr-9 text-[14px] font-medium text-[#334155] outline-none transition-colors focus:border-[#94A3B8] sm:w-auto sm:text-xs"
-              >
-                <option value="all">Alle pixels &amp; apps</option>
-                {allTechTools.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748B]" />
-            </div>
+            <FlakeSelect
+              ariaLabel="Filtrer efter pixel eller Shopify app"
+              value={techFilter}
+              onChange={(val) => setTechFilter(val)}
+              options={techSelectOptions}
+              variant="bordered"
+              align="left"
+              menuWidth={240}
+              isActive={techFilter !== "all"}
+            />
 
-            <div className="relative">
-              <select
-                aria-label="Sortér shops"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortKey)}
-                className="w-full cursor-pointer appearance-none truncate rounded-xl border border-[#E6E9F0] bg-white py-2 pl-3 pr-9 text-[14px] font-semibold text-[#0F172A] outline-none transition-colors focus:border-[#94A3B8] sm:w-auto sm:text-xs"
-              >
-                <option value="ads">Flest Live Ads</option>
-                <option value="visits">Højest Visits</option>
-                <option value="products">Flest Produkter</option>
-                <option value="tech">Flest Apps</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748B]" />
-            </div>
+            <FlakeSelect
+              ariaLabel="Sortér shops"
+              value={sortBy}
+              onChange={(val) => setSortBy(val as SortKey)}
+              options={shopSortOptions}
+              variant="bordered"
+              align="right"
+              menuWidth={205}
+              isActive={sortBy !== "ads"}
+              triggerClassName="font-semibold text-[#0F172A]"
+            />
           </div>
         </div>
       </div>
