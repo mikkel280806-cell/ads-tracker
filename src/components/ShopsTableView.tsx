@@ -1041,7 +1041,6 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                       <span className="font-display text-[14px] font-bold text-[#0F172A]">
                         {(brand.active_ads_count ?? brandAds.length).toLocaleString("en-US")}
                       </span>
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-[#94A3B8]" />
@@ -1348,7 +1347,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                 <div className="flex flex-col gap-1.5 text-left">
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 font-display text-[13.5px] font-bold text-[#0F172A]">
-                      <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                      <MetaInfinityIcon className="h-3.5 w-3.5 shrink-0" />
                       {(brand.active_ads_count ?? brandAds.length).toLocaleString("en-US")}
                     </span>
                     <span className="flex items-center gap-0.5 text-[11px]">

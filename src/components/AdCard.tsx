@@ -92,10 +92,10 @@ export const AdCard = React.memo(function AdCard({
 
   const rankBadgeStyle =
     rank === 1
-      ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#B45309] text-[#0F172A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.22)]"
+      ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#CA8A04] text-[#5C3404] ring-[1.5px] ring-[#854D0E] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(133,77,14,0.28)]"
       : rank === 2
-        ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#64748B] text-[#0F172A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(15,23,42,0.2)]"
-        : "bg-gradient-to-b from-[#FDE6CE] via-[#E58A3C] to-[#B45309] text-[#0F172A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.65),0_1px_2px_rgba(15,23,42,0.22)]";
+        ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#94A3B8] text-[#1E293B] ring-[1.5px] ring-[#475569] shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(71,85,105,0.24)]"
+        : "bg-gradient-to-b from-[#FDE6CE] via-[#D9823B] to-[#A85319] text-[#4A1D06] ring-[1.5px] ring-[#6B2D0B] shadow-[inset_0_1px_1px_rgba(255,255,255,0.65),0_1px_2px_rgba(107,45,11,0.28)]";
 
   // Clamp extreme outlier banners only; 9:16 (0.56), 4:5 (0.8), 1:1 (1.0), 16:9 (1.78) all show 100% uncropped
   const clampedRatio = naturalRatio
@@ -148,7 +148,7 @@ export const AdCard = React.memo(function AdCard({
             )}
             {!isOrganic && rank && rank <= 3 && (
               <span
-                className={`absolute -left-1.5 -top-1.5 inline-flex h-[19px] w-[19px] shrink-0 aspect-square items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ring-[1.5px] ring-[#0F172A] ${rankBadgeStyle}`}
+                className={`absolute -left-1.5 -top-1.5 inline-flex h-[19px] w-[19px] shrink-0 aspect-square items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ${rankBadgeStyle}`}
               >
                 {rank}
               </span>
