@@ -17,7 +17,7 @@ import {
   ChevronDown,
   Clock,
   Compass,
-  FolderKanban,
+  Folder,
   Info,
   ListFilter,
   Plus,
@@ -806,7 +806,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             }
           >
             <span className="flex items-center gap-2.5">
-              <FolderKanban
+              <Folder
                 className="h-[17px] w-[17px]"
                 style={{
                   color: view === "folders" && !selectedFolderId ? "#6B8BFF" : undefined,
@@ -1372,7 +1372,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           />
           <GlassTabBarItem
             value="folders"
-            icon={<FolderKanban strokeWidth={view === "folders" ? 2.25 : 1.85} />}
+            icon={<Folder strokeWidth={view === "folders" ? 2.25 : 1.85} />}
             label="Folders"
           />
         </GlassTabBar>

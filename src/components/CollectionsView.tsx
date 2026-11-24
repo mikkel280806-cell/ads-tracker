@@ -5,7 +5,7 @@ import {
   ArrowLeft,
   Check,
   Film,
-  FolderKanban,
+  Folder,
   Layers,
   Link2,
   Loader2,
@@ -224,7 +224,7 @@ export function CollectionsView({
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-colors"
               style={{ backgroundColor: editColor }}
             >
-              <FolderKanban className="h-4.5 w-4.5" />
+              <Folder className="h-4.5 w-4.5" />
             </span>
             <div>
               <h2 className="font-display text-[16.5px] font-bold text-[#0F172A]">
@@ -602,7 +602,7 @@ export function CollectionsView({
               className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm"
               style={{ backgroundColor: activeFolder.accent_color }}
             >
-              <FolderKanban className="h-5 w-5" />
+              <Folder className="h-5 w-5" />
             </span>
             <div>
               <h1 className="font-display text-[19px] font-bold text-[#0F172A]">
@@ -1119,7 +1119,7 @@ export function CollectionsView({
                         className="flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm"
                         style={{ backgroundColor: board.accent_color }}
                       >
-                        <FolderKanban className="h-4 w-4" />
+                        <Folder className="h-4 w-4" />
                       </span>
                     </div>
                   )}
