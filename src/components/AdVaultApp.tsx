@@ -155,6 +155,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     setTimeout(() => setToast(null), 3200);
   };
 
+  const fullAdsLoadedRef = useRef(false);
+  const loadedBrandAdsRef = useRef<Set<string>>(new Set());
+
   const syncCatalog = async (payload: Record<string, unknown>): Promise<boolean> => {
     try {
       const res = await fetch("/api/catalog", {
@@ -179,6 +182,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     let cancelled = false;
     Promise.resolve().then(() => {
       if (cancelled) return;
+      let hadCachedBrands = false;
       try {
         const savedAds = localStorage.getItem(STORAGE_KEYS.ads);
         const savedBrands =
@@ -192,6 +196,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         if (savedBrands) {
           const parsed: Brand[] = JSON.parse(savedBrands);
           if (Array.isArray(parsed) && parsed.length > 0) {
+            hadCachedBrands = true;
             const seedById = new Map(SEED_BRANDS.map((b) => [b.id, b]));
             const removedIds = new Set([
               "brand-mycomfort-dk",
@@ -279,9 +284,13 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         // fallback to scraped catalog
       }
       setHydrated(true);
+      // Instant paint on repeat visits when localStorage already has the shop catalog
+      if (hadCachedBrands) {
+        setCatalogLoaded(true);
+      }
 
-      // Hydrate from live Supabase Postgres when configured (auto-seeds on first load)
-      fetch("/api/catalog", { cache: "no-store" })
+      // Stage 1 (~350ms): Fast bootstrap with all 37 brands + folders + saved ads + newest 220 ads
+      fetch("/api/catalog?mode=fast", { cache: "no-store" })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (cancelled || !data) return;
@@ -289,12 +298,49 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             if (Array.isArray(data.brands) && data.brands.length > 0) {
               setBrands(data.brands);
             }
-            if (Array.isArray(data.ads) && data.ads.length > 0) {
-              setAds(dedupeAds(data.ads));
-            }
             if (Array.isArray(data.folders)) {
               setBoards(data.folders);
             }
+            if (Array.isArray(data.ads) && data.ads.length > 0) {
+              startTransition(() => {
+                setAds((prev) => {
+                  const fastMap = new Map<string, Ad>();
+                  for (const a of data.ads as Ad[]) fastMap.set(a.id, a);
+                  // Keep any already-cached ads until Stage 2 replaces with the complete DB catalog
+                  for (const a of prev) {
+                    if (!fastMap.has(a.id)) fastMap.set(a.id, a);
+                  }
+                  return dedupeAds(Array.from(fastMap.values()));
+                });
+              });
+            }
+          }
+          if (!cancelled) setCatalogLoaded(true);
+
+          // Stage 2 (non-blocking background): Fetch complete parallel-paginated ad catalog
+          if (data.synced) {
+            fetch("/api/catalog?mode=ads", { cache: "no-store" })
+              .then((res) => (res.ok ? res.json() : null))
+              .then((fullData) => {
+                if (cancelled || !fullData?.synced || !Array.isArray(fullData.ads)) return;
+                fullAdsLoadedRef.current = true;
+                startTransition(() => {
+                  setAds((prev) => {
+                    // Preserve any custom uploads or local edits created during the 1-2s load window
+                    const serverIds = new Set((fullData.ads as Ad[]).map((a) => a.id));
+                    const localCustom = prev.filter(
+                      (a) =>
+                        !serverIds.has(a.id) &&
+                        (a.source_type === "manual" ||
+                          a.source_type === "instagram" ||
+                          a.tags?.includes("custom-upload") ||
+                          a.tags?.includes("custom-import"))
+                    );
+                    return dedupeAds([...localCustom, ...(fullData.ads as Ad[])]);
+                  });
+                });
+              })
+              .catch(() => {});
           }
         })
         .catch(() => {})
@@ -315,8 +361,16 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         try {
           localStorage.setItem(STORAGE_KEYS.brands, JSON.stringify(brands));
           localStorage.setItem(STORAGE_KEYS.boards, JSON.stringify(boards));
-          // Cap localStorage ads cache to 600 items so iOS Safari never hits the 5MB quota
-          localStorage.setItem(STORAGE_KEYS.ads, JSON.stringify(ads.slice(0, 600)));
+          // Keep lightweight localStorage cache (saved folder ads first + newest 200, stripping heavy audience_breakdown)
+          const savedInFolders = ads.filter((a) => a.board_ids && a.board_ids.length > 0);
+          const rest = ads.filter((a) => !a.board_ids || a.board_ids.length === 0).slice(0, 200);
+          const leanCache = [...savedInFolders, ...rest].slice(0, 240).map((a) => {
+            if (!a.audience_breakdown) return a;
+            const copy = { ...a };
+            delete copy.audience_breakdown;
+            return copy;
+          });
+          localStorage.setItem(STORAGE_KEYS.ads, JSON.stringify(leanCache));
         } catch {
           // ignore quota errors
         }
@@ -520,6 +574,21 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         setSelectedShopId(brandId);
         setView("shops");
       });
+      // If background full catalog hasn't finished yet, fetch this shop's complete ads in ~200ms
+      if (!fullAdsLoadedRef.current && !loadedBrandAdsRef.current.has(brandId)) {
+        loadedBrandAdsRef.current.add(brandId);
+        fetch(`/api/catalog?brandId=${encodeURIComponent(brandId)}`, { cache: "no-store" })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (!data?.synced || !Array.isArray(data.ads) || data.ads.length === 0) return;
+            startTransition(() => {
+              setAds((prev) => dedupeAds([...(data.ads as Ad[]), ...prev]));
+            });
+          })
+          .catch(() => {
+            loadedBrandAdsRef.current.delete(brandId);
+          });
+      }
     },
     [navigateWithSkeleton]
   );

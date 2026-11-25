@@ -106,7 +106,7 @@ function toFolderRow(board: Board) {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
     return NextResponse.json({
@@ -116,34 +116,154 @@ export async function GET() {
     });
   }
 
+  const mode = request.nextUrl.searchParams.get("mode");
+  const brandIdParam = request.nextUrl.searchParams.get("brandId");
+
   try {
-    // Paginate adtrack_ads in 1,000-row pages (Supabase PostgREST caps single requests at 1,000 rows)
-    const fetchAllAds = async () => {
+    // 1. Ultra-fast single-brand ads fetch (~200ms) for instant Shop Analytics drill-down
+    if (brandIdParam) {
+      const { data, error } = await supabase
+        .from("adtrack_ads")
+        .select("payload")
+        .eq("brand_id", brandIdParam)
+        .order("started_running_at", { ascending: false })
+        .range(0, 999);
+      if (error) {
+        return NextResponse.json({ ok: true, synced: false, reason: "error", detail: error.message });
+      }
+      const ads = (data || []).map((r) => r.payload as Ad);
+      return NextResponse.json({ ok: true, synced: true, brandId: brandIdParam, ads });
+    }
+
+    // Parallel page fetcher for all ads (1 parallel batch instead of 7 serial round-trips!)
+    const fetchAllAdsParallel = async () => {
       const PAGE_SIZE = 1000;
       const MAX_PAGES = 10; // up to 10,000 ads
-      const allRows: { payload: unknown }[] = [];
-      for (let page = 0; page < MAX_PAGES; page++) {
-        const from = page * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-        const res = await supabase
+
+      const [countRes, page0Res] = await Promise.all([
+        supabase.from("adtrack_ads").select("id", { count: "exact", head: true }),
+        supabase
           .from("adtrack_ads")
           .select("payload")
           .order("started_running_at", { ascending: false })
-          .range(from, to);
+          .range(0, PAGE_SIZE - 1),
+      ]);
+
+      if (page0Res.error) {
+        return { data: null as { payload: unknown }[] | null, error: page0Res.error };
+      }
+
+      const firstChunk = page0Res.data || [];
+      const totalCount = countRes.count ?? firstChunk.length;
+      if (firstChunk.length < PAGE_SIZE || totalCount <= PAGE_SIZE) {
+        return { data: firstChunk, error: null };
+      }
+
+      const totalPages = Math.min(MAX_PAGES, Math.ceil(totalCount / PAGE_SIZE));
+      const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
+      const restResults = await Promise.all(
+        remainingPages.map((page) =>
+          supabase
+            .from("adtrack_ads")
+            .select("payload")
+            .order("started_running_at", { ascending: false })
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        )
+      );
+
+      const allRows: { payload: unknown }[] = [...firstChunk];
+      for (const res of restResults) {
         if (res.error) return { data: null as { payload: unknown }[] | null, error: res.error };
-        const chunk = res.data || [];
-        allRows.push(...chunk);
-        if (chunk.length < PAGE_SIZE) break;
+        if (res.data) allRows.push(...res.data);
       }
       return { data: allRows, error: null };
     };
 
+    // 2. Background full ads sync (~1.5-2.5s parallel instead of 14s serial)
+    if (mode === "ads") {
+      const adsRes = await fetchAllAdsParallel();
+      if (adsRes.error) {
+        return NextResponse.json({
+          ok: true,
+          synced: false,
+          reason: "error",
+          detail: adsRes.error.message,
+        });
+      }
+      const ads = (adsRes.data || []).map((r) => r.payload as Ad);
+      return NextResponse.json({ ok: true, synced: true, ads });
+    }
+
+    // 3. Ultra-fast initial bootstrap (~300-500ms): all 37 brands + folders + saved/folder ads + newest 220 ads
+    if (mode === "fast") {
+      const [brandsRes, foldersRes, savedAdsRes, recentAdsRes, countRes] = await Promise.all([
+        supabase
+          .from("adtrack_brands")
+          .select("payload")
+          .order("active_ads_count", { ascending: false }),
+        supabase
+          .from("adtrack_folders")
+          .select("id, name, description, accent_color, created_at")
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("adtrack_ads")
+          .select("payload")
+          .not("board_ids", "eq", "{}")
+          .order("started_running_at", { ascending: false })
+          .range(0, 399),
+        supabase
+          .from("adtrack_ads")
+          .select("payload")
+          .order("started_running_at", { ascending: false })
+          .range(0, 219),
+        supabase.from("adtrack_ads").select("id", { count: "exact", head: true }),
+      ]);
+
+      if (brandsRes.error || foldersRes.error || recentAdsRes.error) {
+        return NextResponse.json({
+          ok: true,
+          synced: false,
+          reason: "schema_not_initialized",
+          detail:
+            brandsRes.error?.message ||
+            foldersRes.error?.message ||
+            recentAdsRes.error?.message,
+        });
+      }
+
+      const brands = (brandsRes.data || [])
+        .map((r) => r.payload as Brand)
+        .filter((b) => b && b.id !== CUSTOM_MEDIA_BRAND_ID && b.is_tracked !== false);
+      const folders = (foldersRes.data || []) as Board[];
+
+      const seenAdIds = new Set<string>();
+      const ads: Ad[] = [];
+      for (const row of [...(savedAdsRes.data || []), ...(recentAdsRes.data || [])]) {
+        const a = row.payload as Ad;
+        if (a && a.id && !seenAdIds.has(a.id)) {
+          seenAdIds.add(a.id);
+          ads.push(a);
+        }
+      }
+
+      return NextResponse.json({
+        ok: true,
+        synced: true,
+        partial: true,
+        totalAdsCount: countRes.count ?? ads.length,
+        brands,
+        ads,
+        folders,
+      });
+    }
+
+    // 4. Default full catalog (parallelized!)
     const [brandsRes, adsRes, foldersRes] = await Promise.all([
       supabase
         .from("adtrack_brands")
         .select("payload")
         .order("active_ads_count", { ascending: false }),
-      fetchAllAds(),
+      fetchAllAdsParallel(),
       supabase
         .from("adtrack_folders")
         .select("id, name, description, accent_color, created_at")
