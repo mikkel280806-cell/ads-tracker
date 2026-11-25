@@ -179,6 +179,65 @@ export async function GET(request: NextRequest) {
       return { data: allRows, error: null };
     };
 
+    // 1b. Ultra-fast filtered counts (~40ms) so Ads counters always show exact DB totals even while Stage 2 streams
+    if (mode === "counts") {
+      const sp = request.nextUrl.searchParams;
+      const brand = sp.get("brand");
+      const media = sp.get("media");
+      const time = sp.get("time");
+      const scaled = sp.get("scaled") === "1";
+      const q = (sp.get("q") || "").replace(/[%(),]/g, " ").trim();
+
+      const buildQuery = (marketScope: "DK" | "US") => {
+        let query = supabase
+          .from("adtrack_ads")
+          .select("id", { count: "exact", head: true })
+          .neq("brand_id", CUSTOM_MEDIA_BRAND_ID);
+
+        if (marketScope === "DK") query = query.eq("market", "DK");
+        else query = query.neq("market", "DK");
+
+        if (brand && brand !== "all") query = query.eq("brand_id", brand);
+        if (media && media !== "all") {
+          if (media === "video") query = query.eq("media_type", "video");
+          else if (media === "carousel") query = query.eq("media_type", "carousel");
+          else if (media === "image") query = query.eq("media_type", "image");
+        }
+        if (time === "7d" || time === "30d" || time === "90d") {
+          const days = time === "7d" ? 7 : time === "30d" ? 30 : 90;
+          const refNowMs = Date.UTC(2026, 10, 21, 16, 0, 0);
+          const cutoffIso = new Date(refNowMs - days * 86_400_000).toISOString();
+          query = query.gte("started_running_at", cutoffIso);
+        }
+        if (scaled) {
+          query = query.gte("duplicated_count", 3);
+        }
+        if (q) {
+          query = query.or(
+            `brand_name.ilike.%${q}%,headline.ilike.%${q}%,primary_text.ilike.%${q}%,extracted_hook.ilike.%${q}%,landing_page_url.ilike.%${q}%`
+          );
+        }
+        return query;
+      };
+
+      const [dkRes, usRes] = await Promise.all([buildQuery("DK"), buildQuery("US")]);
+      if (dkRes.error || usRes.error) {
+        return NextResponse.json({
+          ok: true,
+          synced: false,
+          reason: "error",
+          detail: dkRes.error?.message || usRes.error?.message,
+        });
+      }
+      const dk = dkRes.count ?? 0;
+      const us = usRes.count ?? 0;
+      return NextResponse.json({
+        ok: true,
+        synced: true,
+        counts: { all: dk + us, dk, us },
+      });
+    }
+
     // 2. Chunked background ads sync (?mode=ads&page=0&limit=500 -> ~450ms per chunk, zero DB timeouts!)
     if (mode === "ads") {
       const pageParam = request.nextUrl.searchParams.get("page");
@@ -226,9 +285,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, synced: true, ads });
     }
 
-    // 3. Ultra-fast initial bootstrap (~300-500ms): all 37 brands + folders + saved/folder ads + newest 220 ads
+    // 3. Ultra-fast initial bootstrap (~300-500ms): all 37 brands + folders + saved/folder ads + newest 220 ads + exact market totals
     if (mode === "fast") {
-      const [brandsRes, foldersRes, savedAdsRes, recentAdsRes, countRes] = await Promise.all([
+      const [brandsRes, foldersRes, savedAdsRes, recentAdsRes, dkCountRes, usCountRes] = await Promise.all([
         supabase
           .from("adtrack_brands")
           .select("payload")
@@ -248,7 +307,16 @@ export async function GET(request: NextRequest) {
           .select("payload")
           .order("started_running_at", { ascending: false })
           .range(0, 219),
-        supabase.from("adtrack_ads").select("id", { count: "exact", head: true }),
+        supabase
+          .from("adtrack_ads")
+          .select("id", { count: "exact", head: true })
+          .neq("brand_id", CUSTOM_MEDIA_BRAND_ID)
+          .eq("market", "DK"),
+        supabase
+          .from("adtrack_ads")
+          .select("id", { count: "exact", head: true })
+          .neq("brand_id", CUSTOM_MEDIA_BRAND_ID)
+          .neq("market", "DK"),
       ]);
 
       if (brandsRes.error || foldersRes.error || recentAdsRes.error) {
@@ -278,11 +346,20 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      const dkCount = dkCountRes.count ?? 0;
+      const usCount = usCountRes.count ?? 0;
+      const paidTotal = dkCount + usCount;
+
       return NextResponse.json({
         ok: true,
         synced: true,
         partial: true,
-        totalAdsCount: countRes.count ?? ads.length,
+        totalAdsCount: paidTotal || ads.length,
+        adCounts: {
+          all: paidTotal,
+          dk: dkCount,
+          us: usCount,
+        },
         brands,
         ads,
         folders,

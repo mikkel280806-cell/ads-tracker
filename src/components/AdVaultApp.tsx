@@ -64,10 +64,18 @@ type MinReachFilter = "all" | "10k" | "50k" | "100k" | "500k";
 type GenderFilter = "all" | "Women" | "Men" | "All";
 type AgeFilter = "all" | "18-24" | "25-34" | "35-44" | "45-54" | "55+";
 
+type AdMarketCounts = {
+  all: number;
+  dk: number;
+  us: number;
+  rawTotal?: number;
+};
+
 const STORAGE_KEYS = {
   ads: "adtrack_ads_v7",
   brands: "adtrack_brands_v7",
   boards: "adtrack_boards_v7",
+  stats: "adtrack_ad_counts_v1",
 };
 
 interface AdVaultAppProps {
@@ -81,6 +89,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [fullAdsLoaded, setFullAdsLoaded] = useState(false);
+  const [baseServerCounts, setBaseServerCounts] = useState<AdMarketCounts | null>(null);
+  const [filteredServerCounts, setFilteredServerCounts] = useState<AdMarketCounts | null>(null);
 
   // Navigation: ONLY Shops, Explore, Folders!
   const [view, setView] = useState<ActiveView>("shops");
@@ -183,6 +194,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     Promise.resolve().then(() => {
       if (cancelled) return;
       let hadCachedBrands = false;
+      let cachedCounts: AdMarketCounts | null = null;
       try {
         const savedAds = localStorage.getItem(STORAGE_KEYS.ads);
         const savedBrands =
@@ -192,6 +204,21 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           localStorage.getItem(STORAGE_KEYS.boards) ||
           localStorage.getItem("adtrack_boards_v6") ||
           localStorage.getItem("adtrack_boards_v5");
+        const savedStats = localStorage.getItem(STORAGE_KEYS.stats);
+
+        if (savedStats) {
+          const parsedStats: AdMarketCounts = JSON.parse(savedStats);
+          if (
+            parsedStats &&
+            typeof parsedStats.all === "number" &&
+            typeof parsedStats.dk === "number" &&
+            typeof parsedStats.us === "number" &&
+            parsedStats.all > 0
+          ) {
+            cachedCounts = parsedStats;
+            setBaseServerCounts(parsedStats);
+          }
+        }
 
         if (savedBrands) {
           const parsed: Brand[] = JSON.parse(savedBrands);
@@ -301,6 +328,23 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             if (Array.isArray(data.folders)) {
               setBoards(data.folders);
             }
+            if (
+              data.adCounts &&
+              typeof data.adCounts.all === "number" &&
+              typeof data.adCounts.dk === "number" &&
+              typeof data.adCounts.us === "number"
+            ) {
+              const rawTotal = data.adCounts.all as number;
+              // Keep exact cached deduped totals when DB row count hasn't changed; otherwise update immediately
+              if (!cachedCounts || cachedCounts.rawTotal !== rawTotal) {
+                setBaseServerCounts({
+                  all: data.adCounts.all,
+                  dk: data.adCounts.dk,
+                  us: data.adCounts.us,
+                  rawTotal,
+                });
+              }
+            }
             if (Array.isArray(data.ads) && data.ads.length > 0) {
               startTransition(() => {
                 setAds((prev) => {
@@ -383,6 +427,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               }
               if (!cancelled && collected.length > 0) {
                 fullAdsLoadedRef.current = true;
+                setFullAdsLoaded(true);
               }
             })();
           }
@@ -644,10 +689,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     [dedupedAds, brands]
   );
 
-  // Filtered & sorted Explore ads (only tracked paid ads — excludes personal folder uploads / organic IG Reels)
-  const visibleAds = useMemo(() => {
+  // Non-market filtered Explore ads (used both for visibleAds and market-tab totals)
+  const nonMarketFilteredAds = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
-    const list = dedupedAds.filter((ad) => {
+    return dedupedAds.filter((ad) => {
       if (
         ad.source_type === "instagram" ||
         ad.source_type === "manual" ||
@@ -656,8 +701,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       ) {
         return false;
       }
-      if (marketFilter === "DK" && ad.market !== "DK") return false;
-      if (marketFilter === "US" && ad.market === "DK") return false;
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
       if (mediaFilter !== "all") {
         const isRealCarousel =
@@ -736,6 +779,31 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       }
       return true;
     });
+  }, [
+    dedupedAds,
+    adRankIndex,
+    brandFilter,
+    mediaFilter,
+    platformFilter,
+    countryFilter,
+    genderFilter,
+    ageFilter,
+    minReachFilter,
+    scaledOnly,
+    timeFilter,
+    rankMin,
+    rankMax,
+    deferredSearch,
+  ]);
+
+  // Filtered & sorted Explore ads (only tracked paid ads — excludes personal folder uploads / organic IG Reels)
+  const visibleAds = useMemo(() => {
+    const list =
+      marketFilter === "ALL"
+        ? nonMarketFilteredAds
+        : nonMarketFilteredAds.filter((ad) =>
+            marketFilter === "DK" ? ad.market === "DK" : ad.market !== "DK"
+          );
 
     if (sortBy !== "top") {
       return [...list].sort((a, b) => {
@@ -762,21 +830,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
     return sortAdsForExplore(list, adRankIndex, brandFilter !== "all");
   }, [
-    dedupedAds,
+    nonMarketFilteredAds,
     adRankIndex,
     marketFilter,
     brandFilter,
-    mediaFilter,
-    platformFilter,
-    countryFilter,
-    genderFilter,
-    ageFilter,
-    minReachFilter,
-    scaledOnly,
-    timeFilter,
-    rankMin,
-    rankMax,
-    deferredSearch,
     sortBy,
   ]);
 
@@ -935,6 +992,129 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     () => paidAds.filter((a) => a.market !== "DK").length,
     [paidAds]
   );
+
+  // Persist exact deduplicated totals once Stage 2 finishes so next visit paints exact totals at 0ms
+  useEffect(() => {
+    if (!fullAdsLoaded || paidAds.length === 0) return;
+    try {
+      const stats: AdMarketCounts = {
+        all: paidAds.length,
+        dk: dkAdsCount,
+        us: usAdsCount,
+        rawTotal: baseServerCounts?.rawTotal,
+      };
+      localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(stats));
+    } catch {
+      // ignore storage errors
+    }
+  }, [fullAdsLoaded, paidAds.length, dkAdsCount, usAdsCount, baseServerCounts?.rawTotal]);
+
+  const hasNonMarketFilters =
+    brandFilter !== "all" ||
+    mediaFilter !== "all" ||
+    timeFilter !== "all" ||
+    scaledOnly ||
+    deferredSearch.trim().length > 0 ||
+    platformFilter !== "all" ||
+    countryFilter !== "all" ||
+    genderFilter !== "all" ||
+    ageFilter !== "all" ||
+    minReachFilter !== "all" ||
+    rankMin !== null ||
+    rankMax !== null;
+
+  // While Stage 2 is still streaming, fetch exact server-side totals when any non-market filter is active
+  // (and immediately load the selected brand's ads if brandFilter is set!)
+  useEffect(() => {
+    if (fullAdsLoaded) {
+      setFilteredServerCounts(null);
+      return;
+    }
+
+    if (brandFilter !== "all" && !loadedBrandAdsRef.current.has(brandFilter)) {
+      loadedBrandAdsRef.current.add(brandFilter);
+      fetch(`/api/catalog?brandId=${encodeURIComponent(brandFilter)}`, { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data?.synced || !Array.isArray(data.ads) || data.ads.length === 0) return;
+          startTransition(() => {
+            setAds((prev) => dedupeAds([...(data.ads as Ad[]), ...prev]));
+          });
+        })
+        .catch(() => {
+          loadedBrandAdsRef.current.delete(brandFilter);
+        });
+    }
+
+    if (!hasNonMarketFilters) {
+      setFilteredServerCounts(null);
+      return;
+    }
+
+    let cancelled = false;
+    const params = new URLSearchParams({ mode: "counts" });
+    if (brandFilter !== "all") params.set("brand", brandFilter);
+    if (mediaFilter !== "all") params.set("media", mediaFilter);
+    if (timeFilter !== "all") params.set("time", timeFilter);
+    if (scaledOnly) params.set("scaled", "1");
+    if (deferredSearch.trim()) params.set("q", deferredSearch.trim());
+
+    const delay = deferredSearch.trim() ? 120 : 0;
+    const timer = window.setTimeout(() => {
+      fetch(`/api/catalog?${params.toString()}`, { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (cancelled || !data?.synced || !data.counts) return;
+          setFilteredServerCounts(data.counts as AdMarketCounts);
+        })
+        .catch(() => {});
+    }, delay);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    fullAdsLoaded,
+    hasNonMarketFilters,
+    brandFilter,
+    mediaFilter,
+    timeFilter,
+    scaledOnly,
+    deferredSearch,
+  ]);
+
+  const filteredMarketCounts = useMemo<AdMarketCounts>(() => {
+    let dk = 0;
+    let us = 0;
+    for (const ad of nonMarketFilteredAds) {
+      if (ad.market === "DK") dk++;
+      else us++;
+    }
+    return { all: dk + us, dk, us };
+  }, [nonMarketFilteredAds]);
+
+  // Display totals strictly based on active filters across the FULL catalog — never partial chunk counts
+  const displayMarketCounts: AdMarketCounts | null = useMemo(() => {
+    if (fullAdsLoaded) return filteredMarketCounts;
+    if (hasNonMarketFilters) {
+      return filteredServerCounts ?? baseServerCounts;
+    }
+    return baseServerCounts;
+  }, [
+    fullAdsLoaded,
+    filteredMarketCounts,
+    hasNonMarketFilters,
+    filteredServerCounts,
+    baseServerCounts,
+  ]);
+
+  const displayAdsTotal: number | null = useMemo(() => {
+    if (!displayMarketCounts) return null;
+    if (marketFilter === "DK") return displayMarketCounts.dk;
+    if (marketFilter === "US") return displayMarketCounts.us;
+    return displayMarketCounts.all;
+  }, [displayMarketCounts, marketFilter]);
 
   const availableAdCountries = useMemo(() => {
     const counts = new Map<string, number>();
@@ -1349,8 +1529,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
                     Ads
                   </h1>
-                  <span className="inline-flex items-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[12.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
-                    {visibleAds.length.toLocaleString("fr-FR")}
+                  <span className="inline-flex min-w-[46px] items-center justify-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[12.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+                    {displayAdsTotal !== null ? (
+                      displayAdsTotal.toLocaleString("fr-FR")
+                    ) : (
+                      <span className="inline-block h-3.5 w-9 animate-pulse rounded bg-[#EEF1F6]" />
+                    )}
                   </span>
                 </div>
 
@@ -1392,9 +1576,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 {/* Clean Segmented Market Control (Alle · DK · US & Global) */}
                 <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold lg:inline-flex lg:w-fit">
                   {[
-                    { id: "ALL" as const, label: "Alle", count: paidAds.length },
-                    { id: "DK" as const, label: "DK", count: dkAdsCount },
-                    { id: "US" as const, label: "US & Global", count: usAdsCount },
+                    { id: "ALL" as const, label: "Alle", count: displayMarketCounts?.all ?? null },
+                    { id: "DK" as const, label: "DK", count: displayMarketCounts?.dk ?? null },
+                    { id: "US" as const, label: "US & Global", count: displayMarketCounts?.us ?? null },
                   ].map((m) => {
                     const active = marketFilter === m.id;
                     return (
@@ -1417,7 +1601,11 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             active ? "text-[#475569]" : "text-[#94A3B8]"
                           }`}
                         >
-                          {m.count.toLocaleString("fr-FR")}
+                          {m.count !== null ? (
+                            m.count.toLocaleString("fr-FR")
+                          ) : (
+                            <span className="inline-block h-2.5 w-7 animate-pulse rounded bg-[#E2E8F0] align-middle" />
+                          )}
                         </span>
                       </button>
                     );
