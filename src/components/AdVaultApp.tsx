@@ -1422,8 +1422,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   })}
                 </div>
 
-                {/* Right Bordered Controls: Brands · All time · Ad Rank · Filters · Sort */}
-                <div className="flex flex-wrap items-center gap-1.5">
+                {/* Right Bordered Controls: 2x2 symmetrical grid + full-width sort on mobile, single inline row on desktop */}
+                <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center lg:gap-1.5">
                   {/* Brands */}
                   <FlakeSelect
                     ariaLabel="Vælg shop"
@@ -1438,7 +1438,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     align="left"
                     menuWidth={240}
                     isActive={brandFilter !== "all"}
-                    triggerClassName="w-auto max-w-[170px]"
+                    triggerClassName="lg:max-w-[170px]"
                   />
 
                   {/* Timeframe */}
@@ -1452,10 +1452,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     options={timeSelectOptions}
                     icon={<Calendar className="h-3.5 w-3.5 text-[#475569]" />}
                     variant="bordered"
-                    align="left"
+                    align="right"
                     menuWidth={195}
                     isActive={timeFilter !== "all"}
-                    triggerClassName="w-auto"
                   />
 
                   {/* Ad Rank Min-Max Popover (bordered pill matching Shops) */}
@@ -1469,20 +1468,22 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         setRankMaxDraft(rankMax !== null ? String(rankMax) : "");
                         setRankOpen((v) => !v);
                       }}
-                      className={`inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13.5px] font-medium transition-colors sm:text-xs ${
+                      className={`inline-flex w-full items-center justify-between gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13px] font-medium transition-colors lg:w-auto lg:text-xs ${
                         rankMin !== null || rankMax !== null || rankOpen
                           ? "border-[#CBD5E1] text-[#0F172A]"
                           : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
                       }`}
                     >
-                      <Award className="h-3.5 w-3.5 text-[#475569]" />
-                      <span>
-                        {rankMin !== null || rankMax !== null
-                          ? `Rank ${rankMin ?? 1}–${rankMax ?? "∞"}`
-                          : "Ad Rank"}
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <Award className="h-3.5 w-3.5 shrink-0 text-[#475569]" />
+                        <span className="truncate">
+                          {rankMin !== null || rankMax !== null
+                            ? `Rank ${rankMin ?? 1}–${rankMax ?? "∞"}`
+                            : "Ad Rank"}
+                        </span>
                       </span>
                       <ChevronDown
-                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform duration-150 ${
+                        className={`h-3.5 w-3.5 shrink-0 text-[#64748B] transition-transform duration-150 ${
                           rankOpen ? "rotate-180" : ""
                         }`}
                       />
@@ -1568,21 +1569,23 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         setRankOpen(false);
                         setFiltersOpen((v) => !v);
                       }}
-                      className={`inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13.5px] font-medium transition-colors sm:text-xs ${
+                      className={`inline-flex w-full items-center justify-between gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13px] font-medium transition-colors lg:w-auto lg:text-xs ${
                         activeFilterCount > 0 || filtersOpen
                           ? "border-[#CBD5E1] text-[#0F172A]"
                           : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
                       }`}
                     >
-                      <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
-                      <span>Filters</span>
-                      {activeFilterCount > 0 && (
-                        <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[10px] font-bold text-white">
-                          {activeFilterCount}
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1.5">
+                        <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
+                        <span>Filters</span>
+                        {activeFilterCount > 0 && (
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[10px] font-bold text-white">
+                            {activeFilterCount}
+                          </span>
+                        )}
+                      </span>
                       <ChevronDown
-                        className={`h-3.5 w-3.5 text-[#64748B] transition-transform duration-150 ${
+                        className={`h-3.5 w-3.5 shrink-0 text-[#64748B] transition-transform duration-150 ${
                           filtersOpen ? "rotate-180" : ""
                         }`}
                       />
@@ -1859,29 +1862,31 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     </FlakePopover>
                   </div>
 
-                  {/* Sort (bordered pill on right, matching Shops) */}
-                  <FlakeSelect
-                    ariaLabel="Sortér"
-                    value={sortBy}
-                    onChange={(val) => setSortBy(val as SortOption)}
-                    options={sortSelectOptions}
-                    icon={<ArrowUpDown className="h-3.5 w-3.5 text-[#475569]" />}
-                    variant="bordered"
-                    align="right"
-                    menuWidth={210}
-                    isActive={sortBy !== "top"}
-                    triggerClassName="w-auto font-semibold text-[#0F172A]"
-                  />
+                  {/* Sort (clean full-width row on mobile, compact right pill on desktop) */}
+                  <div className="col-span-2 lg:col-span-1">
+                    <FlakeSelect
+                      ariaLabel="Sortér"
+                      value={sortBy}
+                      onChange={(val) => setSortBy(val as SortOption)}
+                      options={sortSelectOptions}
+                      icon={<ArrowUpDown className="h-3.5 w-3.5 text-[#475569]" />}
+                      variant="bordered"
+                      align="right"
+                      menuWidth={210}
+                      isActive={sortBy !== "top"}
+                      triggerClassName="font-semibold text-[#0F172A]"
+                    />
+                  </div>
 
                   {hasAnyAdsFilter && (
                     <button
                       type="button"
                       data-no-glass="true"
                       onClick={resetAllAdsFilters}
-                      className="inline-flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                      className="col-span-2 inline-flex items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A] lg:col-span-1 lg:py-2"
                     >
                       <X className="h-3.5 w-3.5" />
-                      Nulstil
+                      Nulstil filtre
                     </button>
                   )}
                 </div>

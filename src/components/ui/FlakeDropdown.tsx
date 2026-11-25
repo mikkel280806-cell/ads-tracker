@@ -290,7 +290,7 @@ export function FlakeSelect({
 
   const baseTriggerClass =
     variant === "bordered"
-      ? `inline-flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 text-[13.5px] font-medium outline-none transition-colors sm:w-auto sm:text-xs ${
+      ? `inline-flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 text-[13px] font-medium outline-none transition-colors lg:w-auto lg:text-xs ${
           open || isActive
             ? "border-[#CBD5E1] text-[#0F172A]"
             : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"

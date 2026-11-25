@@ -730,8 +730,8 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           })}
         </div>
 
-        {/* Category · Pixels & Apps · Advanced Filters · Sort */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        {/* Category · Pixels & Apps · Advanced Filters · Sort (clean 2x2 grid on mobile, inline row on desktop) */}
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center lg:gap-1.5">
           <FlakeSelect
             ariaLabel="Filtrer efter kategori"
             value={categoryFilter}
@@ -742,7 +742,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
             align="left"
             menuWidth={230}
             isActive={categoryFilter !== "all"}
-            triggerClassName="w-auto max-w-[175px]"
+            triggerClassName="lg:max-w-[175px]"
           />
 
           <FlakeSelect
@@ -752,10 +752,10 @@ export const ShopsTableView = React.memo(function ShopsTableView({
             options={techSelectOptions}
             icon={<Layers className="h-3.5 w-3.5 text-[#475569]" />}
             variant="bordered"
-            align="left"
+            align="right"
             menuWidth={240}
             isActive={techFilter !== "all"}
-            triggerClassName="w-auto max-w-[170px]"
+            triggerClassName="lg:max-w-[170px]"
           />
 
           {/* Advanced Shop Filters Popover (Live Ads, Visits, Growth, Trustpilot, Platform) */}
@@ -764,21 +764,23 @@ export const ShopsTableView = React.memo(function ShopsTableView({
               ref={filtersTriggerRef}
               type="button"
               onClick={() => setFiltersOpen((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13.5px] font-medium transition-colors sm:text-xs ${
+              className={`inline-flex w-full items-center justify-between gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13px] font-medium transition-colors lg:w-auto lg:text-xs ${
                 advancedFilterCount > 0 || filtersOpen
                   ? "border-[#CBD5E1] text-[#0F172A]"
                   : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
               }`}
             >
-              <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
-              <span>Filters</span>
-              {advancedFilterCount > 0 && (
-                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[10px] font-bold text-white">
-                  {advancedFilterCount}
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1.5">
+                <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
+                <span>Filters</span>
+                {advancedFilterCount > 0 && (
+                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[10px] font-bold text-white">
+                    {advancedFilterCount}
+                  </span>
+                )}
+              </span>
               <ChevronDown
-                className={`h-3.5 w-3.5 text-[#64748B] transition-transform duration-150 ${
+                className={`h-3.5 w-3.5 shrink-0 text-[#64748B] transition-transform duration-150 ${
                   filtersOpen ? "rotate-180" : ""
                 }`}
               />
@@ -1094,7 +1096,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
             align="right"
             menuWidth={210}
             isActive={sortBy !== "ads"}
-            triggerClassName="w-auto font-semibold text-[#0F172A]"
+            triggerClassName="font-semibold text-[#0F172A]"
           />
 
           {hasAnyShopFilter && (
@@ -1102,10 +1104,10 @@ export const ShopsTableView = React.memo(function ShopsTableView({
               type="button"
               data-no-glass="true"
               onClick={resetAllShopFilters}
-              className="inline-flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+              className="col-span-2 inline-flex items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A] lg:col-span-1 lg:py-2"
             >
               <X className="h-3.5 w-3.5" />
-              Nulstil
+              Nulstil filtre
             </button>
           )}
         </div>
