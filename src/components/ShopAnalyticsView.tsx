@@ -846,7 +846,9 @@ export function ShopAnalyticsView({
     if (creativeFormat === "all") return sortedMetaAds;
     return sortedMetaAds.filter((a) => {
       const isRealCarousel =
-        Array.isArray(a.carousel_cards) && a.carousel_cards.length >= 2;
+        a.media_type === "carousel" &&
+        Array.isArray(a.carousel_cards) &&
+        a.carousel_cards.length >= 2;
       if (creativeFormat === "carousel") return isRealCarousel;
       if (creativeFormat === "video") return a.media_type === "video" && !isRealCarousel;
       if (creativeFormat === "image")

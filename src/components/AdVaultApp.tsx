@@ -661,7 +661,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
       if (mediaFilter !== "all") {
         const isRealCarousel =
-          Array.isArray(ad.carousel_cards) && ad.carousel_cards.length >= 2;
+          ad.media_type === "carousel" &&
+          Array.isArray(ad.carousel_cards) &&
+          ad.carousel_cards.length >= 2;
         if (mediaFilter === "carousel" && !isRealCarousel) return false;
         if (mediaFilter === "video" && (ad.media_type !== "video" || isRealCarousel)) return false;
         if (
