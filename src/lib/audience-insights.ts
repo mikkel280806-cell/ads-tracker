@@ -619,6 +619,12 @@ const formatCompactDkkValue = (val: number) => {
   return `${numStr.replace(".", ",")} kr.`;
 };
 
+const formatFullDkkValue = (val: number): string => {
+  const rounded = Math.round(val);
+  const formatted = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${formatted} kr.`;
+};
+
 /**
  * Returns estimated total & daily ad spend in DKK for any paid Meta Ad.
  * Uses scraper-provided `estimated_spend` (USD) or computes from `eu_reach`
@@ -648,8 +654,8 @@ export function getAdSpendDkk(
   return {
     totalDkk,
     dailyDkk,
-    formattedTotal: formatCompactDkkValue(totalDkk),
-    formattedDaily: formatCompactDkkValue(dailyDkk),
+    formattedTotal: formatFullDkkValue(totalDkk),
+    formattedDaily: formatFullDkkValue(dailyDkk),
   };
 }
 

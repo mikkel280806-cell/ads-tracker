@@ -1678,7 +1678,7 @@ export function ShopAnalyticsView({
                     </p>
                     <div className="flex items-center justify-between text-xs">
                       <span className="inline-flex items-center gap-1.5 font-medium text-[#334155]">
-                        <span className="h-2 w-2 rounded-full bg-[#EC4899]" />
+                        <span className="h-2 w-2 rounded-full bg-[#E5A9B8]" />
                         Kvinder{" "}
                         <strong className="font-mono-num text-[#0F172A]">
                           {shopAudience.femalePct}%
@@ -1690,7 +1690,7 @@ export function ShopAnalyticsView({
                         )}
                       </span>
                       <span className="inline-flex items-center gap-1.5 font-medium text-[#334155]">
-                        <span className="h-2 w-2 rounded-full bg-[#3B82F6]" />
+                        <span className="h-2 w-2 rounded-full bg-[#93B4D8]" />
                         Mænd{" "}
                         <strong className="font-mono-num text-[#0F172A]">
                           {shopAudience.malePct}%
@@ -1705,13 +1705,13 @@ export function ShopAnalyticsView({
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#E2E8F0]">
                       {shopAudience.femalePct > 0 && (
                         <div
-                          className="h-full bg-[#EC4899]"
+                          className="h-full bg-[#E5A9B8]"
                           style={{ width: `${shopAudience.femalePct}%` }}
                         />
                       )}
                       {shopAudience.malePct > 0 && (
                         <div
-                          className="h-full bg-[#3B82F6]"
+                          className="h-full bg-[#93B4D8]"
                           style={{ width: `${shopAudience.malePct}%` }}
                         />
                       )}
