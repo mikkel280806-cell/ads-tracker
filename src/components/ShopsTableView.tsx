@@ -76,7 +76,12 @@ function getHomepageScreenshotUrl(
   websiteUrl?: string,
   storedScreenshotUrl?: string
 ): string | null {
-  if (storedScreenshotUrl && storedScreenshotUrl.includes("/ad-media/homepages/")) {
+  if (
+    storedScreenshotUrl &&
+    (storedScreenshotUrl.includes("/ad-media/homepages/") ||
+      storedScreenshotUrl.includes("/homepages/") ||
+      storedScreenshotUrl.includes(".r2.dev/"))
+  ) {
     return storedScreenshotUrl;
   }
   if (!websiteUrl) return null;
