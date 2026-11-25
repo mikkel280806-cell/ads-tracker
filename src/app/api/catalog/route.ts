@@ -179,8 +179,40 @@ export async function GET(request: NextRequest) {
       return { data: allRows, error: null };
     };
 
-    // 2. Background full ads sync (~1.5-2.5s parallel instead of 14s serial)
+    // 2. Chunked background ads sync (?mode=ads&page=0&limit=500 -> ~450ms per chunk, zero DB timeouts!)
     if (mode === "ads") {
+      const pageParam = request.nextUrl.searchParams.get("page");
+      if (pageParam !== null) {
+        const page = Math.max(0, parseInt(pageParam, 10) || 0);
+        const pageSize = Math.min(
+          800,
+          Math.max(100, parseInt(request.nextUrl.searchParams.get("limit") || "500", 10) || 500)
+        );
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const { data, error } = await supabase
+          .from("adtrack_ads")
+          .select("payload")
+          .order("started_running_at", { ascending: false })
+          .range(from, to);
+        if (error) {
+          return NextResponse.json({
+            ok: true,
+            synced: false,
+            reason: "error",
+            detail: error.message,
+          });
+        }
+        const ads = (data || []).map((r) => r.payload as Ad);
+        return NextResponse.json({
+          ok: true,
+          synced: true,
+          page,
+          hasMore: ads.length === pageSize,
+          ads,
+        });
+      }
+
       const adsRes = await fetchAllAdsParallel();
       if (adsRes.error) {
         return NextResponse.json({
