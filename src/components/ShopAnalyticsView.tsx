@@ -33,7 +33,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import type { Ad, AdsTimelinePoint, Board, Brand, TrafficPoint } from "@/lib/types";
+import type { Ad, AdsTimelinePoint, Board, Brand, DiscoveredLandingPage, TrafficPoint } from "@/lib/types";
 import { getTechMeta } from "@/lib/tech-catalog";
 import { buildAdRankIndex } from "@/lib/ad-ranking";
 import {
@@ -69,6 +69,54 @@ interface ShopAnalyticsViewProps {
 
 type MainTab = "analytics" | "meta_ads" | "products";
 type MetaSubTab = "library" | "creatives" | "copies" | "headlines" | "hooks" | "lp";
+type LpKind = DiscoveredLandingPage["kind"];
+type LpFilter = "all" | "with_ads" | LpKind;
+
+function normalizeLpKey(rawUrlOrPath: string, brandWebsiteUrl?: string): string {
+  const trimmed = (rawUrlOrPath || "").trim();
+  if (!trimmed) return "/";
+  let brandHost = "";
+  if (brandWebsiteUrl) {
+    try {
+      brandHost = new URL(
+        brandWebsiteUrl.startsWith("http") ? brandWebsiteUrl : `https://${brandWebsiteUrl}`
+      ).hostname
+        .toLowerCase()
+        .replace(/^www\./, "");
+    } catch {
+      brandHost = "";
+    }
+  }
+  try {
+    const u = trimmed.startsWith("http")
+      ? new URL(trimmed)
+      : trimmed.includes(".") && !trimmed.startsWith("/")
+        ? new URL(`https://${trimmed}`)
+        : new URL(trimmed.startsWith("/") ? trimmed : `/${trimmed}`, "https://placeholder.local");
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    const pathname = (u.pathname || "/").toLowerCase().replace(/\/+$/, "") || "/";
+    if (host !== "placeholder.local" && brandHost && host !== brandHost) {
+      return pathname === "/" ? host : `${host}${pathname}`;
+    }
+    return pathname;
+  } catch {
+    return trimmed.toLowerCase().split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+  }
+}
+
+function inferLpKind(path: string, url: string): LpKind {
+  const s = `${path} ${url}`.toLowerCase();
+  if (/(^|[/.?_-])(quiz|sleep-quiz|assessment|diagnos|finder|survey|match-finder)([/.?_-]|$)/.test(s)) {
+    return "Quiz";
+  }
+  if (/(listicle|list-\d|list_|\d+-reasons|\d+-things|\d+-ways|reasons-why|reasons-to|top-\d+)/.test(s)) {
+    return "Listicle";
+  }
+  if (/(^|[/_-])(adv|advertorial)([/_-]|$)|-adv-|-adv\d|adv-|_adv|whiplash|game-changer|beddingconsultant|doctor|chiro|secret|exposed|truth-about|story-|review-/.test(s)) {
+    return "Advertorial";
+  }
+  return "Offer / LP";
+}
 
 function formatProductPrice(rawPrice?: string, rawCurrency?: string): string {
   return formatProductPriceDkk(rawPrice, rawCurrency);
@@ -579,6 +627,8 @@ export function ShopAnalyticsView({
   const [productSort, setProductSort] = useState<"best" | "latest">("best");
   const [techTab, setTechTab] = useState<"pixels" | "apps">("pixels");
   const [productSearch, setProductSearch] = useState("");
+  const [lpKindFilter, setLpKindFilter] = useState<LpFilter>("all");
+  const [lpSearch, setLpSearch] = useState("");
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [tabTransitioning, setTabTransitioning] = useState(false);
@@ -676,32 +726,125 @@ export function ShopAnalyticsView({
     ];
   }, [brandAds]);
 
-  // Compute Top Landing Pages across all scraped ads
+  // Compute Top Landing Pages merged across scraped ads + Shopify sitemap discovery
   const landingPages = useMemo(() => {
     const map = new Map<
       string,
-      { path: string; url: string; count: number; ads: Ad[] }
+      {
+        key: string;
+        path: string;
+        url: string;
+        title?: string;
+        kind: LpKind;
+        count: number;
+        ads: Ad[];
+        lastmod?: string;
+        fromSitemap: boolean;
+      }
     >();
+
     for (const ad of brandAds) {
       if (!ad.landing_page_url) continue;
       if (!isDedicatedLandingPage(ad.landing_page_path, ad.landing_page_url)) continue;
-      const p = ad.landing_page_path || "/";
-      const existing = map.get(p);
+      const key = normalizeLpKey(ad.landing_page_url, brand.website_url);
+      const displayPath = key.startsWith("/") ? (ad.landing_page_path || key) : key;
+      const existing = map.get(key);
       if (existing) {
         existing.count++;
         existing.ads.push(ad);
       } else {
-        map.set(p, { path: p, url: ad.landing_page_url, count: 1, ads: [ad] });
+        map.set(key, {
+          key,
+          path: displayPath,
+          url: ad.landing_page_url,
+          kind: inferLpKind(displayPath, ad.landing_page_url),
+          count: 1,
+          ads: [ad],
+          fromSitemap: false,
+        });
       }
     }
+
+    for (const dlp of brand.discovered_landing_pages || []) {
+      const key = normalizeLpKey(dlp.url || dlp.path, brand.website_url);
+      const existing = map.get(key);
+      if (existing) {
+        existing.kind = dlp.kind || existing.kind;
+        if (dlp.title && !existing.title) existing.title = dlp.title;
+        if (dlp.lastmod && !existing.lastmod) existing.lastmod = dlp.lastmod;
+        existing.fromSitemap = true;
+      } else {
+        map.set(key, {
+          key,
+          path: dlp.path || key,
+          url: dlp.url,
+          title: dlp.title,
+          kind: dlp.kind || inferLpKind(dlp.path || key, dlp.url),
+          count: 0,
+          ads: [],
+          lastmod: dlp.lastmod,
+          fromSitemap: true,
+        });
+      }
+    }
+
+    const kindRank: Record<LpKind, number> = {
+      Advertorial: 0,
+      Listicle: 1,
+      Quiz: 2,
+      "Offer / LP": 3,
+    };
+
     const total = Math.max(1, brandAds.length);
     return Array.from(map.values())
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        if (kindRank[a.kind] !== kindRank[b.kind]) {
+          return kindRank[a.kind] - kindRank[b.kind];
+        }
+        if ((b.lastmod || "") !== (a.lastmod || "")) {
+          return (b.lastmod || "").localeCompare(a.lastmod || "");
+        }
+        return a.path.localeCompare(b.path);
+      })
       .map((entry) => ({
         ...entry,
-        pct: Math.max(1, Math.round((entry.count / total) * 100)),
+        pct: entry.count > 0 ? Math.max(1, Math.round((entry.count / total) * 100)) : 0,
       }));
-  }, [brandAds]);
+  }, [brandAds, brand.discovered_landing_pages, brand.website_url]);
+
+  const lpCounts = useMemo(() => {
+    const counts = {
+      all: landingPages.length,
+      with_ads: 0,
+      Advertorial: 0,
+      Listicle: 0,
+      Quiz: 0,
+      "Offer / LP": 0,
+    };
+    for (const lp of landingPages) {
+      if (lp.count > 0) counts.with_ads++;
+      counts[lp.kind]++;
+    }
+    return counts;
+  }, [landingPages]);
+
+  const filteredLandingPages = useMemo(() => {
+    const q = lpSearch.trim().toLowerCase();
+    return landingPages.filter((lp) => {
+      if (lpKindFilter === "with_ads" && lp.count === 0) return false;
+      if (lpKindFilter !== "all" && lpKindFilter !== "with_ads" && lp.kind !== lpKindFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        lp.path.toLowerCase().includes(q) ||
+        lp.url.toLowerCase().includes(q) ||
+        (lp.title || "").toLowerCase().includes(q) ||
+        lp.kind.toLowerCase().includes(q)
+      );
+    });
+  }, [landingPages, lpKindFilter, lpSearch]);
 
   // Deduplicated Ad Copies
   const uniqueCopies = useMemo(() => {
@@ -2143,7 +2286,7 @@ export function ShopAnalyticsView({
                     <div className="space-y-1.5">
                       {landingPages.slice(0, 5).map((lp) => (
                         <a
-                          key={lp.path}
+                          key={lp.key}
                           href={lp.url}
                           target="_blank"
                           rel="noreferrer"
@@ -2155,14 +2298,20 @@ export function ShopAnalyticsView({
                               {lp.path}
                             </span>
                           </span>
-                          <span className="flex shrink-0 items-center gap-2 font-mono-num text-[11px]">
-                            <span className="font-bold text-[#0F172A]">
-                              {lp.count}
+                          {lp.count > 0 ? (
+                            <span className="flex shrink-0 items-center gap-2 font-mono-num text-[11px]">
+                              <span className="font-bold text-[#0F172A]">
+                                {lp.count}
+                              </span>
+                              <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
+                                {lp.pct}%
+                              </span>
                             </span>
-                            <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
-                              {lp.pct}%
+                          ) : (
+                            <span className="shrink-0 rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
+                              {lp.kind}
                             </span>
-                          </span>
+                          )}
                         </a>
                       ))}
                       {landingPages.length === 0 && (
@@ -2479,71 +2628,163 @@ export function ShopAnalyticsView({
 
           {/* SUB-TAB 6: LANDING PAGES (LP) */}
           {metaSubTab === "lp" && (
-            <div className="space-y-3">
-              {landingPages.map((lp) => (
-                <div
-                  key={lp.path}
-                  className="adtrack-card flex flex-col justify-between gap-4 rounded-2xl p-4 sm:flex-row sm:items-center"
-                >
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <ShopifyBagIcon className="h-4 w-4 shrink-0" />
+            <div className="space-y-4">
+              {/* Filter & Search Bar */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative w-full sm:max-w-xs">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                  <input
+                    type="search"
+                    value={lpSearch}
+                    onChange={(e) => setLpSearch(e.target.value)}
+                    placeholder="Søg landing page, advertorial, quiz..."
+                    className="w-full rounded-xl border border-[#E2E6EF] bg-white py-2 pl-9 pr-3 text-xs text-[#0F172A] outline-none transition-colors focus:border-[#94A3B8]"
+                  />
+                </div>
+
+                <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
+                  {(
+                    [
+                      { id: "all" as LpFilter, label: "Alle", count: lpCounts.all },
+                      { id: "with_ads" as LpFilter, label: "Med ads", count: lpCounts.with_ads },
+                      { id: "Advertorial" as LpFilter, label: "Advertorial", count: lpCounts.Advertorial },
+                      { id: "Listicle" as LpFilter, label: "Listicle", count: lpCounts.Listicle },
+                      { id: "Quiz" as LpFilter, label: "Quiz", count: lpCounts.Quiz },
+                      { id: "Offer / LP" as LpFilter, label: "Offer / LP", count: lpCounts["Offer / LP"] },
+                    ] as const
+                  )
+                    .filter((tab) => tab.id === "all" || tab.count > 0)
+                    .map((tab) => {
+                      const active = lpKindFilter === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setLpKindFilter(tab.id)}
+                          className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                            active
+                              ? "border-[#0F172A] bg-[#0F172A] text-white"
+                              : "border-[#E6E9F0] bg-white text-[#475569] hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                          }`}
+                        >
+                          <span>{tab.label}</span>
+                          <span
+                            className={`rounded-md px-1.5 py-0.5 font-mono-num text-[10px] font-bold ${
+                              active
+                                ? "bg-white/15 text-white"
+                                : "bg-[#F1F5F9] text-[#64748B]"
+                            }`}
+                          >
+                            {tab.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {landingPages.length > lpCounts.with_ads && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-3.5 py-2 text-[11.5px] text-[#64748B]">
+                  <span>
+                    <strong className="font-semibold text-[#0F172A]">{lpCounts.with_ads}</strong> sider koblet til aktive Meta ads ·{" "}
+                    <strong className="font-semibold text-[#0F172A]">{landingPages.length - lpCounts.with_ads}</strong> ekstra funnels fundet via Shopify sitemap
+                  </span>
+                  <span className="font-mono-num text-[11px] text-[#64748B]">
+                    Viser {filteredLandingPages.length} af {landingPages.length}
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {filteredLandingPages.map((lp) => (
+                  <div
+                    key={lp.key}
+                    className="adtrack-card flex flex-col justify-between gap-4 rounded-2xl p-4 sm:flex-row sm:items-center"
+                  >
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ShopifyBagIcon className="h-4 w-4 shrink-0" />
+                        <a
+                          href={lp.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate font-display text-[14.5px] font-bold text-[#0F172A] hover:text-[#0027eb]"
+                        >
+                          {lp.path}
+                        </a>
+                        <span className="rounded-full border border-[#E6E9F0] bg-[#F8FAFC] px-2 py-0.5 text-[10.5px] font-semibold text-[#334155]">
+                          {lp.kind}
+                        </span>
+                        {lp.count > 0 ? (
+                          <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#0F172A]">
+                            {lp.count} ads ({lp.pct}%)
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-[#E6E9F0] bg-white px-2 py-0.5 font-mono-num text-[10.5px] font-medium text-[#64748B]">
+                            Sitemap · 0 ads
+                          </span>
+                        )}
+                        {lp.lastmod && (
+                          <span className="font-mono-num text-[10.5px] text-[#94A3B8]">
+                            {lp.lastmod}
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate font-mono-num text-[11.5px] text-[#64748B]">
+                        {lp.url}
+                      </p>
+                      {lp.count > 0 && (
+                        <div className="h-1.5 w-full max-w-md overflow-hidden rounded-full bg-[#EFF2F6]">
+                          <div
+                            className="h-full rounded-full bg-[#0F172A]"
+                            style={{ width: `${lp.pct}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-3">
+                      {lp.ads.length > 0 && (
+                        <div className="flex -space-x-2">
+                          {lp.ads.slice(0, 3).map((ad) => (
+                            <button
+                              key={ad.id}
+                              type="button"
+                              onClick={() => onOpenAd(ad)}
+                              className="h-10 w-10 overflow-hidden rounded-lg border-2 border-white bg-[#F3F5F9] shadow-xs"
+                            >
+                              {(ad.thumbnail_url || ad.fallback_image_url) && (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={ad.fallback_image_url || ad.thumbnail_url}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       <a
                         href={lp.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="truncate font-display text-[14.5px] font-bold text-[#0F172A] hover:text-[#0027eb]"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
                       >
-                        {lp.path}
+                        Åbn LP
+                        <ArrowUpRight className="h-3.5 w-3.5" />
                       </a>
-                      <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#334155]">
-                        {lp.count} ads ({lp.pct}%)
-                      </span>
-                    </div>
-                    <p className="truncate font-mono-num text-[11.5px] text-[#64748B]">
-                      {lp.url}
-                    </p>
-                    <div className="h-1.5 w-full max-w-md overflow-hidden rounded-full bg-[#EFF2F6]">
-                      <div
-                        className="h-full rounded-full bg-[#0F172A]"
-                        style={{ width: `${lp.pct}%` }}
-                      />
                     </div>
                   </div>
+                ))}
 
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="flex -space-x-2">
-                      {lp.ads.slice(0, 3).map((ad) => (
-                        <button
-                          key={ad.id}
-                          type="button"
-                          onClick={() => onOpenAd(ad)}
-                          className="h-10 w-10 overflow-hidden rounded-lg border-2 border-white bg-[#F3F5F9] shadow-xs"
-                        >
-                          {(ad.thumbnail_url || ad.fallback_image_url) && (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={ad.fallback_image_url || ad.thumbnail_url}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    <a
-                      href={lp.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
-                    >
-                      Åbn LP
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </a>
-                  </div>
-                </div>
-              ))}
+                {filteredLandingPages.length === 0 && (
+                  <p className="py-10 text-center text-xs text-[#94A3B8]">
+                    Ingen landing pages matcher dit filter.
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -73,6 +73,14 @@ export interface ProductPreview {
   }>;
 }
 
+export interface DiscoveredLandingPage {
+  path: string;
+  url: string;
+  title?: string;
+  kind: "Advertorial" | "Listicle" | "Quiz" | "Offer / LP";
+  lastmod?: string;
+}
+
 export interface Brand {
   id: string;
   name: string;
@@ -127,6 +135,7 @@ export interface Brand {
   fb_likes?: number;
   pixels?: string[];
   shopify_apps?: string[];
+  discovered_landing_pages?: DiscoveredLandingPage[];
   last_synced_at: string;
 }
 
