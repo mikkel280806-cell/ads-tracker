@@ -93,7 +93,7 @@ function GlassTabBarItem({
         onClick?.(e);
       }}
       className={cn(
-        "relative z-10 flex h-14 min-w-[82px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full px-4 text-[10.5px] font-semibold tracking-[0.01em] text-(--glass-foreground) transition-[color,transform] duration-300 outline-none active:scale-95 focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-[current=page]:text-[#0027eb] dark:aria-[current=page]:text-[oklch(0.72_0.16_255)] [&_svg]:size-[21px]",
+        "relative z-10 flex h-14 min-w-[60px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full px-2.5 text-[10px] font-semibold tracking-[0.01em] text-(--glass-foreground) transition-[color,transform] duration-300 outline-none active:scale-95 focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-[current=page]:text-[#0027eb] dark:aria-[current=page]:text-[oklch(0.72_0.16_255)] sm:min-w-[82px] sm:px-4 sm:text-[10.5px] [&_svg]:size-[19px] sm:[&_svg]:size-[21px]",
         className,
       )}
       {...props}

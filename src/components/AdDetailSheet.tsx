@@ -21,6 +21,7 @@ import {
   Loader2,
   MousePointerClick,
   Pencil,
+  Sparkles,
   StickyNote,
   Trash2,
   Upload,
@@ -51,6 +52,8 @@ interface AdDetailSheetProps {
   onDeleteAd?: (adId: string) => void;
   onToggleBoard: (adId: string, boardId: string) => void;
   onOpenBrand?: (brandId: string) => void;
+  onCloneAd?: (ad: Ad) => void;
+  onAskSnow?: (ad: Ad) => void;
 }
 
 function formatIsoDate(iso?: string): string {
@@ -82,6 +85,8 @@ export function AdDetailSheet({
   onDeleteAd,
   onToggleBoard,
   onOpenBrand,
+  onCloneAd,
+  onAskSnow,
 }: AdDetailSheetProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyExpanded, setCopyExpanded] = useState(false);
@@ -1206,6 +1211,36 @@ export function AdDetailSheet({
                 </div>
               </FlakePopover>
             </div>
+
+            {!isOrganic && (onCloneAd || onAskSnow) && (
+              <div className="grid grid-cols-2 gap-2">
+                {onCloneAd && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onCloneAd(ad);
+                      onClose();
+                    }}
+                    className="adtrack-btn-primary inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-white"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Clone til mit brand
+                  </button>
+                )}
+                {onAskSnow && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAskSnow(ad);
+                      onClose();
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-3 py-2.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+                  >
+                    Spørg Snow
+                  </button>
+                )}
+              </div>
+            )}
 
             {rightTab === "details" && (
               <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4">

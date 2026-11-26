@@ -12,11 +12,13 @@ import React, {
 import {
   ArrowUpDown,
   Award,
+  BarChart3,
   Building2,
   Calendar,
   Check,
   ChevronDown,
   ChevronsUpDown,
+  Film,
   Folder,
   Hammer,
   Info,
@@ -25,11 +27,32 @@ import {
   Plus,
   Radar,
   Search,
+  Sparkles,
   Store,
   Users,
   X,
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
+import type {
+  BrandMemory,
+  CreativeProject,
+  OwnAdMetricRow,
+  SnowMessage,
+  VideoStylePresetId,
+} from "@/lib/studio-types";
+import { buildClonedSourceFromAd } from "@/lib/studio-types";
+import { buildOwnAnalyticsDataset } from "@/lib/snow-engine";
+import { BrandMemoryModal } from "./BrandMemoryModal";
+import {
+  SnowAssistantView,
+  SnowMark,
+  SnowQuickDrawer,
+} from "./SnowAssistantView";
+import {
+  VideoStudioView,
+  type StudioDraftTrigger,
+} from "./VideoStudioView";
+import { CreativeAnalyticsView } from "./CreativeAnalyticsView";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import { dedupeAds, getActiveDays } from "@/lib/url-parser";
 import { buildAdRankIndex, sortAdsForExplore } from "@/lib/ad-ranking";
@@ -58,7 +81,7 @@ import {
   type FlakeSelectOption,
 } from "@/components/ui/FlakeDropdown";
 
-type ActiveView = "shops" | "explore" | "folders";
+type ActiveView = "shops" | "explore" | "folders" | "snow" | "studio" | "analytics";
 type SortOption = "top" | "reach" | "longest" | "duplicated" | "newest";
 type MinReachFilter = "all" | "10k" | "50k" | "100k" | "500k";
 type GenderFilter = "all" | "Women" | "Men" | "All";
@@ -76,6 +99,10 @@ const STORAGE_KEYS = {
   brands: "adtrack_brands_v7",
   boards: "adtrack_boards_v7",
   stats: "adtrack_ad_counts_v1",
+  brandMemory: "flake_studio_brand_memory_v1",
+  projects: "flake_studio_projects_v1",
+  snowMessages: "flake_studio_snow_v1",
+  csvAnalytics: "flake_studio_analytics_v1",
 };
 
 interface AdVaultAppProps {
@@ -93,13 +120,22 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [baseServerCounts, setBaseServerCounts] = useState<AdMarketCounts | null>(null);
   const [filteredServerCounts, setFilteredServerCounts] = useState<AdMarketCounts | null>(null);
 
-  // Navigation: ONLY Shops, Explore, Folders!
+  // Navigation: Shops, Explore, Folders + Snow AI, Ad Studio, Analytics & Launch
   const [view, setView] = useState<ActiveView>("shops");
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [quickFolderOpen, setQuickFolderOpen] = useState(false);
   const [quickFolderName, setQuickFolderName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+
+  // Flake v2 Studio, Snow AI, Brand Memory & Analytics State
+  const [brandMemory, setBrandMemory] = useState<BrandMemory | null>(null);
+  const [brandMemoryModalOpen, setBrandMemoryModalOpen] = useState(false);
+  const [snowDrawerOpen, setSnowDrawerOpen] = useState(false);
+  const [snowMessages, setSnowMessages] = useState<SnowMessage[]>([]);
+  const [creativeProjects, setCreativeProjects] = useState<CreativeProject[]>([]);
+  const [importedCsvRows, setImportedCsvRows] = useState<OwnAdMetricRow[]>([]);
+  const [studioTrigger, setStudioTrigger] = useState<StudioDraftTrigger | null>(null);
 
   const workspaceScrollRef = useRef<HTMLElement | null>(null);
 
@@ -307,6 +343,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           const parsed = JSON.parse(savedBoards);
           if (Array.isArray(parsed) && parsed.length > 0) setBoards(parsed);
         }
+        const savedBm = localStorage.getItem(STORAGE_KEYS.brandMemory);
+        if (savedBm) setBrandMemory(JSON.parse(savedBm) as BrandMemory);
+        const savedProjects = localStorage.getItem(STORAGE_KEYS.projects);
+        if (savedProjects) setCreativeProjects(JSON.parse(savedProjects) as CreativeProject[]);
+        const savedSnow = localStorage.getItem(STORAGE_KEYS.snowMessages);
+        if (savedSnow) setSnowMessages(JSON.parse(savedSnow) as SnowMessage[]);
+        const savedCsv = localStorage.getItem(STORAGE_KEYS.csvAnalytics);
+        if (savedCsv) setImportedCsvRows(JSON.parse(savedCsv) as OwnAdMetricRow[]);
       } catch {
         // fallback to scraped catalog
       }
@@ -474,6 +518,213 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     }, 800);
     return () => window.clearTimeout(timer);
   }, [ads, brands, boards, hydrated]);
+
+  // Persist Studio, Brand Memory, Snow & CSV Analytics separately in namespaced keys
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (brandMemory) {
+        localStorage.setItem(STORAGE_KEYS.brandMemory, JSON.stringify(brandMemory));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.brandMemory);
+      }
+      localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(creativeProjects));
+      localStorage.setItem(STORAGE_KEYS.snowMessages, JSON.stringify(snowMessages.slice(-40)));
+      localStorage.setItem(STORAGE_KEYS.csvAnalytics, JSON.stringify(importedCsvRows));
+    } catch {
+      // ignore storage errors
+    }
+  }, [brandMemory, creativeProjects, snowMessages, importedCsvRows, hydrated]);
+
+  const ownAnalyticsRows = useMemo(
+    () =>
+      importedCsvRows.length > 0
+        ? [
+            ...buildOwnAnalyticsDataset(brandMemory, creativeProjects).filter((r) =>
+              r.id.startsWith("live-")
+            ),
+            ...importedCsvRows,
+          ]
+        : buildOwnAnalyticsDataset(brandMemory, creativeProjects),
+    [brandMemory, creativeProjects, importedCsvRows]
+  );
+
+  const handleCloneAdToStudio = useCallback(
+    (ad: Ad, presetId?: VideoStylePresetId) => {
+      const days = getActiveDays(ad.started_running_at);
+      setStudioTrigger({
+        id: `clone-${ad.id}-${Date.now()}`,
+        mode: ad.media_type === "image" && !presetId ? "static_clone" : "video",
+        stylePresetId: presetId || (ad.media_type === "video" ? "iphone_ugc" : "cinema_macro"),
+        clonedFromAd: buildClonedSourceFromAd(ad, days),
+      });
+      setSnowDrawerOpen(false);
+      navigateWithSkeleton(() => {
+        setView("studio");
+        setSelectedShopId(null);
+      });
+      showToast(`Kloner struktur fra ${ad.brand_name} i Studio`);
+    },
+    [navigateWithSkeleton]
+  );
+
+  const handleAskSnowAboutAd = useCallback(
+    (ad: Ad) => {
+      const userMsg: SnowMessage = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        createdAt: new Date().toISOString(),
+        content: `Dekonstruér hvorfor denne annonce fra ${ad.brand_name} virker, og lav et klonet koncept til mit brand.`,
+        attachments: [
+          {
+            type: "ad",
+            label: ad.brand_name,
+            sublabel: ad.headline,
+            imageUrl: ad.fallback_image_url || ad.thumbnail_url,
+            refId: ad.id,
+          },
+        ],
+      };
+      setSnowMessages((prev) => [...prev, userMsg]);
+      setSnowDrawerOpen(true);
+      void fetch("/api/snow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: userMsg.content,
+          brandMemory,
+          attachedAd: buildClonedSourceFromAd(ad, getActiveDays(ad.started_running_at)),
+          analyticsRows: ownAnalyticsRows,
+          candidateSwipeAds: ads.filter((a) => a.source_type === "meta_ad_library").slice(0, 12),
+        }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.ok && d.message) {
+            setSnowMessages((prev) => [...prev, d.message as SnowMessage]);
+          }
+        })
+        .catch(() => {});
+    },
+    [ads, brandMemory, ownAnalyticsRows]
+  );
+
+  const handleOpenBriefInStudio = useCallback(
+    (opts: {
+      title?: string;
+      angle?: string;
+      stylePresetId: VideoStylePresetId;
+      productTitle?: string;
+      clonedFromAd?: ReturnType<typeof buildClonedSourceFromAd>;
+    }) => {
+      setStudioTrigger({
+        id: `brief-${Date.now()}`,
+        mode: "video",
+        stylePresetId: opts.stylePresetId,
+        productTitle: opts.productTitle,
+        angle: opts.angle,
+        clonedFromAd: opts.clonedFromAd,
+      });
+      setSnowDrawerOpen(false);
+      navigateWithSkeleton(() => {
+        setView("studio");
+        setSelectedShopId(null);
+      });
+    },
+    [navigateWithSkeleton]
+  );
+
+  const handleSaveStudioProject = useCallback((proj: CreativeProject) => {
+    setCreativeProjects((prev) => [proj, ...prev.filter((p) => p.id !== proj.id)]);
+  }, []);
+
+  const handleQueueProjectForLaunch = useCallback(
+    (proj: CreativeProject) => {
+      const queued: CreativeProject = { ...proj, status: "queued" };
+      setCreativeProjects((prev) => [queued, ...prev.filter((p) => p.id !== proj.id)]);
+      navigateWithSkeleton(() => {
+        setView("analytics");
+      });
+      showToast(`"${proj.title}" lagt i Meta Launch-køen`);
+    },
+    [navigateWithSkeleton]
+  );
+
+  const handleDoubleDownWinner = useCallback(
+    (row: OwnAdMetricRow) => {
+      setStudioTrigger({
+        id: `dd-${row.id}-${Date.now()}`,
+        mode: "video",
+        stylePresetId:
+          row.stylePresetId === "iphone_ugc" ? "claymation_moa" : "iphone_ugc",
+        angle: `Double Down: ${row.hookText}`,
+      });
+      navigateWithSkeleton(() => {
+        setView("studio");
+      });
+      showToast(`Bygger frisk vinder-variant ud fra "${row.name}"`);
+    },
+    [navigateWithSkeleton]
+  );
+
+  const handleLaunchProjects = useCallback(
+    (projectIds: string[], campaign: string, budgetDkk: number) => {
+      setCreativeProjects((prev) =>
+        prev.map((p) =>
+          projectIds.includes(p.id)
+            ? { ...p, status: "live", campaignName: campaign, dailyBudgetDkk: budgetDkk }
+            : p
+        )
+      );
+      showToast(`${projectIds.length} creative(s) sendt live til "${campaign}"`);
+    },
+    []
+  );
+
+  const handleSaveStudioCreativeToFolder = useCallback(
+    (proj: CreativeProject) => {
+      const targetBoardId = boards[0]?.id;
+      const newAd: Ad = {
+        id: `studio-${proj.id}`,
+        brand_id: "custom-media",
+        brand_name: proj.brandName,
+        brand_handle: "@studio",
+        brand_avatar_initials: proj.brandName.slice(0, 2).toUpperCase(),
+        brand_avatar_color: "#0027eb",
+        market: "DK",
+        source_type: "manual",
+        source_url: proj.landingPageUrl || "https://ads-tracker-blue.vercel.app",
+        media_type: proj.mode === "static_clone" ? "image" : "video",
+        media_url: proj.productImageUrl || "",
+        thumbnail_url: proj.productImageUrl || "",
+        aspect_ratio: proj.aspectRatio === "1:1" ? "1:1" : proj.aspectRatio === "4:5" ? "3:4" : "9:16",
+        headline: proj.headline,
+        primary_text: proj.primaryText,
+        cta_text: proj.ctaText,
+        landing_page_url: proj.landingPageUrl,
+        landing_page_path: "/",
+        extracted_hook: proj.hooks[0]?.spokenHook || proj.headline,
+        hook_category: proj.angle,
+        is_active: true,
+        is_favorite: false,
+        started_running_at: new Date().toISOString(),
+        platforms: ["Facebook", "Instagram"],
+        tags: ["custom-upload", "studio"],
+        board_ids: targetBoardId ? [targetBoardId] : [],
+        user_notes: proj.scenes.map((s) => `${s.timeRange}: ${s.spokenLine}`).join("\n"),
+        status: "ready",
+        created_at: new Date().toISOString(),
+      };
+      setAds((prev) => [newAd, ...prev.filter((a) => a.id !== newAd.id)]);
+      syncCatalog({ action: "upsert_ad", ad: newAd });
+      showToast(
+        targetBoardId
+          ? `Gemt i Swipe Folder "${boards[0].name}"`
+          : "Gemt som Studio-creative"
+      );
+    },
+    [boards]
+  );
 
   const handleOpenAd = useCallback((item: Ad) => {
     setActiveAdId(item.id);
@@ -1182,7 +1433,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   return (
     <>
     {/* COMPACT FIXED SOLID WHITE MOBILE TOP BAR (root-level fixed at top: 0 for WebKit edge sampling, Antigravity-tight height) */}
-    <header className="mobile-pwa-header fixed inset-x-0 top-0 z-40 flex items-center border-b border-[#E6E9F0] bg-white px-4 pb-2.5 text-[#0F172A] lg:hidden">
+    <header className="mobile-pwa-header fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-[#E6E9F0] bg-white px-4 pb-2.5 text-[#0F172A] lg:hidden">
       <button
         type="button"
         data-no-glass="true"
@@ -1202,6 +1453,36 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           className="h-[22px] w-auto select-none"
         />
       </button>
+
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setBrandMemoryModalOpen(true)}
+          className="inline-flex items-center gap-1 rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 text-[11px] font-semibold text-[#0F172A]"
+        >
+          <Sparkles className="h-3 w-3 text-[#0027eb]" />
+          <span className="max-w-[95px] truncate">
+            {brandMemory ? brandMemory.brandName : "Brand"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            navigateWithSkeleton(() => {
+              setView("folders");
+              setSelectedShopId(null);
+            })
+          }
+          aria-label="Folders"
+          className={`flex h-7 w-7 items-center justify-center rounded-lg border ${
+            view === "folders"
+              ? "border-[#0027eb] bg-[#0027eb]/10 text-[#0027eb]"
+              : "border-[#E6E9F0] bg-white text-[#475569]"
+          }`}
+        >
+          <Folder className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </header>
     <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
@@ -1209,28 +1490,55 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
          ===================================================================== */}
       <aside className="adtrack-sidebar relative hidden h-full w-[266px] shrink-0 flex-col py-5 pl-3.5 pr-[38px] text-white lg:flex">
         <SidebarPixelWave />
-        {/* Brand Wordmark */}
+        {/* Brand Wordmark + Brand Memory Switcher */}
+        <div className="mb-5 flex items-center justify-between px-2.5">
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => {
+              navigateWithSkeleton(() => {
+                setView("shops");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
+            }}
+            className="flex items-center text-left"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icons/flake-wordmark-white.png"
+              alt="Flake"
+              className="h-[19px] w-auto select-none"
+            />
+          </button>
+          <span className="rounded-md bg-white/[0.08] px-1.5 py-0.5 font-mono-num text-[9.5px] font-bold text-[#B9CBFF]">
+            STUDIO
+          </span>
+        </div>
+
         <button
           type="button"
           data-no-glass="true"
-          onClick={() => {
-            navigateWithSkeleton(() => {
-              setView("shops");
-              setSelectedShopId(null);
-              setSelectedFolderId(null);
-            });
-          }}
-          className="mb-7 flex items-center px-2.5 text-left"
+          onClick={() => setBrandMemoryModalOpen(true)}
+          className="mb-5 flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-2.5 py-2 text-left transition-colors hover:bg-white/[0.11]"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons/flake-wordmark-white.png"
-            alt="Flake"
-            className="h-[19px] w-auto select-none"
-          />
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#0027eb] text-[10px] font-bold text-white">
+              {brandMemory ? brandMemory.brandName.slice(0, 2).toUpperCase() : <Sparkles className="h-3.5 w-3.5" />}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[12px] font-semibold text-white">
+                {brandMemory ? brandMemory.brandName : "Forbind dit brand"}
+              </span>
+              <span className="block truncate text-[10px] text-white/50">
+                {brandMemory ? `${brandMemory.products.length} prod. i memory` : "Scan URL (5 sek.)"}
+              </span>
+            </span>
+          </span>
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/45" />
         </button>
 
-        {/* SECTION 1: DISCOVER (Shops + Explore ONLY) */}
+        {/* SECTION 1: DISCOVER */}
         <div className="space-y-1">
           <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
             Discover
@@ -1245,7 +1553,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 setSelectedFolderId(null);
               });
             }}
-            className="flex w-full items-center rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
+            className="flex w-full items-center rounded-xl px-3 py-2 font-display text-[13.5px] font-semibold transition-all"
             style={
               view === "shops"
                 ? {
@@ -1271,7 +1579,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 setSelectedFolderId(null);
               });
             }}
-            className="flex w-full items-center rounded-xl px-3 py-2.5 font-display text-[13.5px] font-semibold transition-all"
+            className="flex w-full items-center rounded-xl px-3 py-2 font-display text-[13.5px] font-semibold transition-all"
             style={
               view === "explore"
                 ? {
@@ -1285,6 +1593,99 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             <span className="flex items-center gap-2.5">
               <Radar className="h-[17px] w-[17px]" />
               Ads
+            </span>
+          </button>
+        </div>
+
+        {/* SECTION 2: CREATE & SCALE (Snow AI + Ad Studio + Analytics & Launch) */}
+        <div className="mt-5 space-y-1">
+          <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
+            Create &amp; Scale
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              navigateWithSkeleton(() => {
+                setView("snow");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 font-display text-[13.5px] font-semibold transition-all"
+            style={
+              view === "snow"
+                ? {
+                    backgroundColor: "rgba(255,255,255,0.11)",
+                    color: "#FFFFFF",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
+                  }
+                : { color: "rgba(255,255,255,0.62)" }
+            }
+          >
+            <span className="flex items-center gap-2.5">
+              <SnowMark className="h-[17px] w-[17px]" />
+              Snow AI
+            </span>
+            <span className="rounded bg-[#0027eb] px-1.5 py-0.5 text-[9.5px] font-bold text-white">
+              Agent
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              navigateWithSkeleton(() => {
+                setView("studio");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 font-display text-[13.5px] font-semibold transition-all"
+            style={
+              view === "studio"
+                ? {
+                    backgroundColor: "rgba(255,255,255,0.11)",
+                    color: "#FFFFFF",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
+                  }
+                : { color: "rgba(255,255,255,0.62)" }
+            }
+          >
+            <span className="flex items-center gap-2.5">
+              <Film className="h-[17px] w-[17px]" />
+              Ad Studio
+            </span>
+            {creativeProjects.length > 0 && (
+              <span className="font-mono-num text-[10.5px] text-white/45">
+                {creativeProjects.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              navigateWithSkeleton(() => {
+                setView("analytics");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
+            }}
+            className="flex w-full items-center rounded-xl px-3 py-2 font-display text-[13.5px] font-semibold transition-all"
+            style={
+              view === "analytics"
+                ? {
+                    backgroundColor: "rgba(255,255,255,0.11)",
+                    color: "#FFFFFF",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
+                  }
+                : { color: "rgba(255,255,255,0.62)" }
+            }
+          >
+            <span className="flex items-center gap-2.5">
+              <BarChart3 className="h-[17px] w-[17px]" />
+              Analytics &amp; Launch
             </span>
           </button>
         </div>
@@ -2095,6 +2496,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         onOpen={handleOpenAd}
                         onToggleBoard={handleToggleBoard}
                         onOpenBrand={openShopAnalytics}
+                        onCloneAd={(a) => handleCloneAdToStudio(a)}
                       />
                     ))}
                   </div>
@@ -2143,6 +2545,64 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 onOpenAd={(ad) => setActiveAdId(ad.id)}
                 onToggleBoard={handleToggleBoard}
                 onAddCustomAd={handleAddCustomAd}
+                onCloneAd={(ad) => handleCloneAdToStudio(ad)}
+              />
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 4: SNOW AI CREATIVE STRATEGIST
+             ================================================================= */}
+          {view === "snow" && (
+            <div className="animate-view-in h-[calc(100%-1rem)]">
+              <SnowAssistantView
+                brandMemory={brandMemory}
+                messages={snowMessages}
+                ads={dedupedAds}
+                analyticsRows={ownAnalyticsRows}
+                onMessagesChange={setSnowMessages}
+                onOpenBrandMemory={() => setBrandMemoryModalOpen(true)}
+                onCloneAdToStudio={handleCloneAdToStudio}
+                onOpenBriefInStudio={handleOpenBriefInStudio}
+                onOpenAdDetail={(ad) => setActiveAdId(ad.id)}
+              />
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 5: ZERO-SKILL AD STUDIO (VIDEO MAKER + STATIC CLONER + URL MINER)
+             ================================================================= */}
+          {view === "studio" && (
+            <div className="animate-view-in">
+              <VideoStudioView
+                brandMemory={brandMemory}
+                projects={creativeProjects}
+                incomingTrigger={studioTrigger}
+                onConsumeTrigger={() => setStudioTrigger(null)}
+                onSaveProject={handleSaveStudioProject}
+                onQueueForLaunch={handleQueueProjectForLaunch}
+                onSaveToSwipeFolder={handleSaveStudioCreativeToFolder}
+                onOpenBrandMemory={() => setBrandMemoryModalOpen(true)}
+              />
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 6: CREATIVE ANALYTICS & META LAUNCH
+             ================================================================= */}
+          {view === "analytics" && (
+            <div className="animate-view-in">
+              <CreativeAnalyticsView
+                brandMemory={brandMemory}
+                projects={creativeProjects}
+                analyticsRows={ownAnalyticsRows}
+                onDoubleDown={handleDoubleDownWinner}
+                onLaunchProjects={handleLaunchProjects}
+                onImportCsvRows={(rows) => {
+                  setImportedCsvRows(rows);
+                  showToast(`${rows.length} annoncer importeret til Analytics`);
+                }}
+                onOpenBrandMemory={() => setBrandMemoryModalOpen(true)}
               />
             </div>
           )}
@@ -2152,24 +2612,38 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       </div>
     </div>
 
+      {/* FLOATING "SPØRG SNOW" COPILOT PILL (Desktop + non-Snow views) */}
+      {view !== "snow" && (
+        <button
+          type="button"
+          onClick={() => setSnowDrawerOpen(true)}
+          className="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full border border-[#DCE4FF] bg-white/95 px-3.5 py-2 text-xs font-bold text-[#0F172A] shadow-[0_10px_30px_-6px_rgba(0,39,235,0.22)] backdrop-blur-md transition-all hover:border-[#0027eb] hover:text-[#0027eb] lg:bottom-6 lg:right-6"
+        >
+          <span className="adtrack-icon-badge flex h-6 w-6 items-center justify-center rounded-full text-white">
+            <SnowMark className="h-3.5 w-3.5" />
+          </span>
+          Spørg Snow
+        </button>
+      )}
+
       {/* =====================================================================
-          FLOATING iOS 26 LIQUID GLASS TAB BAR — SHOPS, EXPLORE, FOLDERS
+          FLOATING iOS 26 LIQUID GLASS TAB BAR — 5 CORE WORKFLOW TABS
          ===================================================================== */}
       <div
-        className="flake-mobile-nav pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-1 lg:hidden"
+        className="flake-mobile-nav pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-2 pt-1 lg:hidden"
         style={{
           paddingBottom: "max(1.125rem, calc(env(safe-area-inset-bottom, 0px) * 0.72))",
         }}
       >
         <GlassTabBar
           aria-label="Hovednavigation"
-          value={view}
+          value={view === "folders" ? "explore" : view}
           onValueChange={(next) => {
             const target = next as ActiveView;
             navigateWithSkeleton(() => {
               setView(target);
               setSelectedShopId(null);
-              if (target !== "folders") setSelectedFolderId(null);
+              setSelectedFolderId(null);
               scrollWorkspaceToTop(true);
             });
           }}
@@ -2186,9 +2660,19 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             label="Ads"
           />
           <GlassTabBarItem
-            value="folders"
-            icon={<Folder strokeWidth={view === "folders" ? 2.25 : 1.85} />}
-            label="Folders"
+            value="snow"
+            icon={<SnowMark />}
+            label="Snow"
+          />
+          <GlassTabBarItem
+            value="studio"
+            icon={<Film strokeWidth={view === "studio" ? 2.25 : 1.85} />}
+            label="Studio"
+          />
+          <GlassTabBarItem
+            value="analytics"
+            icon={<BarChart3 strokeWidth={view === "analytics" ? 2.25 : 1.85} />}
+            label="Analytics"
           />
         </GlassTabBar>
       </div>
@@ -2211,6 +2695,37 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         onDeleteAd={handleDeleteAd}
         onToggleBoard={handleToggleBoard}
         onOpenBrand={openShopAnalytics}
+        onCloneAd={(ad) => handleCloneAdToStudio(ad)}
+        onAskSnow={handleAskSnowAboutAd}
+      />
+
+      {/* BRAND MEMORY ONBOARDING MODAL */}
+      <BrandMemoryModal
+        open={brandMemoryModalOpen}
+        initialMemory={brandMemory}
+        onClose={() => setBrandMemoryModalOpen(false)}
+        onSaveMemory={(mem) => {
+          setBrandMemory(mem);
+          showToast(`Brand Memory gemt for ${mem.brandName}`);
+        }}
+      />
+
+      {/* SNOW AI QUICK COPILOT DRAWER */}
+      <SnowQuickDrawer
+        open={snowDrawerOpen}
+        onClose={() => setSnowDrawerOpen(false)}
+        brandMemory={brandMemory}
+        messages={snowMessages}
+        ads={dedupedAds}
+        analyticsRows={ownAnalyticsRows}
+        onMessagesChange={setSnowMessages}
+        onOpenBrandMemory={() => {
+          setSnowDrawerOpen(false);
+          setBrandMemoryModalOpen(true);
+        }}
+        onCloneAdToStudio={handleCloneAdToStudio}
+        onOpenBriefInStudio={handleOpenBriefInStudio}
+        onOpenAdDetail={(ad) => setActiveAdId(ad.id)}
       />
     </>
   );

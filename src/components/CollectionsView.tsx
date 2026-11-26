@@ -111,6 +111,7 @@ interface CollectionsViewProps {
   onOpenAd: (ad: Ad) => void;
   onToggleBoard: (adId: string, boardId: string) => void;
   onAddCustomAd?: (ad: Ad) => void;
+  onCloneAd?: (ad: Ad) => void;
 }
 
 /**
@@ -183,6 +184,7 @@ export function CollectionsView({
   onOpenAd,
   onToggleBoard,
   onAddCustomAd,
+  onCloneAd,
 }: CollectionsViewProps) {
   void _brands;
   const [creating, setCreating] = useState(false);
@@ -1002,6 +1004,7 @@ export function CollectionsView({
                     onOpen={onOpenAd}
                     onToggleBoard={onToggleBoard}
                     onOpenBrand={onOpenShop}
+                    onCloneAd={onCloneAd}
                   />
                 )
               }

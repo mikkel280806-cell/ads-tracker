@@ -10,6 +10,7 @@ import {
   Film,
   Layers,
   Play,
+  Sparkles,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import { getActiveDays } from "@/lib/url-parser";
@@ -25,6 +26,7 @@ interface AdCardProps {
   onOpen: (ad: Ad) => void;
   onToggleBoard: (adId: string, boardId: string) => void;
   onOpenBrand?: (brandId: string) => void;
+  onCloneAd?: (ad: Ad) => void;
 }
 
 export const AdCard = React.memo(function AdCard({
@@ -35,6 +37,7 @@ export const AdCard = React.memo(function AdCard({
   onOpen,
   onToggleBoard,
   onOpenBrand,
+  onCloneAd,
 }: AdCardProps) {
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
   const [copyExpanded, setCopyExpanded] = useState(false);
@@ -431,16 +434,16 @@ export const AdCard = React.memo(function AdCard({
         </div>
       </div>
 
-      {/* 4. FULL-WIDTH "Save to Folder" BUTTON (matches AdDetailSheet's Liquid Glass specular button) */}
+      {/* 4. FOOTER: "Save to Folder" + optional 1-click "Clone" */}
       <div
-        className="relative px-2 pb-2 pt-2"
+        className="relative flex items-center gap-1.5 px-2 pb-2 pt-2"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           ref={folderBtnRef}
           type="button"
           onClick={() => setFolderMenuOpen((v) => !v)}
-          className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors ${
+          className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors ${
             inFolders
               ? "border-[#0027eb]/25 bg-[#0027eb]/[0.08] text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
               : "border-[#E6E9F0] bg-white text-[#0F172A] hover:bg-[#FAFBFD]"
@@ -463,6 +466,19 @@ export const AdCard = React.memo(function AdCard({
             }`}
           />
         </button>
+
+        {onCloneAd && !isOrganic && (
+          <button
+            type="button"
+            data-no-glass="true"
+            title="Clone ad til mit brand"
+            onClick={() => onCloneAd(ad)}
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Clone
+          </button>
+        )}
 
         <FlakePopover
           open={folderMenuOpen}
