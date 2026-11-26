@@ -2612,17 +2612,17 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       </div>
     </div>
 
-      {/* FLOATING "SPØRG SNOW" COPILOT PILL (Desktop + non-Snow views) */}
+      {/* FLOATING "SNOW" COPILOT PILL (Desktop only — mobile has Snow in bottom tab bar) */}
       {view !== "snow" && (
         <button
           type="button"
           onClick={() => setSnowDrawerOpen(true)}
-          className="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full border border-[#DCE4FF] bg-white/95 px-3.5 py-2 text-xs font-bold text-[#0F172A] shadow-[0_10px_30px_-6px_rgba(0,39,235,0.22)] backdrop-blur-md transition-all hover:border-[#0027eb] hover:text-[#0027eb] lg:bottom-6 lg:right-6"
+          className="fixed bottom-6 right-6 z-30 hidden items-center gap-2 rounded-full border border-[#DCE4FF] bg-white/95 px-3.5 py-2 text-xs font-bold text-[#0F172A] shadow-[0_10px_30px_-6px_rgba(0,39,235,0.22)] backdrop-blur-md transition-all hover:border-[#0027eb] hover:text-[#0027eb] lg:inline-flex"
         >
           <span className="adtrack-icon-badge flex h-6 w-6 items-center justify-center rounded-full text-white">
             <SnowMark className="h-3.5 w-3.5" />
           </span>
-          Spørg Snow
+          Snow
         </button>
       )}
 
