@@ -32,8 +32,11 @@ import type { Ad, ProductPreview } from "@/lib/types";
 import { buildClonedSourceFromAd } from "@/lib/studio-types";
 import { getPresetById } from "@/lib/snow-engine";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
+import { SnowCharacter, SnowMark } from "./SnowMascot";
 
-interface SnowAssistantProps {
+export { SnowCharacter, SnowMark };
+
+export interface SnowAssistantProps {
   brandMemory: BrandMemory | null;
   messages: SnowMessage[];
   ads: Ad[];
@@ -49,24 +52,6 @@ interface SnowAssistantProps {
     clonedFromAd?: ClonedSourceAd;
   }) => void;
   onOpenAdDetail?: (ad: Ad) => void;
-}
-
-export function SnowMark({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" />
-    </svg>
-  );
 }
 
 const STARTER_CARDS = [
@@ -494,13 +479,12 @@ export function SnowAssistantView({
         )}
       </div>
 
-      {/* Centered Clean Welcome Hero (Atria Raya inspired) OR Thread */}
+      {/* Centered Clean Welcome Hero with Pixel Snow Character */}
       {messages.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-[0_14px_38px_-10px_rgba(0,39,235,0.28)] ring-1 ring-[#DCE4FF]">
-            <span className="adtrack-icon-badge flex h-10 w-10 items-center justify-center rounded-xl text-white">
-              <SnowMark className="h-5 w-5" />
-            </span>
+          <div className="relative mb-3 flex items-center justify-center">
+            <div className="pointer-events-none absolute h-16 w-16 rounded-full bg-[#0027eb]/12 blur-xl" />
+            <SnowCharacter size={76} className="relative z-10" />
           </div>
           <h1 className="font-display text-[28px] font-bold tracking-[-0.03em] text-[#0F172A]">
             Spørg Snow
@@ -575,12 +559,17 @@ export function SnowAssistantView({
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${
+                className={`flex items-start gap-2.5 ${
                   msg.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
+                {msg.role === "assistant" && (
+                  <div className="mt-1 shrink-0">
+                    <SnowCharacter size={28} animate={false} />
+                  </div>
+                )}
                 <div
-                  className={`max-w-[92%] rounded-2xl px-4 py-3 sm:max-w-[88%] ${
+                  className={`max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[85%] ${
                     msg.role === "user"
                       ? "bg-[#0F172A] text-white"
                       : "border border-[#ECEFF5] bg-white text-[#0F172A]"
@@ -617,9 +606,9 @@ export function SnowAssistantView({
             ))}
 
             {sending && (
-              <div className="flex justify-start">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#ECEFF5] bg-white px-4 py-2 text-xs font-medium text-[#64748B]">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0027eb]" />
+              <div className="flex items-center gap-2.5">
+                <SnowCharacter size={28} thinking />
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#ECEFF5] bg-white px-3.5 py-1.5 text-xs font-medium text-[#64748B]">
                   Snow tænker...
                 </div>
               </div>
@@ -891,7 +880,8 @@ export function SnowQuickDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-center justify-between">
-          <span className="font-display text-xs font-bold text-[#0F172A]">
+          <span className="inline-flex items-center gap-2 font-display text-xs font-bold text-[#0F172A]">
+            <SnowCharacter size={22} animate={false} />
             Snow
           </span>
           <button

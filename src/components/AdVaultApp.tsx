@@ -45,6 +45,7 @@ import { buildOwnAnalyticsDataset } from "@/lib/snow-engine";
 import { BrandMemoryModal } from "./BrandMemoryModal";
 import {
   SnowAssistantView,
+  SnowCharacter,
   SnowMark,
   SnowQuickDrawer,
 } from "./SnowAssistantView";
@@ -2617,11 +2618,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         <button
           type="button"
           onClick={() => setSnowDrawerOpen(true)}
-          className="fixed bottom-6 right-6 z-30 hidden items-center gap-2 rounded-full border border-[#DCE4FF] bg-white/95 px-3.5 py-2 text-xs font-bold text-[#0F172A] shadow-[0_10px_30px_-6px_rgba(0,39,235,0.22)] backdrop-blur-md transition-all hover:border-[#0027eb] hover:text-[#0027eb] lg:inline-flex"
+          className="fixed bottom-6 right-6 z-30 hidden items-center gap-2 rounded-full border border-[#DCE4FF] bg-white/95 py-1.5 pl-2.5 pr-4 text-xs font-bold text-[#0F172A] shadow-[0_10px_30px_-6px_rgba(0,39,235,0.22)] backdrop-blur-md transition-all hover:border-[#0027eb] hover:text-[#0027eb] lg:inline-flex"
         >
-          <span className="adtrack-icon-badge flex h-6 w-6 items-center justify-center rounded-full text-white">
-            <SnowMark className="h-3.5 w-3.5" />
-          </span>
+          <SnowCharacter size={24} animate={false} />
           Snow
         </button>
       )}

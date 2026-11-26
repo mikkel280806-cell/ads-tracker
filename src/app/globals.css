@@ -519,3 +519,44 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
     );
 }
 
+/* Crisp Stepped Pixel Animations for Snow Character */
+@keyframes snowPixelIdle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes snowPixelBlink {
+  0%, 92%, 100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.18);
+  }
+}
+
+@keyframes snowPixelSparkle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.snow-pixel-idle {
+  animation: snowPixelIdle 2.6s steps(2, end) infinite;
+}
+
+.snow-pixel-eyes {
+  transform-origin: 9px 7.5px;
+  animation: snowPixelBlink 4.4s steps(2, end) infinite;
+}
+
+.snow-pixel-sparkle {
+  animation: snowPixelSparkle 0.9s steps(2, end) infinite;
+}
+
