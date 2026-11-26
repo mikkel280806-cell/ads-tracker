@@ -592,7 +592,7 @@ export function OnboardingFlow() {
               {/* PHASE B & C: PROGRESSIVE ANIMATED BRAND CARD */}
               {phase !== "input" && (
                 <div className="animate-onboard-pop mt-7 w-full text-left">
-                  <div className="overflow-hidden rounded-[18px] border border-white/[0.11] bg-[#141720]/70 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.75)] backdrop-blur-[2px]">
+                  <div className="overflow-hidden rounded-[18px] border border-white/[0.11] bg-[#141720]/42 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.75)]">
                     {/* Top Brand Section */}
                     <div className="p-4 sm:p-5">
                       <div className="flex items-start justify-between gap-3">
