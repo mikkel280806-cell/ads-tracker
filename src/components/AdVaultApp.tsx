@@ -1488,25 +1488,184 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     </header>
     <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
-          ATRIA-STYLE DUAL-RAIL OBSIDIAN NAVIGATION (SLIM RAIL + CONTEXTUAL DRAWER)
+          FLAKE COMMAND RAIL + CONTEXTUAL OBSIDIAN DOCK
          ===================================================================== */}
       {(() => {
         const isInspoView =
           view === "shops" || view === "explore" || view === "folders";
         const hasSubDrawer = (isInspoView || view === "analytics") && subNavOpen;
 
+        const primaryRailItems = [
+          {
+            id: "inspo",
+            label: "Inspo",
+            active: isInspoView,
+            accent: false,
+            badge: null as string | null,
+            dot: false,
+            icon: <Compass className="h-[18px] w-[18px]" />,
+            onClick: () => {
+              if (isInspoView) {
+                setSubNavOpen((v) => !v);
+              } else {
+                navigateWithSkeleton(() => {
+                  setView("explore");
+                  setSelectedShopId(null);
+                  setSelectedFolderId(null);
+                  setSubNavOpen(true);
+                });
+              }
+            },
+          },
+          {
+            id: "snow",
+            label: "Snow",
+            active: view === "snow",
+            accent: true,
+            badge: null as string | null,
+            dot: false,
+            icon: <SnowMark className="h-[18px] w-[18px]" />,
+            onClick: () => {
+              navigateWithSkeleton(() => {
+                setView("snow");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
+            },
+          },
+          {
+            id: "studio",
+            label: "Creation",
+            active: view === "studio" && studioInitialTab !== "assets",
+            accent: false,
+            badge: null as string | null,
+            dot: false,
+            icon: <Lightbulb className="h-[18px] w-[18px]" />,
+            onClick: () => {
+              setStudioInitialTab("video");
+              navigateWithSkeleton(() => {
+                setView("studio");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
+            },
+          },
+          {
+            id: "analytics",
+            label: "Analytics",
+            active: view === "analytics",
+            accent: false,
+            badge: null as string | null,
+            dot: false,
+            icon: <BarChart3 className="h-[18px] w-[18px]" />,
+            onClick: () => {
+              if (view === "analytics") {
+                setSubNavOpen((v) => !v);
+              } else {
+                navigateWithSkeleton(() => {
+                  setView("analytics");
+                  setSelectedShopId(null);
+                  setSelectedFolderId(null);
+                  setSubNavOpen(true);
+                });
+              }
+            },
+          },
+        ];
+
+        const libraryRailItems = [
+          {
+            id: "assets",
+            label: "Assets",
+            active: view === "studio" && studioInitialTab === "assets",
+            accent: false,
+            badge:
+              creativeProjects.length > 0
+                ? String(creativeProjects.length)
+                : null,
+            dot: false,
+            icon: <Clapperboard className="h-[18px] w-[18px]" />,
+            onClick: () => {
+              setStudioInitialTab("assets");
+              navigateWithSkeleton(() => {
+                setView("studio");
+                setSelectedShopId(null);
+                setSelectedFolderId(null);
+              });
+            },
+          },
+          {
+            id: "brands",
+            label: "Brands",
+            active: brandMemoryModalOpen,
+            accent: false,
+            badge: null as string | null,
+            dot: Boolean(brandMemory),
+            icon: <Store className="h-[18px] w-[18px]" />,
+            onClick: () => setBrandMemoryModalOpen(true),
+          },
+        ];
+
+        const renderRailButton = (item: (typeof primaryRailItems)[number]) => (
+          <button
+            key={item.id}
+            type="button"
+            data-no-glass="true"
+            onClick={item.onClick}
+            className="group relative flex w-full flex-col items-center justify-center gap-1 py-1 text-center transition-all"
+          >
+            {/* Active Cobalt Beacon Pill flush on left rail edge */}
+            <span
+              className={`absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-[#3B66FF] shadow-[0_0_12px_rgba(0,39,235,0.95)] transition-all duration-200 ${
+                item.active ? "h-5 w-[3px] opacity-100" : "h-0 w-[3px] opacity-0"
+              }`}
+            />
+
+            {/* Crisp Icon Tile */}
+            <span
+              className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200 ${
+                item.active && item.accent
+                  ? "bg-[#0027eb] text-white shadow-[0_6px_18px_-4px_rgba(0,39,235,0.85)] ring-1 ring-white/25"
+                  : item.active
+                    ? "bg-white/[0.12] text-white ring-1 ring-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
+                    : "text-white/55 group-hover:bg-white/[0.07] group-hover:text-white"
+              }`}
+            >
+              {item.icon}
+              {item.badge && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0027eb] px-1 font-mono-num text-[9px] font-bold text-white ring-2 ring-[#050811]">
+                  {item.badge}
+                </span>
+              )}
+              {item.dot && (
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#22C55E] ring-2 ring-[#050811]" />
+              )}
+            </span>
+
+            <span
+              className={`text-[10px] font-medium leading-none tracking-tight transition-colors ${
+                item.active
+                  ? "text-white"
+                  : "text-white/45 group-hover:text-white/80"
+              }`}
+            >
+              {item.label}
+            </span>
+          </button>
+        );
+
         return (
           <aside className="relative hidden h-full shrink-0 text-white lg:flex">
-            {/* 1. SLIM ICON RAIL (68px — exact Atria icon rail proportions) */}
+            {/* 1. SLIM COMMAND RAIL (70px — real Flake asterisk emblem + Cobalt beacon) */}
             <div
               className={`relative z-20 flex h-full flex-col items-center justify-between bg-[#050811] py-4 ${
                 hasSubDrawer
-                  ? "w-[68px] border-r border-white/[0.07]"
-                  : "w-[92px] pr-[24px]"
+                  ? "w-[70px] border-r border-white/[0.06]"
+                  : "w-[94px] pr-[24px]"
               }`}
             >
-              <div className="flex w-full flex-col items-center gap-1 px-1.5">
-                {/* Workspace Cobalt Badge */}
+              <div className="flex w-full flex-col items-center">
+                {/* Real Flake Asterisk Emblem */}
                 <button
                   type="button"
                   data-no-glass="true"
@@ -1519,115 +1678,28 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     });
                   }}
                   title="Flake"
-                  className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#0027eb] font-display text-[15px] font-extrabold text-white shadow-[0_6px_18px_-4px_rgba(0,39,235,0.65)] transition-transform hover:scale-105"
+                  className="group mb-5 flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] ring-1 ring-white/20 shadow-[0_8px_22px_-6px_rgba(0,39,235,0.85)] transition-all duration-300 hover:scale-105 hover:ring-white/35"
                 >
-                  F
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/icons/icon-192.png"
+                    alt="Flake"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:rotate-12"
+                  />
                 </button>
 
-                {/* Rail Items */}
-                {[
-                  {
-                    id: "inspo",
-                    label: "Inspo",
-                    active: isInspoView,
-                    icon: <Compass className="h-[18px] w-[18px]" />,
-                    onClick: () => {
-                      if (isInspoView) {
-                        setSubNavOpen((v) => !v);
-                      } else {
-                        navigateWithSkeleton(() => {
-                          setView("explore");
-                          setSelectedShopId(null);
-                          setSelectedFolderId(null);
-                          setSubNavOpen(true);
-                        });
-                      }
-                    },
-                  },
-                  {
-                    id: "snow",
-                    label: "Snow",
-                    active: view === "snow",
-                    icon: <SnowMark className="h-[18px] w-[18px]" />,
-                    onClick: () => {
-                      navigateWithSkeleton(() => {
-                        setView("snow");
-                        setSelectedShopId(null);
-                        setSelectedFolderId(null);
-                      });
-                    },
-                  },
-                  {
-                    id: "analytics",
-                    label: "Analytics",
-                    active: view === "analytics",
-                    icon: <BarChart3 className="h-[18px] w-[18px]" />,
-                    onClick: () => {
-                      if (view === "analytics") {
-                        setSubNavOpen((v) => !v);
-                      } else {
-                        navigateWithSkeleton(() => {
-                          setView("analytics");
-                          setSelectedShopId(null);
-                          setSelectedFolderId(null);
-                          setSubNavOpen(true);
-                        });
-                      }
-                    },
-                  },
-                  {
-                    id: "studio",
-                    label: "Creation",
-                    active: view === "studio" && studioInitialTab !== "assets",
-                    icon: <Lightbulb className="h-[18px] w-[18px]" />,
-                    onClick: () => {
-                      setStudioInitialTab("video");
-                      navigateWithSkeleton(() => {
-                        setView("studio");
-                        setSelectedShopId(null);
-                        setSelectedFolderId(null);
-                      });
-                    },
-                  },
-                  {
-                    id: "assets",
-                    label: "Assets",
-                    active: view === "studio" && studioInitialTab === "assets",
-                    icon: <Clapperboard className="h-[18px] w-[18px]" />,
-                    onClick: () => {
-                      setStudioInitialTab("assets");
-                      navigateWithSkeleton(() => {
-                        setView("studio");
-                        setSelectedShopId(null);
-                        setSelectedFolderId(null);
-                      });
-                    },
-                  },
-                  {
-                    id: "brands",
-                    label: "Brands",
-                    active: brandMemoryModalOpen,
-                    icon: <Store className="h-[18px] w-[18px]" />,
-                    onClick: () => setBrandMemoryModalOpen(true),
-                  },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    data-no-glass="true"
-                    onClick={item.onClick}
-                    className={`flex w-full flex-col items-center justify-center gap-1 rounded-xl py-2 transition-all ${
-                      item.active
-                        ? "bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]"
-                        : "text-white/55 hover:bg-white/[0.06] hover:text-white/90"
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="text-[10px] font-medium leading-none tracking-tight">
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
+                {/* Primary Creative Loop */}
+                <div className="flex w-full flex-col items-center gap-1.5">
+                  {primaryRailItems.map(renderRailButton)}
+                </div>
+
+                {/* Hairline Divider */}
+                <div className="my-3 h-px w-6 bg-white/[0.09]" />
+
+                {/* Workspace Library */}
+                <div className="flex w-full flex-col items-center gap-1.5">
+                  {libraryRailItems.map(renderRailButton)}
+                </div>
               </div>
 
               {/* Bottom Slim Rail Profile */}
@@ -1636,117 +1708,119 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   type="button"
                   data-no-glass="true"
                   title="Mikkel Petersen"
-                  className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.08] font-display text-xs font-bold text-white ring-1 ring-white/10 hover:bg-white/[0.14]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-white/[0.14] to-white/[0.06] font-display text-xs font-bold text-white ring-1 ring-white/15 transition-colors hover:ring-white/30"
                 >
                   M
                 </button>
               </div>
             </div>
 
-            {/* 2. CONTEXTUAL SECONDARY DRAWER (Inspo / Analytics — auto-hidden on Snow & Creation) */}
+            {/* 2. CONTEXTUAL SECONDARY DOCK (Inspo / Analytics — auto-collapses on Snow & Creation) */}
             {hasSubDrawer && (
-              <div className="adtrack-sidebar relative flex h-full w-[228px] flex-col py-4 pl-3.5 pr-[36px] text-white">
+              <div className="adtrack-sidebar relative flex h-full w-[236px] flex-col bg-[#080C18] py-4 pl-4 pr-[36px] text-white">
                 <SidebarPixelWave />
+
+                {/* Top Wordmark + Section Breadcrumb + Collapse Toggle */}
+                <div className="mb-5 flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/icons/flake-wordmark-white.png"
+                      alt="Flake"
+                      className="h-[15px] w-auto select-none opacity-95"
+                    />
+                    <span className="text-white/20">/</span>
+                    <span className="text-[12px] font-semibold text-white/75">
+                      {isInspoView ? "Inspo" : "Analytics"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setSubNavOpen(false)}
+                    title="Skjul panel"
+                    className="flex h-6 w-6 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    <PanelLeft className="h-3.5 w-3.5" />
+                  </button>
+                </div>
 
                 {isInspoView ? (
                   <>
-                    <div className="mb-4 flex items-center justify-between px-2">
-                      <span className="font-display text-[15px] font-bold text-white">
-                        Inspo
-                      </span>
-                      <button
-                        type="button"
-                        data-no-glass="true"
-                        onClick={() => setSubNavOpen(false)}
-                        title="Skjul panel"
-                        className="flex h-6 w-6 items-center justify-center rounded-md text-white/45 hover:bg-white/10 hover:text-white"
-                      >
-                        <PanelLeft className="h-3.5 w-3.5" />
-                      </button>
+                    <div className="space-y-1">
+                      {[
+                        {
+                          id: "explore",
+                          label: "Ads",
+                          active: view === "explore",
+                          icon: <Radar className="h-[15px] w-[15px]" />,
+                          onClick: () =>
+                            navigateWithSkeleton(() => {
+                              setView("explore");
+                              setSelectedShopId(null);
+                              setSelectedFolderId(null);
+                            }),
+                        },
+                        {
+                          id: "shops",
+                          label: "Shops",
+                          active: view === "shops",
+                          icon: <Store className="h-[15px] w-[15px]" />,
+                          onClick: () =>
+                            navigateWithSkeleton(() => {
+                              setView("shops");
+                              setSelectedShopId(null);
+                              setSelectedFolderId(null);
+                            }),
+                        },
+                        {
+                          id: "folders",
+                          label: "Saved Ads",
+                          active: view === "folders" && !selectedFolderId,
+                          icon: <Bookmark className="h-[15px] w-[15px]" />,
+                          onClick: () =>
+                            navigateWithSkeleton(() => {
+                              setView("folders");
+                              setSelectedFolderId(null);
+                              setSelectedShopId(null);
+                            }),
+                        },
+                      ].map((row) => (
+                        <button
+                          key={row.id}
+                          type="button"
+                          onClick={row.onClick}
+                          className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all ${
+                            row.active
+                              ? "bg-white/[0.1] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+                              : "text-white/60 hover:bg-white/[0.05] hover:text-white/90"
+                          }`}
+                        >
+                          <span
+                            className={
+                              row.active
+                                ? "text-[#7AA2FF]"
+                                : "text-white/45 group-hover:text-white/75"
+                            }
+                          >
+                            {row.icon}
+                          </span>
+                          {row.label}
+                        </button>
+                      ))}
                     </div>
 
-                    <div className="space-y-0.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigateWithSkeleton(() => {
-                            setView("explore");
-                            setSelectedShopId(null);
-                            setSelectedFolderId(null);
-                          });
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all"
-                        style={
-                          view === "explore"
-                            ? {
-                                backgroundColor: "rgba(255,255,255,0.11)",
-                                color: "#FFFFFF",
-                              }
-                            : { color: "rgba(255,255,255,0.65)" }
-                        }
-                      >
-                        <Radar className="h-4 w-4" />
-                        Ads
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigateWithSkeleton(() => {
-                            setView("shops");
-                            setSelectedShopId(null);
-                            setSelectedFolderId(null);
-                          });
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all"
-                        style={
-                          view === "shops"
-                            ? {
-                                backgroundColor: "rgba(255,255,255,0.11)",
-                                color: "#FFFFFF",
-                              }
-                            : { color: "rgba(255,255,255,0.65)" }
-                        }
-                      >
-                        <Store className="h-4 w-4" />
-                        Shops
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigateWithSkeleton(() => {
-                            setView("folders");
-                            setSelectedFolderId(null);
-                            setSelectedShopId(null);
-                          });
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all"
-                        style={
-                          view === "folders" && !selectedFolderId
-                            ? {
-                                backgroundColor: "rgba(255,255,255,0.11)",
-                                color: "#FFFFFF",
-                              }
-                            : { color: "rgba(255,255,255,0.65)" }
-                        }
-                      >
-                        <Bookmark className="h-4 w-4" />
-                        Saved Ads
-                      </button>
-                    </div>
-
-                    {/* Boards / Folders List */}
-                    <div className="mt-5 flex min-h-0 flex-1 flex-col border-t border-white/[0.08] pt-4">
-                      <div className="mb-1.5 flex items-center justify-between px-2">
-                        <span className="text-[11px] font-semibold text-white/45">
+                    {/* Boards List with Crisp Color Dots */}
+                    <div className="mt-5 flex min-h-0 flex-1 flex-col border-t border-white/[0.07] pt-4">
+                      <div className="mb-2 flex items-center justify-between px-2">
+                        <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
                           Boards
                         </span>
                         <button
                           type="button"
                           onClick={() => setQuickFolderOpen((v) => !v)}
                           title="Nyt board"
-                          className="flex h-5 w-5 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
+                          className="flex h-5 w-5 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/10 hover:text-white"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
@@ -1792,18 +1866,17 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                                   setView("folders");
                                 });
                               }}
-                              className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-white/[0.06]"
-                              style={
+                              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${
                                 active
-                                  ? {
-                                      backgroundColor: "rgba(255,255,255,0.11)",
-                                      color: "#FFFFFF",
-                                    }
-                                  : { color: "rgba(255,255,255,0.58)" }
-                              }
+                                  ? "bg-white/[0.1] font-semibold text-white"
+                                  : "text-white/55 hover:bg-white/[0.05] hover:text-white/90"
+                              }`}
                             >
-                              <span className="flex min-w-0 items-center gap-2">
-                                <Folder className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                              <span className="flex min-w-0 items-center gap-2.5">
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full ring-2 ring-white/10"
+                                  style={{ backgroundColor: board.accent_color }}
+                                />
                                 <span className="truncate">{board.name}</span>
                               </span>
                               <span className="font-mono-num text-[10.5px] text-white/35">
@@ -1815,54 +1888,42 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       </div>
                     </div>
 
-                    {/* Subtle Atria-style Bottom Extension Pill */}
-                    <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5">
-                      <p className="text-[10px] font-medium text-white/45">
-                        Gem annoncer fra
-                      </p>
-                      <div className="mt-1.5 flex items-center gap-2 text-[11px] font-semibold text-white/80">
-                        <PackagePlus className="h-3.5 w-3.5 text-white/60" />
+                    {/* Minimal Frosted Extension Pill */}
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      className="mt-3 flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.08]"
+                    >
+                      <span className="flex items-center gap-2 text-[11.5px] font-medium text-white/80">
+                        <PackagePlus className="h-3.5 w-3.5 text-[#7AA2FF]" />
                         Chrome Extension
-                      </div>
-                    </div>
+                      </span>
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#3B66FF]" />
+                    </button>
                   </>
                 ) : (
-                  /* ANALYTICS SYSTEM REPORTS SUB-DRAWER (EXACT ATRIA SCREENSHOT 1) */
+                  /* ANALYTICS NESTED SYSTEM REPORTS TREE */
                   <>
-                    <div className="mb-4 flex items-center justify-between px-2">
-                      <span className="font-display text-[15px] font-bold text-white">
-                        Analytics
+                    <div className="mb-4 flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.05] px-2.5 py-2">
+                      <span className="flex min-w-0 items-center gap-2 text-[12.5px] font-semibold text-white">
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-[#38BDF8]" />
+                        <span className="truncate">
+                          {brandMemory ? brandMemory.brandName : "Flake Demo"}
+                        </span>
                       </span>
                       <button
                         type="button"
-                        data-no-glass="true"
-                        onClick={() => setSubNavOpen(false)}
-                        title="Skjul panel"
-                        className="flex h-6 w-6 items-center justify-center rounded-md text-white/45 hover:bg-white/10 hover:text-white"
+                        onClick={() => setBrandMemoryModalOpen(true)}
+                        className="text-[10.5px] font-medium text-white/45 hover:text-white"
                       >
-                        <PanelLeft className="h-3.5 w-3.5" />
+                        Skift
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setAnalyticsReport("overview")}
-                      className={`mb-3 flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[12.5px] font-semibold transition-colors ${
-                        analyticsReport === "overview"
-                          ? "bg-white/[0.12] text-white"
-                          : "text-white/75 hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <span className="h-2 w-2 rounded-full bg-[#38BDF8]" />
-                      <span className="truncate">
-                        {brandMemory ? brandMemory.brandName : "Flake Demo"}
-                      </span>
-                    </button>
-
-                    <p className="px-2 pb-1.5 text-[10.5px] font-semibold text-white/40">
+                    <p className="px-2 pb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
                       System reports
                     </p>
-                    <div className="space-y-0.5">
+                    <div className="ml-2.5 space-y-0.5 border-l border-white/[0.09] pl-2.5">
                       {(
                         [
                           { id: "overview", label: "Key metrics overview" },
@@ -1880,10 +1941,16 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors ${
                             analyticsReport === rep.id
                               ? "bg-white/[0.11] font-semibold text-white"
-                              : "text-white/55 hover:bg-white/[0.06] hover:text-white/90"
+                              : "text-white/55 hover:bg-white/[0.05] hover:text-white/90"
                           }`}
                         >
-                          <FileBarChart2 className="h-3.5 w-3.5 shrink-0 opacity-65" />
+                          <FileBarChart2
+                            className={`h-3.5 w-3.5 shrink-0 ${
+                              analyticsReport === rep.id
+                                ? "text-[#7AA2FF]"
+                                : "opacity-55"
+                            }`}
+                          />
                           <span className="truncate">{rep.label}</span>
                         </button>
                       ))}

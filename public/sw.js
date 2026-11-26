@@ -1,5 +1,5 @@
 // Minimal Service Worker for Flake PWA installability
-const CACHE_NAME = "flake-shell-v70-atria-higgsfield";
+const CACHE_NAME = "flake-shell-v71-command-rail";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
