@@ -568,7 +568,7 @@ button[class*="rounded-lg"][class*="bg-[#F5F7FA]"]:not([data-slot="glass-tab-bar
 /* Flake Onboarding: Obsidian Dot-Grid & Progressive Reveal Animations */
 .onboarding-dot-grid {
   background-color: #080B14;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.2) 1.6px, transparent 1.85px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1.45px, transparent 1.7px);
   background-size: 24px 24px;
 }
 

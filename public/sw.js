@@ -1,5 +1,5 @@
 // Minimal Service Worker for Flake PWA installability
-const CACHE_NAME = "flake-shell-v81-atria-suite";
+const CACHE_NAME = "flake-shell-v82-onboarding-subtle-dots";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
