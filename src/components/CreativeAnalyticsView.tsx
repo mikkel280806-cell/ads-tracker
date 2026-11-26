@@ -8,8 +8,12 @@ import {
   Check,
   Code2,
   Copy,
+  Film,
+  Image as ImageIcon,
+  Info,
   MoreHorizontal,
   Rocket,
+  SlidersHorizontal,
   Sparkles,
   Upload,
   X,
@@ -20,11 +24,21 @@ import type {
   OwnAdMetricRow,
 } from "@/lib/studio-types";
 import { formatDkkExact, parseMetaAdsCsv } from "@/lib/snow-engine";
+import { MetaInfinityIcon } from "./BrandIcons";
+
+export type AnalyticsReportId =
+  | "overview"
+  | "top_spend"
+  | "top_performing"
+  | "top_videos"
+  | "top_images"
+  | "top_hooks";
 
 interface CreativeAnalyticsViewProps {
   brandMemory: BrandMemory | null;
   projects: CreativeProject[];
   analyticsRows: OwnAdMetricRow[];
+  activeReport?: AnalyticsReportId;
   onDoubleDown: (row: OwnAdMetricRow) => void;
   onLaunchProjects: (
     projectIds: string[],
@@ -35,27 +49,25 @@ interface CreativeAnalyticsViewProps {
   onOpenBrandMemory: () => void;
 }
 
-function SmoothAreaSparkline({
+function AtriaLineSparkline({
   points,
   prevPoints,
-  id,
 }: {
   points: number[];
-  prevPoints?: number[];
-  id: string;
+  prevPoints: number[];
 }) {
-  const all = prevPoints ? [...points, ...prevPoints] : points;
+  const all = [...points, ...prevPoints];
   const min = Math.min(...all);
   const max = Math.max(...all);
   const span = Math.max(1, max - min);
 
   const toCoords = (arr: number[]) =>
     arr.map((v, i) => ({
-      x: (i / Math.max(1, arr.length - 1)) * 140,
-      y: 36 - ((v - min) / span) * 28,
+      x: (i / Math.max(1, arr.length - 1)) * 160,
+      y: 34 - ((v - min) / span) * 26,
     }));
 
-  const buildSmoothPath = (pts: { x: number; y: number }[]) => {
+  const buildSmooth = (pts: { x: number; y: number }[]) => {
     if (pts.length === 0) return "";
     let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
     for (let i = 1; i < pts.length; i++) {
@@ -67,156 +79,85 @@ function SmoothAreaSparkline({
     return d;
   };
 
-  const mainPts = toCoords(points);
-  const mainD = buildSmoothPath(mainPts);
-  const areaD = `${mainD} L 140 42 L 0 42 Z`;
-  const prevD = prevPoints ? buildSmoothPath(toCoords(prevPoints)) : "";
-
   return (
-    <svg viewBox="0 0 140 42" className="h-10 w-full overflow-visible">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0027eb" stopOpacity="0.16" />
-          <stop offset="100%" stopColor="#0027eb" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {prevD && (
-        <path
-          d={prevD}
-          fill="none"
-          stroke="#CBD5E1"
-          strokeWidth="1.3"
-          strokeDasharray="3 3"
-        />
-      )}
-      <path d={areaD} fill={`url(#${id})`} />
+    <svg viewBox="0 0 160 38" className="h-9 w-full overflow-visible">
       <path
-        d={mainD}
+        d={buildSmooth(toCoords(prevPoints))}
         fill="none"
-        stroke="#0027eb"
-        strokeWidth="2"
+        stroke="#CBD5E1"
+        strokeWidth="1.2"
+        strokeDasharray="2.5 2.5"
+      />
+      <path
+        d={buildSmooth(toCoords(points))}
+        fill="none"
+        stroke="#0284C7"
+        strokeWidth="1.75"
         strokeLinecap="round"
       />
     </svg>
   );
 }
 
-function SmoothRetentionChart({ curve }: { curve: number[] }) {
-  const labels = ["0s", "3s Hook", "6s", "10s", "15s Hold", "22s", "30s"];
-  const w = 520;
-  const h = 150;
-  const padX = 22;
-  const padTop = 18;
-  const padBottom = 26;
-  const chartH = h - padTop - padBottom;
+const AGE_GENDER_SERIES = [
+  { age: "18-24", f: 8, m: 6 },
+  { age: "25-34", f: 42, m: 14 },
+  { age: "35-44", f: 96, m: 18 },
+  { age: "45-54", f: 84, m: 15 },
+  { age: "55-64", f: 68, m: 11 },
+  { age: "65+", f: 44, m: 9 },
+];
 
-  const pts = labels.map((_, i) => {
-    const val = curve[i] ?? 15;
-    const x = padX + (i / (labels.length - 1)) * (w - padX * 2);
-    const y = padTop + chartH - (Math.max(0, Math.min(100, val)) / 100) * chartH;
-    return { x, y, val };
-  });
+const PLATFORM_SERIES = [
+  { label: "IG", desktop: 6, mobile: 96 },
+  { label: "FB", desktop: 12, mobile: 82 },
+  { label: "AN", desktop: 4, mobile: 18 },
+  { label: "MSG", desktop: 3, mobile: 10 },
+];
 
-  let lineD = `M ${pts[0].x} ${pts[0].y}`;
-  for (let i = 1; i < pts.length; i++) {
-    const p0 = pts[i - 1];
-    const p1 = pts[i];
-    const cx = (p0.x + p1.x) / 2;
-    lineD += ` C ${cx} ${p0.y}, ${cx} ${p1.y}, ${p1.x} ${p1.y}`;
-  }
-  const areaD = `${lineD} L ${pts[pts.length - 1].x} ${padTop + chartH} L ${pts[0].x} ${padTop + chartH} Z`;
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-44 w-full">
-      <defs>
-        <linearGradient id="flake-ret-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0027eb" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#0027eb" stopOpacity="0.01" />
-        </linearGradient>
-      </defs>
-
-      {[25, 50, 75].map((pct) => {
-        const y = padTop + chartH - (pct / 100) * chartH;
-        return (
-          <line
-            key={pct}
-            x1={padX}
-            y1={y}
-            x2={w - padX}
-            y2={y}
-            stroke="#EEF2F6"
-            strokeWidth="1"
-          />
-        );
-      })}
-
-      <path d={areaD} fill="url(#flake-ret-fill)" />
-      <path
-        d={lineD}
-        fill="none"
-        stroke="#0027eb"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-
-      {pts.map((pt, i) => {
-        const isHook = i === 1;
-        const isHold = i === 4;
-        return (
-          <g key={labels[i]}>
-            <circle
-              cx={pt.x}
-              cy={pt.y}
-              r={isHook || isHold ? 5 : 3.2}
-              fill={isHold ? "#16A34A" : isHook ? "#0027eb" : "#0F172A"}
-              stroke="#FFFFFF"
-              strokeWidth="2"
-            />
-            <text
-              x={pt.x}
-              y={pt.y - 9}
-              textAnchor="middle"
-              className="fill-[#0F172A] font-mono-num text-[10px] font-bold"
-            >
-              {pt.val}%
-            </text>
-            <text
-              x={pt.x}
-              y={h - 6}
-              textAnchor="middle"
-              className={`font-mono-num text-[10px] ${
-                isHook || isHold
-                  ? "fill-[#0F172A] font-bold"
-                  : "fill-[#94A3B8] font-medium"
-              }`}
-            >
-              {labels[i]}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
+const CREATIVE_TAGS = {
+  themes: [
+    { label: "Problem & løsning", pct: 95 },
+    { label: "Før & efter", pct: 76 },
+    { label: "Sæson / Kampagne", pct: 64 },
+    { label: "Produkt-demo", pct: 56 },
+    { label: "Behind the scenes", pct: 44 },
+  ],
+  angles: [
+    { label: "Hverdags-rutine", pct: 94 },
+    { label: "Social proof / Review", pct: 86 },
+    { label: "Pris vs. kvalitet", pct: 74 },
+    { label: "Ekspert / Founder", pct: 66 },
+    { label: "Komfort & garanti", pct: 52 },
+  ],
+  emotions: [
+    { label: "Tillid & tryghed", pct: 96 },
+    { label: "Lettelse", pct: 72 },
+    { label: "Nysgerrighed", pct: 58 },
+    { label: "Tilfredshed", pct: 46 },
+    { label: "Varme & glæde", pct: 38 },
+  ],
+};
 
 export function CreativeAnalyticsView({
   brandMemory,
   projects,
   analyticsRows,
+  activeReport = "overview",
   onDoubleDown,
   onLaunchProjects,
   onImportCsvRows,
-  onOpenBrandMemory,
 }: CreativeAnalyticsViewProps) {
   const [period, setPeriod] = useState<"7d" | "14d" | "30d">("14d");
-  const [selectedRowId, setSelectedRowId] = useState<string>(
-    analyticsRows[0]?.id || ""
+  const [breakdownMetric, setBreakdownMetric] = useState<"spend" | "roas">(
+    "spend"
   );
+  const [tagsMetric, setTagsMetric] = useState<"spend" | "roas">("spend");
   const [menuOpen, setMenuOpen] = useState(false);
   const [launchOpen, setLaunchOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
   const [campaignName, setCampaignName] = useState(
-    `${brandMemory?.brandName || "Brand"} · Advantage+`
+    `${brandMemory?.brandName || "Flake"} · Advantage+`
   );
   const [dailyBudgetDkk, setDailyBudgetDkk] = useState(750);
   const [selectedLaunchIds, setSelectedLaunchIds] = useState<string[]>(() =>
@@ -245,45 +186,50 @@ export function CreativeAnalyticsView({
     );
     const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
     const cpa = Math.round(spend / purchases);
-    const avgThumbstop =
-      analyticsRows.length > 0
-        ? Number(
-            (
-              analyticsRows.reduce((s, r) => s + r.thumbstopPct, 0) /
-              analyticsRows.length
-            ).toFixed(1)
-          )
-        : 0;
-    const avgHold =
-      analyticsRows.length > 0
-        ? Number(
-            (
-              analyticsRows.reduce((s, r) => s + r.holdPct, 0) /
-              analyticsRows.length
-            ).toFixed(1)
-          )
-        : 0;
+    const aov = Math.round(revenue / purchases);
+    const cpcAll = Math.max(3, Math.round(cpa * 0.045));
+    const cpcLink = Math.max(4, Math.round(cpa * 0.056));
+    const cpm = Math.max(45, Math.round(spend / Math.max(1, purchases * 5.2)));
 
-    return { spend, revenue, roas, cpa, avgThumbstop, avgHold };
+    return { spend, revenue, roas, cpa, aov, cpcAll, cpcLink, cpm };
   }, [analyticsRows, periodFactor]);
 
-  const selectedRow =
-    analyticsRows.find((r) => r.id === selectedRowId) || analyticsRows[0];
-
-  const formatBreakdown = useMemo(() => {
-    const map = new Map<string, number>();
+  const formatSplit = useMemo(() => {
+    let imageVal = 0;
+    let videoVal = 0;
     for (const r of analyticsRows) {
-      map.set(r.format, (map.get(r.format) || 0) + r.spendDkk);
+      const isStatic = r.format.toLowerCase().includes("static");
+      const val = breakdownMetric === "spend" ? r.spendDkk : r.roas * 1000;
+      if (isStatic) imageVal += val;
+      else videoVal += val;
     }
-    const list = Array.from(map.entries())
-      .map(([label, value]) => ({ label, value }))
-      .sort((a, b) => b.value - a.value);
-    const maxVal = Math.max(1, ...list.map((i) => i.value));
-    return list.map((i) => ({
-      ...i,
-      pct: Math.round((i.value / maxVal) * 100),
-    }));
-  }, [analyticsRows]);
+    const maxV = Math.max(1, imageVal, videoVal);
+    return {
+      imagePct: Math.max(24, Math.round((imageVal / maxV) * 100)),
+      videoPct: Math.max(24, Math.round((videoVal / maxV) * 100)),
+    };
+  }, [analyticsRows, breakdownMetric]);
+
+  const filteredReportRows = useMemo(() => {
+    const copy = [...analyticsRows];
+    if (activeReport === "top_spend") {
+      return copy.sort((a, b) => b.spendDkk - a.spendDkk);
+    }
+    if (activeReport === "top_performing") {
+      return copy.sort((a, b) => b.roas - a.roas);
+    }
+    if (activeReport === "top_videos") {
+      return copy.filter((r) => !r.format.toLowerCase().includes("static"));
+    }
+    if (activeReport === "top_images") {
+      const imgs = copy.filter((r) => r.format.toLowerCase().includes("static"));
+      return imgs.length > 0 ? imgs : copy;
+    }
+    if (activeReport === "top_hooks") {
+      return copy.sort((a, b) => b.thumbstopPct - a.thumbstopPct);
+    }
+    return copy;
+  }, [analyticsRows, activeReport]);
 
   const queuedProjects = useMemo(
     () => projects.filter((p) => p.status !== "live"),
@@ -305,38 +251,108 @@ export function CreativeAnalyticsView({
     reader.readAsText(file);
   };
 
+  const kpiCards = [
+    {
+      label: "Spend",
+      value: formatDkkExact(totals.spend),
+      delta: "+12%",
+      positive: true,
+      pts: [42, 34, 65, 58, 40, 62, 46, 70, 56],
+      prev: [38, 44, 52, 49, 46, 51, 48, 55, 50],
+    },
+    {
+      label: "ROAS",
+      value: `${totals.roas.toFixed(2)}x`,
+      delta: "+0,42%",
+      positive: true,
+      pts: [45, 58, 42, 38, 62, 50, 39, 58, 54],
+      prev: [40, 46, 44, 42, 47, 45, 43, 46, 45],
+    },
+    {
+      label: "CPA",
+      value: formatDkkExact(totals.cpa),
+      delta: "-8,4%",
+      positive: true,
+      pts: [62, 54, 58, 49, 52, 44, 50, 42, 39],
+      prev: [65, 60, 62, 57, 58, 55, 54, 52, 50],
+    },
+    {
+      label: "Purchase value",
+      value: formatDkkExact(totals.revenue),
+      delta: "+18%",
+      positive: true,
+      pts: [36, 48, 42, 66, 55, 44, 61, 49, 68],
+      prev: [32, 39, 41, 48, 46, 42, 49, 46, 52],
+    },
+    {
+      label: "AOV",
+      value: formatDkkExact(totals.aov),
+      delta: "+0,97%",
+      positive: true,
+      pts: [50, 44, 56, 54, 48, 46, 52, 58, 54],
+      prev: [48, 47, 50, 49, 48, 47, 49, 50, 49],
+    },
+    {
+      label: "CPC (all)",
+      value: formatDkkExact(totals.cpcAll),
+      delta: "+0,37%",
+      positive: false,
+      pts: [48, 56, 52, 44, 50, 62, 58, 49, 52],
+      prev: [46, 49, 48, 46, 48, 51, 50, 48, 49],
+    },
+    {
+      label: "CPC (link click)",
+      value: formatDkkExact(totals.cpcLink),
+      delta: "-0,79%",
+      positive: true,
+      pts: [54, 48, 50, 64, 52, 45, 48, 52, 46],
+      prev: [56, 53, 54, 55, 52, 51, 52, 53, 51],
+    },
+    {
+      label: "CPM",
+      value: formatDkkExact(totals.cpm),
+      delta: "-0,60%",
+      positive: true,
+      pts: [52, 46, 60, 56, 48, 55, 52, 44, 49],
+      prev: [55, 52, 54, 53, 51, 52, 51, 49, 50],
+    },
+  ];
+
+  const reportTitles: Record<AnalyticsReportId, string> = {
+    overview: "Overview",
+    top_spend: "Top spend ads",
+    top_performing: "Top performing ads",
+    top_videos: "Top performing videos",
+    top_images: "Top performing images",
+    top_hooks: "Top hooks & retention",
+  };
+
   return (
-    <div className="space-y-5">
-      {/* Clean Minimal Header: Brand + Period + Launch + Overflow Menu */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-[1180px] space-y-4">
+      {/* ATRIA CLEAN TOP HEADER STRIP */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-1">
         <div className="flex items-center gap-2.5">
-          <h1 className="font-display text-[22px] font-bold tracking-tight text-[#0F172A]">
-            Analytics
+          <MetaInfinityIcon className="h-5 w-5 text-[#0027eb]" />
+          <h1 className="font-display text-[17px] font-bold tracking-tight text-[#0F172A]">
+            {brandMemory ? brandMemory.brandName : "Flake Demo"}
           </h1>
-          <button
-            type="button"
-            onClick={onOpenBrandMemory}
-            className="rounded-full border border-[#E6E9F0] bg-white px-3 py-1 text-xs font-semibold text-[#475569] hover:border-[#0027eb] hover:text-[#0F172A]"
-          >
-            {brandMemory ? brandMemory.brandName : "Demo · Forbind brand"}
-          </button>
+          {activeReport !== "overview" && (
+            <span className="rounded-md bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#475569]">
+              {reportTitles[activeReport]}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-full border border-[#E6E9F0] bg-white p-0.5 text-xs font-semibold">
-            {(["7d", "14d", "30d"] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriod(p)}
-                className={`rounded-full px-3 py-1 ${
-                  period === p ? "bg-[#0F172A] text-white" : "text-[#64748B]"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as "7d" | "14d" | "30d")}
+            className="rounded-lg border border-[#E6E9F0] bg-white px-3 py-1.5 text-xs font-medium text-[#334155] outline-none hover:border-[#CBD5E1]"
+          >
+            <option value="7d">Sidste 7 dage</option>
+            <option value="14d">Sidste 14 dage</option>
+            <option value="30d">Sidste 30 dage</option>
+          </select>
 
           <input
             ref={fileInputRef}
@@ -354,23 +370,23 @@ export function CreativeAnalyticsView({
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              aria-label="Flere valg"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E6E9F0] bg-white text-[#64748B] hover:text-[#0F172A]"
+              aria-label="Flere handlinger"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E6E9F0] bg-white text-[#64748B] hover:text-[#0F172A]"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-11 z-20 w-44 rounded-2xl border border-[#E6E9F0] bg-white p-1.5 shadow-xl">
+              <div className="absolute right-0 top-10 z-20 w-44 rounded-xl border border-[#E6E9F0] bg-white p-1.5 shadow-xl">
                 <button
                   type="button"
                   onClick={() => {
                     setMenuOpen(false);
                     fileInputRef.current?.click();
                   }}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F5F7FA]"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-[#0F172A] hover:bg-[#F5F7FA]"
                 >
                   <Upload className="h-3.5 w-3.5 text-[#64748B]" />
-                  Importér CSV
+                  Importér Meta CSV
                 </button>
                 <button
                   type="button"
@@ -378,7 +394,7 @@ export function CreativeAnalyticsView({
                     setMenuOpen(false);
                     setMcpOpen(true);
                   }}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F5F7FA]"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-[#0F172A] hover:bg-[#F5F7FA]"
                 >
                   <Code2 className="h-3.5 w-3.5 text-[#64748B]" />
                   MCP API
@@ -393,175 +409,307 @@ export function CreativeAnalyticsView({
               setSelectedLaunchIds(queuedProjects.map((p) => p.id));
               setLaunchOpen(true);
             }}
-            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
+            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
           >
             <Rocket className="h-3.5 w-3.5" />
-            Launch ({queuedProjects.length})
+            Launch
           </button>
         </div>
       </div>
 
       {csvFeedback && (
-        <div className="rounded-full bg-[#ECFDF3] px-4 py-1.5 text-center text-xs font-semibold text-[#15803D]">
+        <div className="rounded-xl bg-[#ECFDF3] px-3.5 py-2 text-xs font-semibold text-[#15803D]">
           {csvFeedback}
         </div>
       )}
 
-      {/* 4 Clean Hero KPI Cards with Smooth Area Sparklines (Current vs Previous) */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          {
-            id: "sp-spend",
-            label: "Spend",
-            value: formatDkkExact(totals.spend),
-            delta: "+12%",
-            pts: [38, 44, 41, 52, 48, 56, 62],
-            prev: [34, 39, 38, 43, 45, 48, 51],
-          },
-          {
-            id: "sp-roas",
-            label: "ROAS",
-            value: `${totals.roas.toFixed(2)}x`,
-            delta: "+0.34x",
-            pts: [2.8, 3.0, 2.95, 3.2, 3.3, 3.45, totals.roas],
-            prev: [2.5, 2.6, 2.7, 2.75, 2.8, 2.9, 2.95],
-          },
-          {
-            id: "sp-cpa",
-            label: "CPA",
-            value: formatDkkExact(totals.cpa),
-            delta: "-11%",
-            pts: [220, 212, 208, 198, 192, 186, totals.cpa],
-            prev: [235, 232, 228, 224, 220, 218, 214],
-          },
-          {
-            id: "sp-hook",
-            label: "Thumbstop / Hold",
-            value: `${totals.avgThumbstop}% · ${totals.avgHold}%`,
-            delta: "+6,2%",
-            pts: [31, 35, 34, 39, 41, 40, totals.avgThumbstop],
-            prev: [28, 30, 31, 32, 33, 34, 35],
-          },
-        ].map((card) => (
-          <div key={card.id} className="adtrack-card rounded-2xl p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[#64748B]">
-                {card.label}
-              </span>
-              <span className="rounded-full bg-[#ECFDF3] px-2 py-0.5 font-mono-num text-[10px] font-bold text-[#15803D]">
-                {card.delta}
-              </span>
-            </div>
-            <p className="mt-1 font-display text-[20px] font-bold tracking-tight text-[#0F172A]">
-              {card.value}
-            </p>
-            <div className="mt-2">
-              <SmoothAreaSparkline
-                id={card.id}
-                points={card.pts}
-                prevPoints={card.prev}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* =====================================================================
+          SECTION 1: KEY METRICS (2x4 GRID INSIDE SINGLE ATRIA CARD)
+         ===================================================================== */}
+      {activeReport === "overview" && (
+        <>
+          <section className="rounded-2xl border border-[#ECEFF5] bg-white p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-4">
+                <h2 className="font-display text-[14.5px] font-bold text-[#0F172A]">
+                  Key Metrics
+                </h2>
+                <div className="flex items-center gap-3 text-[11px] text-[#64748B]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-[2px] w-3 bg-[#0284C7]" />
+                    Valgt periode
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-3 border-t border-dashed border-[#94A3B8]" />
+                    Forrige periode
+                  </span>
+                </div>
+              </div>
 
-      {/* Smooth Retention Area Curve + Clean Visual Breakdowns */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <div className="adtrack-card rounded-2xl p-5 xl:col-span-8">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <h2 className="truncate font-display text-[14.5px] font-bold text-[#0F172A]">
-                {selectedRow ? selectedRow.name : "Video Retention"}
-              </h2>
-              {selectedRow && (
-                <span className="shrink-0 rounded-full bg-[#EEF2FF] px-2.5 py-0.5 font-mono-num text-[10.5px] font-bold text-[#0027eb]">
-                  {selectedRow.roas.toFixed(2)}x ROAS
-                </span>
-              )}
-            </div>
-            {selectedRow && (
               <button
                 type="button"
-                onClick={() => onDoubleDown(selectedRow)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#0027eb]/[0.08] px-3 py-1 text-[11px] font-bold text-[#0027eb] transition-colors hover:bg-[#0027eb] hover:text-white"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-[#64748B] hover:text-[#0F172A]"
               >
-                <Sparkles className="h-3 w-3" />
-                Double Down
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Importér CSV
               </button>
-            )}
-          </div>
+            </div>
 
-          {selectedRow && (
-            <SmoothRetentionChart curve={selectedRow.retentionCurve} />
-          )}
-        </div>
-
-        <div className="flex flex-col justify-between gap-4 xl:col-span-4">
-          {/* Format Bars */}
-          <div className="adtrack-card flex-1 rounded-2xl p-4 space-y-3">
-            <p className="font-display text-[13px] font-bold text-[#0F172A]">
-              Format
-            </p>
-            <div className="space-y-2.5">
-              {formatBreakdown.map((item, idx) => (
-                <div key={item.label} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-[#334155]">
-                      {item.label}
-                    </span>
-                    <span className="font-mono-num font-bold text-[#0F172A]">
-                      {formatDkkExact(item.value)}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {kpiCards.map((card) => (
+                <div
+                  key={card.label}
+                  className="rounded-xl border border-[#F1F5F9] bg-[#FAFBFD]/70 p-3.5 transition-colors hover:border-[#E2E8F0] hover:bg-white"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1 text-[11.5px] font-medium text-[#64748B]">
+                      {card.label}
+                      <Info className="h-3 w-3 text-[#CBD5E1]" />
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-[#EFF2F6]">
-                    <div
-                      className={`h-full rounded-full ${
-                        idx === 0 ? "bg-[#0027eb]" : "bg-[#0F172A]/70"
+
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="font-mono-num text-[17px] font-bold tracking-tight text-[#0F172A]">
+                      {card.value}
+                    </span>
+                    <span
+                      className={`rounded px-1.5 py-0.5 font-mono-num text-[10px] font-semibold ${
+                        card.positive
+                          ? "bg-[#ECFDF3] text-[#15803D]"
+                          : "bg-[#FFF1F2] text-[#E11D48]"
                       }`}
-                      style={{ width: `${item.pct}%` }}
+                    >
+                      {card.delta}
+                    </span>
+                  </div>
+
+                  <div className="mt-3">
+                    <AtriaLineSparkline
+                      points={card.pts}
+                      prevPoints={card.prev}
                     />
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          {/* Muted Gender Split */}
-          <div className="adtrack-card rounded-2xl p-4 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="inline-flex items-center gap-1.5 font-medium text-[#334155]">
-                <span className="h-2 w-2 rounded-full bg-[#E5A9B8]" />
-                Kvinder <strong className="font-mono-num">64%</strong>
-              </span>
-              <span className="inline-flex items-center gap-1.5 font-medium text-[#334155]">
-                <span className="h-2 w-2 rounded-full bg-[#93B4D8]" />
-                Mænd <strong className="font-mono-num">36%</strong>
-              </span>
+          {/* =====================================================================
+              SECTION 2: BREAKDOWNS BY [SPEND] — 3 SIDE-BY-SIDE CHARTS
+             ===================================================================== */}
+          <section className="rounded-2xl border border-[#ECEFF5] bg-white p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <h2 className="font-display text-[14.5px] font-bold text-[#0F172A]">
+                Breakdowns by
+              </h2>
+              <select
+                value={breakdownMetric}
+                onChange={(e) =>
+                  setBreakdownMetric(e.target.value as "spend" | "roas")
+                }
+                className="rounded-md border border-[#E6E9F0] bg-[#FAFBFD] px-2 py-0.5 text-xs font-medium text-[#334155] outline-none"
+              >
+                <option value="spend">Spend</option>
+                <option value="roas">ROAS</option>
+              </select>
             </div>
-            <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#EFF2F6]">
-              <div className="h-full bg-[#E5A9B8]" style={{ width: "64%" }} />
-              <div className="h-full bg-[#93B4D8]" style={{ width: "36%" }} />
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {/* 1. Format Vertical Bars */}
+              <div className="flex flex-col justify-between rounded-xl border border-[#F1F5F9] p-4">
+                <p className="text-xs font-semibold text-[#0F172A]">Format</p>
+                <div className="mt-5 flex h-32 items-end justify-around px-6">
+                  <div className="flex flex-col items-center gap-2">
+                    <div
+                      className="w-5 rounded-t-md bg-[#0027eb]"
+                      style={{ height: `${Math.round(formatSplit.imagePct * 0.95)}px` }}
+                    />
+                    <ImageIcon className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div
+                      className="w-5 rounded-t-md bg-[#0027eb]"
+                      style={{ height: `${Math.round(formatSplit.videoPct * 0.95)}px` }}
+                    />
+                    <Film className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Age & Gender Grouped Bars (Muted Rose #E5A9B8 & Soft Blue #93B4D8) */}
+              <div className="flex flex-col justify-between rounded-xl border border-[#F1F5F9] p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-[#0F172A]">
+                    Alder &amp; køn
+                  </p>
+                  <div className="flex items-center gap-2.5 text-[10.5px] text-[#64748B]">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-xs bg-[#E5A9B8]" />
+                      Kvinder
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-xs bg-[#93B4D8]" />
+                      Mænd
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid h-32 grid-cols-6 items-end gap-2">
+                  {AGE_GENDER_SERIES.map((g) => (
+                    <div key={g.age} className="flex flex-col items-center gap-1.5">
+                      <div className="flex h-24 items-end gap-0.5">
+                        <div
+                          className="w-2.5 rounded-t-xs bg-[#E5A9B8]"
+                          style={{ height: `${Math.max(4, g.f * 0.9)}px` }}
+                        />
+                        <div
+                          className="w-2.5 rounded-t-xs bg-[#93B4D8]"
+                          style={{ height: `${Math.max(4, g.m * 0.9)}px` }}
+                        />
+                      </div>
+                      <span className="font-mono-num text-[9.5px] text-[#94A3B8]">
+                        {g.age}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Platform Grouped Bars (Desktop #0F172A vs Mobile #0EA5E9) */}
+              <div className="flex flex-col justify-between rounded-xl border border-[#F1F5F9] p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-[#0F172A]">
+                    Platform
+                  </p>
+                  <div className="flex items-center gap-2.5 text-[10.5px] text-[#64748B]">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-xs bg-[#0F172A]" />
+                      Desktop
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-xs bg-[#0EA5E9]" />
+                      Mobil
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid h-32 grid-cols-4 items-end gap-3 px-2">
+                  {PLATFORM_SERIES.map((p) => (
+                    <div key={p.label} className="flex flex-col items-center gap-1.5">
+                      <div className="flex h-24 items-end gap-1">
+                        <div
+                          className="w-2.5 rounded-t-xs bg-[#0F172A]"
+                          style={{ height: `${Math.max(4, p.desktop * 0.9)}px` }}
+                        />
+                        <div
+                          className="w-2.5 rounded-t-xs bg-[#0EA5E9]"
+                          style={{ height: `${Math.max(4, p.mobile * 0.9)}px` }}
+                        />
+                      </div>
+                      <span className="font-mono-num text-[9.5px] text-[#94A3B8]">
+                        {p.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+
+          {/* =====================================================================
+              SECTION 3: AI TOP CREATIVE TAGS BY [SPEND] — 3 COLUMNS
+             ===================================================================== */}
+          <section className="rounded-2xl border border-[#ECEFF5] bg-white p-5">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-5 items-center rounded bg-[#0F172A] px-1.5 font-mono-num text-[10px] font-bold text-white">
+                  AI
+                </span>
+                <h2 className="font-display text-[14.5px] font-bold text-[#0F172A]">
+                  Top Creative Tags by
+                </h2>
+                <select
+                  value={tagsMetric}
+                  onChange={(e) =>
+                    setTagsMetric(e.target.value as "spend" | "roas")
+                  }
+                  className="rounded-md border border-[#E6E9F0] bg-[#FAFBFD] px-2 py-0.5 text-xs font-medium text-[#334155] outline-none"
+                >
+                  <option value="spend">Spend</option>
+                  <option value="roas">ROAS</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {(
+                [
+                  { title: "Themes", rows: CREATIVE_TAGS.themes },
+                  { title: "Ad angles", rows: CREATIVE_TAGS.angles },
+                  { title: "Emotions", rows: CREATIVE_TAGS.emotions },
+                ] as const
+              ).map((col) => (
+                <div
+                  key={col.title}
+                  className="space-y-3 rounded-xl border border-[#F1F5F9] p-4"
+                >
+                  <p className="inline-flex items-center gap-1 text-xs font-semibold text-[#0F172A]">
+                    {col.title}
+                    <Info className="h-3 w-3 text-[#CBD5E1]" />
+                  </p>
+                  <div className="space-y-2.5">
+                    {col.rows.map((item) => (
+                      <div
+                        key={item.label}
+                        className="grid grid-cols-12 items-center gap-2"
+                      >
+                        <span className="col-span-5 truncate text-[11px] text-[#475569]">
+                          {item.label}
+                        </span>
+                        <div className="col-span-7 h-2 overflow-hidden rounded-full bg-[#F1F5F9]">
+                          <div
+                            className="h-full rounded-full bg-[#0027eb]"
+                            style={{
+                              width: `${
+                                tagsMetric === "roas"
+                                  ? Math.min(100, Math.round(item.pct * 0.92 + 6))
+                                  : item.pct
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* =====================================================================
+          SYSTEM REPORT / TOP PERFORMING CREATIVES VISUAL GALLERY
+         ===================================================================== */}
+      <section className="rounded-2xl border border-[#ECEFF5] bg-white p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-[14.5px] font-bold text-[#0F172A]">
+            {activeReport === "overview"
+              ? "Top Performing Creatives"
+              : reportTitles[activeReport]}
+          </h2>
+          <span className="font-mono-num text-xs text-[#94A3B8]">
+            {filteredReportRows.length} ads
+          </span>
         </div>
-      </div>
 
-      {/* VISUAL CREATIVE GALLERY (Show the ads instead of a dense button table) */}
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        {analyticsRows.map((row) => {
-          const isSelected = row.id === selectedRow?.id;
-          return (
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          {filteredReportRows.map((row) => (
             <div
               key={row.id}
-              onClick={() => setSelectedRowId(row.id)}
-              className={`group cursor-pointer overflow-hidden rounded-2xl border bg-white transition-all ${
-                isSelected
-                  ? "border-[#0027eb] ring-1 ring-[#0027eb]"
-                  : "border-[#ECEFF5] hover:border-[#CBD5E1]"
-              }`}
+              className="group overflow-hidden rounded-xl border border-[#ECEFF5] bg-white transition-all hover:border-[#CBD5E1]"
             >
-              {/* Visual Ad Poster Header */}
               <div className="relative aspect-[4/3] overflow-hidden bg-[#0F172A]">
                 {row.thumbnailUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -575,63 +723,39 @@ export function CreativeAnalyticsView({
                     <Activity className="h-6 w-6" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-black/25" />
-
-                <span
-                  className={`absolute left-2.5 top-2.5 rounded-full px-2 py-0.5 text-[10px] font-bold backdrop-blur-md ${
-                    row.status === "Scaling Winner"
-                      ? "bg-[#15803D]/90 text-white"
-                      : row.status === "Fatigue"
-                        ? "bg-[#E11D48]/90 text-white"
-                        : "bg-black/60 text-white"
-                  }`}
-                >
-                  {row.status}
-                </span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDoubleDown(row);
-                  }}
-                  className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10.5px] font-bold text-[#0F172A] opacity-0 shadow transition-all hover:bg-[#0027eb] hover:text-white group-hover:opacity-100"
+                  onClick={() => onDoubleDown(row)}
+                  className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10.5px] font-bold text-[#0F172A] opacity-0 shadow transition-all hover:bg-[#0027eb] hover:text-white group-hover:opacity-100"
                 >
                   <Sparkles className="h-3 w-3" />
                   Skalér
                 </button>
 
                 <div className="absolute inset-x-3 bottom-2.5 flex items-end justify-between text-white">
-                  <p className="truncate font-display text-[13px] font-bold pr-2">
+                  <p className="truncate pr-2 font-display text-[12.5px] font-bold">
                     {row.name}
                   </p>
-                  <span className="shrink-0 font-mono-num text-[13px] font-bold text-[#86EFAC]">
+                  <span className="shrink-0 font-mono-num text-[12.5px] font-bold text-[#86EFAC]">
                     {row.roas.toFixed(2)}x
                   </span>
                 </div>
               </div>
 
-              {/* Clean Metric Strip + Visual Hook/Hold Bar */}
-              <div className="space-y-2 p-3">
-                <div className="flex items-center justify-between font-mono-num text-xs">
-                  <span className="font-bold text-[#0F172A]">
-                    {formatDkkExact(row.spendDkk)}
-                  </span>
-                  <span className="text-[#64748B]">
-                    {row.thumbstopPct}% · {row.holdPct}%
-                  </span>
-                </div>
-                <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-[#F1F5F9]">
-                  <div
-                    className="h-full bg-[#0027eb]"
-                    style={{ width: `${Math.min(100, row.thumbstopPct)}%` }}
-                  />
-                </div>
+              <div className="flex items-center justify-between px-3 py-2.5 font-mono-num text-[11.5px]">
+                <span className="font-bold text-[#0F172A]">
+                  {formatDkkExact(row.spendDkk)}
+                </span>
+                <span className="text-[#64748B]">
+                  {row.thumbstopPct}% · {row.holdPct}%
+                </span>
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      </section>
 
       {/* DIRECT META LAUNCH MODAL */}
       {launchOpen &&

@@ -5,9 +5,8 @@ import { createPortal } from "react-dom";
 import {
   ArrowRight,
   ArrowUp,
-  BarChart3,
   Film,
-  Flame,
+  Layers,
   Link2,
   Loader2,
   Package,
@@ -32,9 +31,9 @@ import type { Ad, ProductPreview } from "@/lib/types";
 import { buildClonedSourceFromAd } from "@/lib/studio-types";
 import { getPresetById } from "@/lib/snow-engine";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
-import { SnowCharacter, SnowMark } from "./SnowMascot";
+import { SnowMark } from "./SnowMascot";
 
-export { SnowCharacter, SnowMark };
+export { SnowMark };
 
 export interface SnowAssistantProps {
   brandMemory: BrandMemory | null;
@@ -56,34 +55,59 @@ export interface SnowAssistantProps {
 
 const STARTER_CARDS = [
   {
-    title: "Analysér mine ads",
-    tag: "Performance",
+    title: "Analysér min ad-performance",
+    subtitle: "Hvilke annoncer bør jeg skalere nu?",
     prompt:
       "Analysér mine nuværende annoncer, find vores stærkeste winner og foreslå 4 Double Down varianter.",
-    icon: BarChart3,
+    icon: Search,
   },
   {
-    title: "Klon top-konkurrent",
-    tag: "Swipe File",
+    title: "Klon konkurrenters top-ads",
+    subtitle: "Hvorfor performer de bedste annoncer?",
     prompt:
       "Find de bedste konkurrent-vindere i vores swipe file og lav et klonet ad-brief til mit brand.",
-    icon: Sparkles,
+    icon: Layers,
   },
   {
-    title: "Ugens ad-batch",
-    tag: "UGC & Clay",
+    title: "Lær af mine svage annoncer",
+    subtitle: "Hvor taber vi seere efter 3 sek.?",
     prompt:
-      "Kør det fulde ugentlige creative strategy workflow for mit brand: hooks, scripts og næste test-batch.",
-    icon: Flame,
-  },
-  {
-    title: "Skalér vinder-vinkel",
-    tag: "4 formater",
-    prompt:
-      "Double down på min top performing annonce og omsæt vinklen til nye hooks i flere video-stilarter.",
+      "Analysér mine annoncer med lav Thumbstop eller Fatigue og giv mig 3 skarpe hook-rettelser.",
     icon: TrendingUp,
   },
+  {
+    title: "Skalér vinder-ads til nye produkter",
+    subtitle: "Hvad er mine top 3 næste skridt?",
+    prompt:
+      "Double down på min top performing annonce og omsæt vinklen til nye hooks i flere video-stilarter.",
+    icon: Sparkles,
+  },
 ];
+
+function SnowCircleBadge({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  if (size === "lg") {
+    return (
+      <div className="relative flex items-center justify-center">
+        <div className="pointer-events-none absolute h-20 w-20 rounded-full bg-gradient-to-tr from-[#0027eb]/25 via-[#38BDF8]/20 to-[#93C5FD]/25 blur-xl" />
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white bg-white shadow-[0_8px_28px_-6px_rgba(0,39,235,0.28),0_2px_8px_rgba(15,23,42,0.06)]">
+          <SnowMark className="h-8 w-8 text-[#0027eb]" />
+        </div>
+      </div>
+    );
+  }
+  if (size === "sm") {
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#E6ECFF] bg-white shadow-2xs">
+        <SnowMark className="h-3.5 w-3.5 text-[#0027eb]" />
+      </span>
+    );
+  }
+  return (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#E6ECFF] bg-white shadow-xs">
+      <SnowMark className="h-4 w-4 text-[#0027eb]" />
+    </span>
+  );
+}
 
 function ActionCardsRenderer({
   cards,
@@ -113,7 +137,7 @@ function ActionCardsRenderer({
                   return (
                     <div
                       key={pick.adId}
-                      className="group relative overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#0F172A] aspect-[4/5]"
+                      className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#0F172A]"
                     >
                       {pick.thumbnailUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
@@ -175,7 +199,7 @@ function ActionCardsRenderer({
           return (
             <div
               key={`cb-${cIdx}`}
-              className="overflow-hidden rounded-2xl border border-[#DCE4FF] bg-white shadow-[0_6px_24px_-12px_rgba(0,39,235,0.2)]"
+              className="overflow-hidden rounded-2xl border border-[#DCE4FF] bg-white shadow-[0_6px_24px_-12px_rgba(0,39,235,0.18)]"
             >
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
@@ -209,14 +233,13 @@ function ActionCardsRenderer({
                 </button>
               </div>
 
-              {/* Visual 4-Frame Storyboard Filmstrip */}
               <div className="grid grid-cols-2 gap-1.5 border-t border-[#F1F5F9] bg-[#FAFBFD] p-2.5 sm:grid-cols-4">
                 {card.scenes.slice(0, 4).map((sc) => (
                   <div
                     key={sc.id}
-                    className="flex flex-col justify-between rounded-xl bg-gradient-to-b from-[#0F172A] to-[#1E293B] p-2.5 text-white min-h-[104px]"
+                    className="flex min-h-[100px] flex-col justify-between rounded-xl bg-[#0F172A] p-2.5 text-white"
                   >
-                    <span className="font-mono-num text-[9px] font-bold uppercase tracking-wider text-white/60">
+                    <span className="font-mono-num text-[9px] font-bold uppercase tracking-wider text-white/55">
                       0{sc.sceneNumber} · {sc.timeRange}
                     </span>
                     <p className="mt-2 line-clamp-3 text-[11px] font-semibold leading-snug text-white">
@@ -234,7 +257,7 @@ function ActionCardsRenderer({
           return (
             <div
               key={`mu-${cIdx}`}
-              className="rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-3.5 space-y-2.5"
+              className="space-y-2.5 rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-3.5"
             >
               <p className="truncate font-display text-[13px] font-bold text-[#0F172A]">
                 {ins.title}
@@ -265,7 +288,7 @@ function ActionCardsRenderer({
           return (
             <div
               key={`ws-${cIdx}`}
-              className="rounded-2xl border border-[#ECEFF5] bg-white p-3.5 space-y-2.5"
+              className="space-y-2.5 rounded-2xl border border-[#ECEFF5] bg-white p-3.5"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-display text-[13px] font-bold text-[#0F172A]">
@@ -334,16 +357,6 @@ export function SnowAssistantView({
     useState<ProductPreview | null>(null);
   const [urlToMine, setUrlToMine] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
-
-  const featuredSwipeAds = useMemo(() => {
-    return ads
-      .filter(
-        (a) =>
-          a.source_type === "meta_ad_library" &&
-          (a.fallback_image_url || a.thumbnail_url)
-      )
-      .slice(0, 4);
-  }, [ads]);
 
   const searchableAds = useMemo(() => {
     const q = pickerSearch.trim().toLowerCase();
@@ -453,48 +466,35 @@ export function SnowAssistantView({
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
-      {/* Ultra-minimal Top Bar (Brand Pill + Reset only) */}
-      <div className="mb-2 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={onOpenBrandMemory}
-          className="inline-flex items-center gap-2 rounded-full border border-[#E6E9F0] bg-white px-3 py-1 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb]"
-        >
-          <span
-            className={`h-2 w-2 rounded-full ${
-              brandMemory ? "bg-[#16A34A]" : "bg-[#D97706]"
-            }`}
-          />
-          {brandMemory ? brandMemory.brandName : "Forbind brand"}
-        </button>
-        {messages.length > 0 && (
+      {/* Only show subtle reset icon when chatting (NO brand button clutter) */}
+      {messages.length > 0 && (
+        <div className="mb-2 flex justify-end">
           <button
             type="button"
             onClick={() => onMessagesChange([])}
             title="Ny chat"
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E6E9F0] bg-white text-[#64748B] transition-colors hover:text-[#0F172A]"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-3 py-1 text-[11px] font-semibold text-[#64748B] transition-colors hover:text-[#0F172A]"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3 w-3" />
+            Ny chat
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Centered Clean Welcome Hero with Pixel Snow Character */}
+      {/* ATRIA "ASK RAYA" INSPIRED CENTERED HERO */}
       {messages.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="relative mb-3 flex items-center justify-center">
-            <div className="pointer-events-none absolute h-16 w-16 rounded-full bg-[#0027eb]/12 blur-xl" />
-            <SnowCharacter size={76} className="relative z-10" />
-          </div>
-          <h1 className="font-display text-[28px] font-bold tracking-[-0.03em] text-[#0F172A]">
+        <div className="flex flex-1 flex-col items-center justify-center px-2 pb-12">
+          <SnowCircleBadge size="lg" />
+
+          <h1 className="mt-5 font-display text-[26px] font-bold tracking-[-0.03em] text-[#0F172A]">
             Spørg Snow
           </h1>
 
-          {/* Floating Pill Composer right in Hero Center */}
-          <div className="mt-6 w-full">{renderComposer()}</div>
+          {/* Centered Floating Pill Composer */}
+          <div className="mt-6 w-full max-w-[580px]">{renderComposer()}</div>
 
-          {/* Minimal 2x2 Action Tiles */}
-          <div className="mt-4 grid w-full grid-cols-2 gap-2.5">
+          {/* Exact 2x2 Minimal Cards Underneath */}
+          <div className="mt-5 grid w-full max-w-[580px] grid-cols-1 gap-2.5 sm:grid-cols-2">
             {STARTER_CARDS.map((card) => {
               const Icon = card.icon;
               return (
@@ -502,56 +502,21 @@ export function SnowAssistantView({
                   key={card.title}
                   type="button"
                   onClick={() => void sendMessage(card.prompt)}
-                  className="group flex items-center justify-between rounded-2xl border border-[#ECEFF5] bg-white px-4 py-3 text-left transition-all hover:border-[#0027eb]/40 hover:shadow-[0_6px_20px_-10px_rgba(0,39,235,0.2)]"
+                  className="group flex items-start justify-between gap-3 rounded-xl border border-[#ECEFF5] bg-white px-4 py-3 text-left transition-all hover:border-[#D3DCF8] hover:shadow-[0_4px_16px_-6px_rgba(0,39,235,0.14)]"
                 >
-                  <div>
-                    <p className="font-display text-[13px] font-bold text-[#0F172A]">
+                  <div className="min-w-0">
+                    <p className="text-[12.5px] font-semibold text-[#0F172A]">
                       {card.title}
                     </p>
-                    <p className="text-[11px] text-[#94A3B8]">{card.tag}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-[#94A3B8]">
+                      {card.subtitle}
+                    </p>
                   </div>
-                  <Icon className="h-4 w-4 text-[#94A3B8] transition-colors group-hover:text-[#0027eb]" />
+                  <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#CBD5E1] transition-colors group-hover:text-[#0027eb]" />
                 </button>
               );
             })}
           </div>
-
-          {/* Visual Swipe Strip — Show, don't tell */}
-          {featuredSwipeAds.length > 0 && (
-            <div className="mt-6 w-full">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-[#94A3B8]">
-                  Klik en vinder for at klone
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-2.5">
-                {featuredSwipeAds.map((ad) => (
-                  <button
-                    key={ad.id}
-                    type="button"
-                    onClick={() => onCloneAdToStudio(ad, "iphone_ugc")}
-                    className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#0F172A] text-left"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={ad.fallback_image_url || ad.thumbnail_url}
-                      alt={ad.brand_name}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <div className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-1">
-                      <span className="truncate text-[10.5px] font-bold text-white">
-                        {ad.brand_name}
-                      </span>
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/95 text-[#0027eb] opacity-0 transition-opacity group-hover:opacity-100">
-                        <Sparkles className="h-3 w-3" />
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         <>
@@ -564,8 +529,8 @@ export function SnowAssistantView({
                 }`}
               >
                 {msg.role === "assistant" && (
-                  <div className="mt-1 shrink-0">
-                    <SnowCharacter size={28} animate={false} />
+                  <div className="mt-1">
+                    <SnowCircleBadge size="md" />
                   </div>
                 )}
                 <div
@@ -607,8 +572,9 @@ export function SnowAssistantView({
 
             {sending && (
               <div className="flex items-center gap-2.5">
-                <SnowCharacter size={28} thinking />
+                <SnowCircleBadge size="md" />
                 <div className="inline-flex items-center gap-2 rounded-full border border-[#ECEFF5] bg-white px-3.5 py-1.5 text-xs font-medium text-[#64748B]">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0027eb]" />
                   Snow tænker...
                 </div>
               </div>
@@ -616,7 +582,7 @@ export function SnowAssistantView({
             <div ref={endRef} />
           </div>
 
-          {renderComposer()}
+          <div className="mx-auto w-full max-w-[680px]">{renderComposer()}</div>
         </>
       )}
     </div>
@@ -624,10 +590,10 @@ export function SnowAssistantView({
 
   function renderComposer() {
     return (
-      <div className="relative rounded-[22px] border border-[#DCE4FF] bg-white p-2 shadow-[0_10px_32px_-12px_rgba(0,39,235,0.22)]">
+      <div className="relative rounded-2xl border border-[#E6ECFF] bg-white p-1.5 shadow-[0_14px_38px_-10px_rgba(0,39,235,0.2),0_4px_14px_-4px_rgba(56,189,248,0.16)]">
         {/* Selected Attachment Pills */}
         {(attachedAd || attachedProduct || urlToMine) && (
-          <div className="mb-1.5 flex flex-wrap gap-1.5 px-2 pt-1">
+          <div className="mb-1 flex flex-wrap gap-1.5 px-2 pt-1">
             {attachedAd && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0027eb]/[0.08] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
                 {attachedAd.brand_name}
@@ -655,9 +621,9 @@ export function SnowAssistantView({
           </div>
         )}
 
-        {/* Popover Picker (opened via single + button) */}
+        {/* Popover Picker */}
         {pickerMode && (
-          <div className="mb-2 rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-2.5">
+          <div className="mb-2 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-2.5">
             <div className="mb-2 flex items-center justify-between px-1">
               <span className="text-[11px] font-semibold text-[#64748B]">
                 {pickerMode === "ad"
@@ -725,7 +691,7 @@ export function SnowAssistantView({
                   onClick={onOpenBrandMemory}
                   className="text-xs font-semibold text-[#0027eb]"
                 >
-                  Forbind dit brand først →
+                  Tilføj brand under Brands →
                 </button>
               )
             ) : (
@@ -772,14 +738,14 @@ export function SnowAssistantView({
           </div>
         )}
 
-        {/* Single Clean Input Row: [+] [Input] [Send] */}
+        {/* Single Clean Pill Row: [+] [Input] [↑] */}
         <div className="flex items-center gap-1.5">
           <div className="relative">
             <button
               type="button"
               onClick={() => setPlusOpen((v) => !v)}
               aria-label="Tilføj kontekst"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
             >
               <Plus
                 className={`h-4 w-4 transition-transform ${
@@ -836,12 +802,8 @@ export function SnowAssistantView({
                 void sendMessage();
               }
             }}
-            placeholder={
-              brandMemory
-                ? `Spørg Snow om ${brandMemory.brandName}...`
-                : "Spørg Snow eller indsæt en URL..."
-            }
-            className="min-w-0 flex-1 bg-transparent px-1.5 py-2 text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-[14px]"
+            placeholder="find mine top performing ads..."
+            className="min-w-0 flex-1 bg-transparent px-1 py-2 text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-[13.5px]"
           />
 
           <button
@@ -849,12 +811,12 @@ export function SnowAssistantView({
             disabled={sending}
             onClick={() => void sendMessage()}
             aria-label="Send til Snow"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0F172A] text-white transition-colors hover:bg-[#0027eb] disabled:opacity-50"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0F172A] text-white transition-colors hover:bg-[#0027eb] disabled:opacity-50"
           >
             {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <ArrowUp className="h-4 w-4" />
+              <ArrowUp className="h-3.5 w-3.5" />
             )}
           </button>
         </div>
@@ -881,7 +843,7 @@ export function SnowQuickDrawer({
       >
         <div className="mb-2 flex items-center justify-between">
           <span className="inline-flex items-center gap-2 font-display text-xs font-bold text-[#0F172A]">
-            <SnowCharacter size={22} animate={false} />
+            <SnowCircleBadge size="sm" />
             Snow
           </span>
           <button

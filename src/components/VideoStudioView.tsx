@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Bookmark,
   Check,
+  ChevronRight,
+  Clock,
   Copy,
   Download,
   Film,
@@ -12,11 +14,11 @@ import {
   Layers,
   Link2,
   Loader2,
+  Package,
   Pause,
   Pencil,
   Play,
   Rocket,
-  SlidersHorizontal,
   Sparkles,
   Volume2,
   VolumeX,
@@ -50,6 +52,7 @@ interface VideoStudioViewProps {
   brandMemory: BrandMemory | null;
   projects: CreativeProject[];
   incomingTrigger: StudioDraftTrigger | null;
+  initialSubTab?: StudioSubTab;
   onConsumeTrigger: () => void;
   onSaveProject: (proj: CreativeProject) => void;
   onQueueForLaunch: (proj: CreativeProject) => void;
@@ -57,19 +60,43 @@ interface VideoStudioViewProps {
   onOpenBrandMemory: () => void;
 }
 
-const SHORT_PRESET_LABELS: Record<VideoStylePresetId, { title: string; tag: string }> = {
-  iphone_ugc: { title: "iPhone UGC", tag: "9:16 RAW" },
-  claymation_moa: { title: "Claymation", tag: "12 FPS" },
-  pixar_story: { title: "Pixar 3D", tag: "STORY" },
-  mini_drama: { title: "Mini-Drama", tag: "TWIST" },
-  founder_authority: { title: "Founder", tag: "POV" },
-  cinema_macro: { title: "Macro 60fps", tag: "CINEMA" },
+const PRESET_META: Record<
+  VideoStylePresetId,
+  { title: string; tag: string; gradient: string }
+> = {
+  iphone_ugc: {
+    title: "iPhone UGC",
+    tag: "RAW 9:16",
+    gradient: "from-[#064E3B] via-[#0F766E] to-[#5EEAD4]",
+  },
+  claymation_moa: {
+    title: "Claymation",
+    tag: "12 FPS CLAY",
+    gradient: "from-[#7C2D12] via-[#EA580C] to-[#FDBA74]",
+  },
+  pixar_story: {
+    title: "Pixar 3D",
+    tag: "3D STORY",
+    gradient: "from-[#061238] via-[#0027eb] to-[#7DD3FC]",
+  },
+  mini_drama: {
+    title: "Mini-Drama",
+    tag: "PLOT TWIST",
+    gradient: "from-[#050811] via-[#1E293B] to-[#475569]",
+  },
+  founder_authority: {
+    title: "Founder POV",
+    tag: "AUTHORITY",
+    gradient: "from-[#0F172A] via-[#334155] to-[#94A3B8]",
+  },
+  cinema_macro: {
+    title: "Macro 60fps",
+    tag: "CINEMA",
+    gradient: "from-[#020617] via-[#0F172A] to-[#1D4ED8]",
+  },
 };
 
-const STATIC_LAYOUTS: Array<{
-  id: StaticCloneLayoutId;
-  label: string;
-}> = [
+const STATIC_LAYOUTS: Array<{ id: StaticCloneLayoutId; label: string }> = [
   { id: "callout_pointers", label: "3 Callouts" },
   { id: "us_vs_them", label: "Os vs. Dem" },
   { id: "ugly_postit", label: "Post-It" },
@@ -77,94 +104,7 @@ const STATIC_LAYOUTS: Array<{
   { id: "before_after", label: "Før / Efter" },
 ];
 
-/** Visual Higgsfield-style cinema poster tile for each preset */
-function PresetPosterCard({
-  id,
-  selected,
-  previewImg,
-  onClick,
-}: {
-  id: VideoStylePresetId;
-  selected: boolean;
-  previewImg?: string;
-  onClick: () => void;
-}) {
-  const meta = SHORT_PRESET_LABELS[id];
-  const preset = getPresetById(id);
-
-  const bgGradient =
-    id === "claymation_moa"
-      ? "from-[#7C2D12] via-[#EA580C] to-[#FDBA74]"
-      : id === "pixar_story"
-        ? "from-[#061238] via-[#0027eb] to-[#7DD3FC]"
-        : id === "mini_drama"
-          ? "from-[#050811] via-[#1E293B] to-[#475569]"
-          : id === "founder_authority"
-            ? "from-[#0F172A] via-[#334155] to-[#94A3B8]"
-            : id === "cinema_macro"
-              ? "from-[#020617] via-[#0F172A] to-[#1D4ED8]"
-              : "from-[#064E3B] via-[#0F766E] to-[#5EEAD4]";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-gradient-to-br ${bgGradient} text-left transition-all ${
-        selected
-          ? "ring-[2.5px] ring-[#0027eb] ring-offset-2 ring-offset-[#F7F8FB] scale-[1.01]"
-          : "opacity-90 hover:opacity-100 hover:scale-[1.01]"
-      }`}
-    >
-      {previewImg && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={previewImg}
-          alt={meta.title}
-          style={{ filter: preset.filterCss }}
-          className="absolute inset-0 h-full w-full object-cover opacity-55 mix-blend-luminosity transition-transform duration-500 group-hover:scale-105"
-        />
-      )}
-
-      {/* Visual style accents (show, don't tell) */}
-      {id === "claymation_moa" && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-11 w-11 rounded-full bg-[#FDBA74]/85 shadow-[inset_-4px_-6px_10px_rgba(124,45,18,0.45)]" />
-          <div className="-ml-4 h-9 w-9 rounded-full bg-white/85 shadow-[inset_-3px_-5px_8px_rgba(15,23,42,0.3)]" />
-        </div>
-      )}
-      {id === "mini_drama" && (
-        <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 font-mono-num text-[9px] font-bold text-white backdrop-blur-md">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#E11D48]" />
-          REC
-        </span>
-      )}
-      {id === "iphone_ugc" && (
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-black/50 px-2 py-0.5 font-mono-num text-[9px] font-bold text-white backdrop-blur-md">
-          9:16
-        </span>
-      )}
-
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-
-      {selected && (
-        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#0027eb] text-white shadow">
-          <Check className="h-3 w-3" />
-        </span>
-      )}
-
-      <div className="absolute inset-x-2.5 bottom-2.5">
-        <span className="font-mono-num text-[9px] font-semibold tracking-wider text-white/70">
-          {meta.tag}
-        </span>
-        <p className="font-display text-[13px] font-bold leading-tight text-white">
-          {meta.title}
-        </p>
-      </div>
-    </button>
-  );
-}
-
-function StaticCanvasAdRenderer({
+function StaticCanvasStage({
   project,
   onUpdateProject,
   onQueueForLaunch,
@@ -373,118 +313,84 @@ function StaticCanvasAdRenderer({
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
-      {/* Top Layout Strip + Ratio Pills */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
-          {STATIC_LAYOUTS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              onClick={() => onUpdateProject({ staticLayoutId: l.id })}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                project.staticLayoutId === l.id
-                  ? "bg-[#0F172A] text-white"
-                  : "border border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <div className="inline-flex rounded-full border border-[#E6E9F0] bg-white p-0.5 font-mono-num text-[11px] font-semibold">
-            {(["4:5", "9:16", "1:1"] as const).map((ratio) => (
-              <button
-                key={ratio}
-                type="button"
-                onClick={() => onUpdateProject({ aspectRatio: ratio })}
-                className={`rounded-full px-2.5 py-1 ${
-                  project.aspectRatio === ratio
-                    ? "bg-[#0F172A] text-white"
-                    : "text-[#64748B]"
-                }`}
-              >
-                {ratio}
-              </button>
-            ))}
-          </div>
-
+    <div className="flex h-full flex-col items-center justify-center space-y-4">
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        {STATIC_LAYOUTS.map((l) => (
           <button
+            key={l.id}
             type="button"
-            onClick={() => setEditingText((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-              editingText
-                ? "border-[#0027eb] bg-[#0027eb]/[0.08] text-[#0027eb]"
-                : "border-[#E6E9F0] bg-white text-[#334155]"
+            onClick={() => onUpdateProject({ staticLayoutId: l.id })}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              project.staticLayoutId === l.id
+                ? "bg-[#0F172A] text-white"
+                : "border border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
             }`}
           >
-            <Pencil className="h-3.5 w-3.5" />
-            Tekst
+            {l.label}
           </button>
-        </div>
-      </div>
-
-      {/* Hero Stage: Huge Crisp Canvas Preview */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div
-          className={`flex flex-col items-center justify-center rounded-3xl border border-[#ECEFF5] bg-white p-6 shadow-[0_8px_30px_-14px_rgba(15,23,42,0.08)] ${
-            editingText ? "lg:col-span-7" : "lg:col-span-12"
+        ))}
+        <button
+          type="button"
+          onClick={() => setEditingText((v) => !v)}
+          className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
+            editingText
+              ? "border-[#0027eb] bg-[#0027eb]/[0.08] text-[#0027eb]"
+              : "border-[#E6E9F0] bg-white text-[#475569]"
           }`}
         >
-          <canvas
-            ref={canvasRef}
-            className="max-h-[520px] w-auto rounded-2xl border border-[#E6E9F0] shadow-xl"
+          <Pencil className="h-3 w-3" />
+          Tekst
+        </button>
+      </div>
+
+      <canvas
+        ref={canvasRef}
+        className="max-h-[460px] w-auto rounded-2xl border border-[#E6E9F0] shadow-xl"
+      />
+
+      {editingText && (
+        <div className="grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+          <input
+            type="text"
+            value={project.headline}
+            onChange={(e) => onUpdateProject({ headline: e.target.value })}
+            placeholder="Overskrift"
+            className="rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 text-xs font-bold text-[#0F172A] outline-none focus:border-[#0027eb] sm:col-span-2"
           />
-
-          <div className="mt-5 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={downloadPng}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE1EC] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
-            >
-              <Download className="h-3.5 w-3.5" />
-              PNG
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                onQueueForLaunch({ ...project, mode: "static_clone" })
-              }
-              className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-semibold text-white"
-            >
-              <Rocket className="h-3.5 w-3.5" />
-              Launch
-            </button>
-          </div>
-        </div>
-
-        {editingText && (
-          <div className="space-y-3 rounded-3xl border border-[#ECEFF5] bg-white p-4 lg:col-span-5">
+          {[0, 1].map((idx) => (
             <input
+              key={idx}
               type="text"
-              value={project.headline}
-              onChange={(e) => onUpdateProject({ headline: e.target.value })}
-              placeholder="Overskrift"
-              className="w-full rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3 py-2 text-[16px] font-bold text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-xs"
+              value={project.callouts[idx] || ""}
+              onChange={(e) => {
+                const next = [...project.callouts];
+                next[idx] = e.target.value;
+                onUpdateProject({ callouts: next, usPoints: next });
+              }}
+              placeholder={`USP ${idx + 1}`}
+              className="rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb]"
             />
-            {[0, 1, 2].map((idx) => (
-              <input
-                key={idx}
-                type="text"
-                value={project.callouts[idx] || ""}
-                onChange={(e) => {
-                  const next = [...project.callouts];
-                  next[idx] = e.target.value;
-                  onUpdateProject({ callouts: next, usPoints: next });
-                }}
-                placeholder={`USP ${idx + 1}`}
-                className="w-full rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3 py-2 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white sm:text-xs"
-              />
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={downloadPng}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE1EC] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download PNG
+        </button>
+        <button
+          type="button"
+          onClick={() => onQueueForLaunch({ ...project, mode: "static_clone" })}
+          className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-semibold text-white"
+        >
+          <Rocket className="h-3.5 w-3.5" />
+          Launch
+        </button>
       </div>
     </div>
   );
@@ -494,27 +400,31 @@ export function VideoStudioView({
   brandMemory,
   projects,
   incomingTrigger,
+  initialSubTab = "video",
   onConsumeTrigger,
   onSaveProject,
   onQueueForLaunch,
   onSaveToSwipeFolder,
+  onOpenBrandMemory,
 }: VideoStudioViewProps) {
-  const [subTab, setSubTab] = useState<StudioSubTab>("video");
+  const [subTab, setSubTab] = useState<StudioSubTab>(initialSubTab);
+  const [stageMode, setStageMode] = useState<"presets" | "preview" | "history">(
+    projects.length > 0 ? "preview" : "presets"
+  );
   const [presetId, setPresetId] = useState<VideoStylePresetId>("iphone_ugc");
   const [productTitle, setProductTitle] = useState<string>(
     brandMemory?.products[0]?.title || ""
   );
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "4:5" | "1:1">("9:16");
   const [language, setLanguage] = useState<"da" | "en">("da");
+  const [duration, setDuration] = useState<"15s" | "30s">("15s");
   const [creatorPersona, setCreatorPersona] = useState<string>(
     CREATOR_PERSONAS[0].id
   );
-  const [angleInput, setAngleInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
-  const [showOptions, setShowOptions] = useState(false);
-  const [editingSceneIdx, setEditingSceneIdx] = useState<number | null>(null);
   const [playing, setPlaying] = useState(true);
   const [sceneIdx, setSceneIdx] = useState(0);
+  const [editingSceneIdx, setEditingSceneIdx] = useState<number | null>(null);
   const [speakAudio, setSpeakAudio] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [copiedBrief, setCopiedBrief] = useState(false);
@@ -528,6 +438,11 @@ export function VideoStudioView({
   const [minedInsights, setMinedInsights] = useState<MinedUrlInsights | null>(
     null
   );
+
+  useEffect(() => {
+    setSubTab(initialSubTab);
+    if (initialSubTab === "assets") setStageMode("history");
+  }, [initialSubTab]);
 
   const runGenerate = async (opts?: {
     overridePreset?: VideoStylePresetId;
@@ -556,7 +471,7 @@ export function VideoStudioView({
             opts?.overrideProduct ||
             productTitle ||
             brandMemory?.products[0]?.title,
-          angle: opts?.overrideAngle || angleInput || undefined,
+          angle: opts?.overrideAngle || undefined,
           userPrompt: noteInput || undefined,
           clonedFromAd: opts?.clonedFromAd,
         }),
@@ -567,6 +482,7 @@ export function VideoStudioView({
         setActiveProject(proj);
         setSceneIdx(0);
         setEditingSceneIdx(null);
+        setStageMode("preview");
         onSaveProject(proj);
       }
     } finally {
@@ -583,7 +499,6 @@ export function VideoStudioView({
       setPresetId(incomingTrigger.stylePresetId);
     if (incomingTrigger.productTitle)
       setProductTitle(incomingTrigger.productTitle);
-    if (incomingTrigger.angle) setAngleInput(incomingTrigger.angle);
     void runGenerate({
       overridePreset: incomingTrigger.stylePresetId || presetId,
       overrideMode: incomingTrigger.mode || "video",
@@ -595,16 +510,8 @@ export function VideoStudioView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingTrigger?.id]);
 
-  useEffect(() => {
-    if (!activeProject && !generating) {
-      void runGenerate();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const activePreset = activeProject
-    ? getPresetById(activeProject.stylePresetId)
-    : getPresetById(presetId);
+  const activePreset = getPresetById(activeProject?.stylePresetId || presetId);
+  const currentPresetMeta = PRESET_META[presetId];
 
   const activeHook = useMemo(() => {
     if (!activeProject) return null;
@@ -631,12 +538,14 @@ export function VideoStudioView({
   const currentScene = displayScenes[sceneIdx] || displayScenes[0];
 
   useEffect(() => {
-    if (!playing || displayScenes.length === 0 || subTab !== "video") return;
+    if (!playing || displayScenes.length === 0 || stageMode !== "preview" || subTab !== "video") {
+      return;
+    }
     const timer = window.setInterval(() => {
       setSceneIdx((prev) => (prev + 1) % displayScenes.length);
     }, 3400);
     return () => window.clearInterval(timer);
-  }, [playing, displayScenes.length, subTab]);
+  }, [playing, displayScenes.length, stageMode, subTab]);
 
   useEffect(() => {
     if (
@@ -705,64 +614,88 @@ export function VideoStudioView({
     activeProject?.clonedFromAd?.thumbnailUrl;
 
   const backdropStyle =
-    activeProject?.stylePresetId === "claymation_moa"
+    (activeProject?.stylePresetId || presetId) === "claymation_moa"
       ? "from-[#451A03] via-[#92400E] to-[#D97706]"
-      : activeProject?.stylePresetId === "pixar_story"
+      : (activeProject?.stylePresetId || presetId) === "pixar_story"
         ? "from-[#061238] via-[#0027eb]/85 to-[#38BDF8]"
-        : activeProject?.stylePresetId === "cinema_macro"
+        : (activeProject?.stylePresetId || presetId) === "cinema_macro"
           ? "from-[#020617] via-[#0F172A] to-[#0027eb]"
           : "from-[#050811] via-[#1E293B] to-[#334155]";
 
   return (
-    <div className="space-y-5">
-      {/* Minimal Studio Top Strip: Title + Segmented Sub-Tabs only */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-[22px] font-bold tracking-tight text-[#0F172A]">
-          Ad Studio
-        </h1>
-
-        <div className="no-scrollbar inline-flex items-center gap-1 overflow-x-auto rounded-full border border-[#E6E9F0] bg-white p-1 shadow-2xs">
-          {[
-            { id: "video" as StudioSubTab, label: "Video", icon: Film },
-            { id: "static" as StudioSubTab, label: "Static", icon: ImageIcon },
-            { id: "miner" as StudioSubTab, label: "URL Miner", icon: Link2 },
-            {
-              id: "assets" as StudioSubTab,
-              label: `Galleri (${projects.length})`,
-              icon: Layers,
-            },
-          ].map((t) => {
-            const Icon = t.icon;
-            const active = subTab === t.id;
-            return (
+    <div className="flex min-h-[calc(100vh-5.5rem)] flex-col gap-5 lg:flex-row">
+      {/* =====================================================================
+          LEFT HIGGSFIELD-STYLE CONTROL PANEL (320px FIXED ON DESKTOP)
+         ===================================================================== */}
+      <div className="flex w-full shrink-0 flex-col justify-between rounded-2xl border border-[#ECEFF5] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)] lg:w-[320px]">
+        <div className="space-y-3">
+          {/* Higgsfield Top Mode Tabs */}
+          <div className="flex items-center gap-4 border-b border-[#F1F5F9] pb-2.5 text-xs font-semibold">
+            {(
+              [
+                { id: "video", label: "Create Video" },
+                { id: "static", label: "Static" },
+                { id: "miner", label: "URL Miner" },
+              ] as const
+            ).map((t) => (
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setSubTab(t.id)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  active
-                    ? "bg-[#0F172A] text-white"
-                    : "text-[#64748B] hover:text-[#0F172A]"
+                onClick={() => {
+                  setSubTab(t.id);
+                  if (t.id === "static" && !activeProject) {
+                    void runGenerate({ overrideMode: "static_clone" });
+                  }
+                }}
+                className={`relative pb-2.5 -mb-[11px] transition-colors ${
+                  subTab === t.id
+                    ? "border-b-2 border-[#0F172A] text-[#0F172A]"
+                    : "text-[#94A3B8] hover:text-[#475569]"
                 }`}
               >
-                <Icon className="h-3.5 w-3.5" />
                 {t.label}
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
 
-      {/* =====================================================================
-          TAB 1: VISUAL VIDEO STUDIO (HIGGSFIELD GALLERY + LIVE STAGE)
-         ===================================================================== */}
-      {subTab === "video" && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-          {/* Left: Visual Preset Poster Wall + Clean Single-Bar Dock (7 cols) */}
-          <div className="space-y-4 xl:col-span-7">
-            {/* Cloned Source Visual Pill (only when cloning) */}
-            {activeProject?.clonedFromAd && (
-              <div className="flex items-center gap-3 rounded-2xl border border-[#DCE4FF] bg-white px-3 py-2.5">
+          {/* Active Preset Banner Card + Change Button (exact Higgsfield pattern) */}
+          <div
+            onClick={() => {
+              setSubTab("video");
+              setStageMode("presets");
+            }}
+            className={`group relative aspect-[16/9] w-full cursor-pointer overflow-hidden rounded-xl bg-gradient-to-br ${currentPresetMeta.gradient}`}
+          >
+            {previewProductImage && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={previewProductImage}
+                alt={currentPresetMeta.title}
+                style={{ filter: getPresetById(presetId).filterCss }}
+                className="absolute inset-0 h-full w-full object-cover opacity-55 mix-blend-luminosity transition-transform duration-500 group-hover:scale-105"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/20" />
+
+            <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2.5 py-1 text-[10.5px] font-semibold text-white backdrop-blur-md transition-colors group-hover:bg-[#0027eb]">
+              <Pencil className="h-2.5 w-2.5" />
+              Skift
+            </span>
+
+            <div className="absolute inset-x-3 bottom-2.5">
+              <p className="font-display text-[15px] font-bold uppercase tracking-wide text-white">
+                {currentPresetMeta.title}
+              </p>
+              <p className="font-mono-num text-[10px] text-white/75">
+                {currentPresetMeta.tag} · Flake Engine
+              </p>
+            </div>
+          </div>
+
+          {/* Reference / Product Drop Box (exact Higgsfield "Add references" tile) */}
+          <div className="rounded-xl border border-dashed border-[#DCE1EC] bg-[#FAFBFD] p-3">
+            {activeProject?.clonedFromAd ? (
+              <div className="flex items-center gap-2.5">
                 {activeProject.clonedFromAd.thumbnailUrl && (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -772,200 +705,547 @@ export function VideoStudioView({
                   />
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#0027eb]">
-                    Cloner struktur
-                  </span>
-                  <p className="truncate text-xs font-bold text-[#0F172A]">
-                    {activeProject.clonedFromAd.brandName} ·{" "}
-                    {activeProject.clonedFromAd.activeDays}d live
+                  <p className="text-[10px] font-bold uppercase text-[#0027eb]">
+                    Cloner Swipe-Ad
+                  </p>
+                  <p className="truncate text-xs font-semibold text-[#0F172A]">
+                    {activeProject.clonedFromAd.brandName}
                   </p>
                 </div>
               </div>
+            ) : brandMemory && brandMemory.products.length > 0 ? (
+              <div className="space-y-1.5">
+                <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">
+                  <Package className="h-3 w-3" />
+                  Produkt-reference
+                </span>
+                <select
+                  value={productTitle}
+                  onChange={(e) => setProductTitle(e.target.value)}
+                  className="w-full rounded-lg border border-[#E6E9F0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+                >
+                  {brandMemory.products.map((p, idx) => (
+                    <option key={idx} value={p.title}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenBrandMemory}
+                className="flex w-full flex-col items-center justify-center py-2 text-center"
+              >
+                <div className="mb-1.5 flex items-center -space-x-1.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white bg-[#E2E8F0] text-[#475569]">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white bg-[#0F172A] text-white">
+                    <Film className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-[#0F172A]">
+                  Tilføj produkt / brand
+                </p>
+                <p className="text-[10.5px] text-[#94A3B8]">
+                  Billede eller Brand Memory
+                </p>
+              </button>
             )}
+          </div>
 
-            {/* 6 Higgsfield-style Visual Cinema Poster Cards */}
-            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6 xl:grid-cols-3">
-              {VIDEO_STYLE_PRESETS.map((p) => (
-                <PresetPosterCard
-                  key={p.id}
-                  id={p.id}
-                  selected={presetId === p.id}
-                  previewImg={previewProductImage}
-                  onClick={() => {
-                    setPresetId(p.id);
-                    void runGenerate({
-                      overridePreset: p.id,
-                      clonedFromAd: activeProject?.clonedFromAd,
-                    });
-                  }}
-                />
-              ))}
+          {/* Higgsfield Prompt Card */}
+          <div className="rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] p-3">
+            <label className="block text-[11px] font-semibold text-[#64748B]">
+              Prompt
+            </label>
+            <textarea
+              rows={3}
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              placeholder="Beskriv en idé eller lad Flake skrive hele scriptet automatisk..."
+              className="mt-1 w-full resize-none bg-transparent text-xs leading-relaxed text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+            />
+            <div className="mt-2 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSpeakAudio((v) => !v)}
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10.5px] font-semibold ${
+                  speakAudio
+                    ? "border-[#0027eb]/30 bg-[#0027eb]/[0.08] text-[#0027eb]"
+                    : "border-[#E6E9F0] bg-white text-[#64748B]"
+                }`}
+              >
+                {speakAudio ? (
+                  <Volume2 className="h-3 w-3" />
+                ) : (
+                  <VolumeX className="h-3 w-3" />
+                )}
+                Lyd {speakAudio ? "On" : "Off"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setLanguage((l) => (l === "da" ? "en" : "da"))
+                }
+                className="rounded-md border border-[#E6E9F0] bg-white px-2 py-1 font-mono-num text-[10.5px] font-semibold uppercase text-[#475569]"
+              >
+                {language}
+              </button>
             </div>
+          </div>
 
-            {/* Runway / Higgsfield Floating Prompt & Action Dock */}
-            <div className="rounded-2xl border border-[#E6E9F0] bg-white p-2.5 shadow-[0_8px_28px_-14px_rgba(15,23,42,0.12)]">
-              <div className="flex items-center gap-2">
+          {/* Higgsfield 2x2 Bento Parameter Tiles */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setDuration((d) => (d === "15s" ? "30s" : "15s"))
+              }
+              className="flex items-center justify-between rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2 text-left hover:border-[#CBD5E1]"
+            >
+              <div>
+                <p className="text-[10px] text-[#94A3B8]">Længde</p>
+                <p className="font-mono-num text-xs font-bold text-[#0F172A]">
+                  {duration}
+                </p>
+              </div>
+              <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setAspectRatio((r) =>
+                  r === "9:16" ? "4:5" : r === "4:5" ? "1:1" : "9:16"
+                )
+              }
+              className="flex items-center justify-between rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2 text-left hover:border-[#CBD5E1]"
+            >
+              <div>
+                <p className="text-[10px] text-[#94A3B8]">Aspect Ratio</p>
+                <p className="font-mono-num text-xs font-bold text-[#0F172A]">
+                  {aspectRatio}
+                </p>
+              </div>
+              <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2">
+            <p className="text-[10px] text-[#94A3B8]">Creator</p>
+            <select
+              value={creatorPersona}
+              onChange={(e) => setCreatorPersona(e.target.value)}
+              className="mt-0.5 w-full bg-transparent text-xs font-bold text-[#0F172A] outline-none"
+            >
+              {CREATOR_PERSONAS.map((cp) => (
+                <option key={cp.id} value={cp.id}>
+                  {cp.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Full-width Flake Cobalt Generate CTA at Bottom of Left Panel */}
+        <button
+          type="button"
+          disabled={generating}
+          onClick={() =>
+            void runGenerate({
+              clonedFromAd: activeProject?.clonedFromAd,
+            })
+          }
+          className="adtrack-btn-primary mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold text-white disabled:opacity-60"
+        >
+          {generating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Genererer...
+            </>
+          ) : (
+            <>
+              Generér
+              <Sparkles className="h-3.5 w-3.5" />
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* =====================================================================
+          RIGHT MAIN STAGE (HIGGSFIELD HERO / LIVE VIDEO / STATIC / HISTORY)
+         ===================================================================== */}
+      <div className="flex min-w-0 flex-1 flex-col rounded-2xl border border-[#ECEFF5] bg-white p-5">
+        {/* Top Stage Bar: History / Presets / Preview */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setSubTab("video");
+                setStageMode("history");
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                stageMode === "history" && subTab !== "static" && subTab !== "miner"
+                  ? "bg-[#0F172A] text-white"
+                  : "text-[#64748B] hover:bg-[#F5F7FA] hover:text-[#0F172A]"
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Historik ({projects.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSubTab("video");
+                setStageMode("presets");
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                stageMode === "presets" && subTab === "video"
+                  ? "bg-[#0F172A] text-white"
+                  : "text-[#64748B] hover:bg-[#F5F7FA] hover:text-[#0F172A]"
+              }`}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Presets
+            </button>
+            {activeProject && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSubTab("video");
+                  setStageMode("preview");
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  stageMode === "preview" && subTab === "video"
+                    ? "bg-[#0F172A] text-white"
+                    : "text-[#64748B] hover:bg-[#F5F7FA] hover:text-[#0F172A]"
+                }`}
+              >
+                <Play className="h-3.5 w-3.5" />
+                Preview
+              </button>
+            )}
+          </div>
+
+          {activeProject && subTab === "video" && stageMode === "preview" && (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={copyBriefText}
+                className="inline-flex items-center gap-1 rounded-lg border border-[#E6E9F0] px-2.5 py-1.5 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
+              >
+                {copiedBrief ? (
+                  <Check className="h-3.5 w-3.5 text-[#16A34A]" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+                Brief
+              </button>
+              <button
+                type="button"
+                onClick={() => onSaveToSwipeFolder(activeProject)}
+                className="inline-flex items-center gap-1 rounded-lg border border-[#E6E9F0] px-2.5 py-1.5 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
+              >
+                <Bookmark className="h-3.5 w-3.5" />
+                Gem
+              </button>
+              <button
+                type="button"
+                onClick={() => onQueueForLaunch(activeProject)}
+                className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
+              >
+                <Rocket className="h-3.5 w-3.5" />
+                Launch
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* STAGE CONTENT */}
+        <div className="flex-1">
+          {/* 1. STATIC CLONER STAGE */}
+          {subTab === "static" && activeProject && (
+            <StaticCanvasStage
+              project={activeProject}
+              onUpdateProject={updateActive}
+              onQueueForLaunch={onQueueForLaunch}
+            />
+          )}
+
+          {/* 2. URL MINER STAGE */}
+          {subTab === "miner" && (
+            <div className="mx-auto max-w-2xl space-y-5 py-6">
+              <div className="flex items-center gap-2 rounded-2xl border border-[#DCE4FF] bg-[#FAFBFD] p-1.5 pl-4">
+                <Link2 className="h-4 w-4 shrink-0 text-[#94A3B8]" />
                 <input
-                  type="text"
-                  value={noteInput}
-                  onChange={(e) => setNoteInput(e.target.value)}
+                  type="url"
+                  value={minerUrl}
+                  onChange={(e) => setMinerUrl(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      void runGenerate({
-                        clonedFromAd: activeProject?.clonedFromAd,
-                      });
+                      void runMineUrl();
                     }
                   }}
-                  placeholder="Valgfri idé — eller klik bare Generér..."
-                  className="min-w-0 flex-1 bg-transparent px-2 py-2 text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-xs"
+                  placeholder="Indsæt produktside-URL..."
+                  className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[#0F172A] outline-none"
                 />
-
                 <button
                   type="button"
-                  onClick={() => setShowOptions((v) => !v)}
-                  title="Indstillinger"
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${
-                    showOptions
-                      ? "border-[#0027eb] bg-[#0027eb]/[0.08] text-[#0027eb]"
-                      : "border-[#E6E9F0] bg-[#FAFBFD] text-[#64748B] hover:text-[#0F172A]"
-                  }`}
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                </button>
-
-                <button
-                  type="button"
-                  disabled={generating}
-                  onClick={() =>
-                    void runGenerate({
-                      clonedFromAd: activeProject?.clonedFromAd,
-                    })
-                  }
+                  disabled={mining}
+                  onClick={() => void runMineUrl()}
                   className="adtrack-btn-primary inline-flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                 >
-                  {generating ? (
+                  {mining ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <Sparkles className="h-3.5 w-3.5" />
                   )}
-                  Generér
+                  Mine
                 </button>
               </div>
 
-              {/* Collapsible Controls (hidden by default for clean visual UI) */}
-              {showOptions && (
-                <div className="mt-2.5 grid grid-cols-2 gap-2 border-t border-[#F1F5F9] pt-2.5 sm:grid-cols-4">
-                  {brandMemory && brandMemory.products.length > 0 ? (
-                    <select
-                      value={productTitle}
-                      onChange={(e) => setProductTitle(e.target.value)}
-                      className="rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1.5 text-xs font-medium text-[#0F172A] outline-none"
+              {minedInsights && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {minedInsights.recommendedAngles.map((ang, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setSubTab("video");
+                        setPresetId(ang.presetId);
+                        void runGenerate({
+                          overridePreset: ang.presetId,
+                          overrideMode: "video",
+                          overrideProduct: minedInsights.title,
+                          overrideAngle: ang.title,
+                        });
+                      }}
+                      className="group flex flex-col justify-between rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-4 text-left transition-all hover:border-[#0027eb] hover:bg-white"
                     >
-                      {brandMemory.products.map((p, idx) => (
-                        <option key={idx} value={p.title}>
-                          {p.title}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={productTitle}
-                      onChange={(e) => setProductTitle(e.target.value)}
-                      placeholder="Produkt..."
-                      className="rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1.5 text-xs text-[#0F172A] outline-none"
-                    />
-                  )}
-
-                  <select
-                    value={creatorPersona}
-                    onChange={(e) => setCreatorPersona(e.target.value)}
-                    className="rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1.5 text-xs font-medium text-[#0F172A] outline-none"
-                  >
-                    {CREATOR_PERSONAS.map((cp) => (
-                      <option key={cp.id} value={cp.id}>
-                        {cp.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="inline-flex rounded-xl bg-[#F5F7FA] p-0.5 text-[11px] font-semibold">
-                    {(["da", "en"] as const).map((l) => (
-                      <button
-                        key={l}
-                        type="button"
-                        onClick={() => setLanguage(l)}
-                        className={`flex-1 rounded-lg py-1 uppercase ${
-                          language === l
-                            ? "bg-white text-[#0F172A] shadow-2xs"
-                            : "text-[#64748B]"
-                        }`}
-                      >
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="inline-flex rounded-xl bg-[#F5F7FA] p-0.5 font-mono-num text-[11px] font-semibold">
-                    {(["9:16", "4:5", "1:1"] as const).map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setAspectRatio(r)}
-                        className={`flex-1 rounded-lg py-1 ${
-                          aspectRatio === r
-                            ? "bg-white text-[#0F172A] shadow-2xs"
-                            : "text-[#64748B]"
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
+                      <div>
+                        <span className="rounded-full bg-[#0027eb]/[0.08] px-2 py-0.5 text-[10px] font-bold text-[#0027eb]">
+                          {PRESET_META[ang.presetId].title}
+                        </span>
+                        <p className="mt-2 font-display text-sm font-bold text-[#0F172A]">
+                          {ang.title}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-xs text-[#64748B]">
+                          &ldquo;{ang.hook}&rdquo;
+                        </p>
+                      </div>
+                      <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0027eb]">
+                        Generér
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Visual Filmstrip Storyboard (4 visual scene frames; click any frame to edit inline) */}
-            {activeProject && (
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {displayScenes.map((sc, idx) => {
-                    const isActive = idx === sceneIdx;
-                    const isEditing = idx === editingSceneIdx;
-                    return (
-                      <button
-                        key={sc.id}
-                        type="button"
-                        onClick={() => {
-                          setPlaying(false);
-                          setSceneIdx(idx);
-                          setEditingSceneIdx(isEditing ? null : idx);
-                        }}
-                        className={`group relative overflow-hidden rounded-2xl border p-3 text-left transition-all ${
-                          isActive
-                            ? "border-[#0027eb] bg-white shadow-[0_6px_18px_-8px_rgba(0,39,235,0.28)]"
-                            : "border-[#ECEFF5] bg-white hover:border-[#CBD5E1]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono-num text-[10px] font-bold text-[#64748B]">
-                            {sc.timeRange}
-                          </span>
-                          <Pencil className="h-3 w-3 text-[#94A3B8] opacity-0 transition-opacity group-hover:opacity-100" />
-                        </div>
-                        <p className="mt-1.5 line-clamp-2 text-[11.5px] font-semibold leading-snug text-[#0F172A]">
-                          {sc.onScreenCaption}
+          {/* 3. HIGGSFIELD PRESETS & 1-CLICK HERO STAGE */}
+          {subTab === "video" && stageMode === "presets" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="font-display text-[22px] font-extrabold uppercase tracking-tight text-[#0F172A]">
+                  Lav videoer med ét klik
+                </h2>
+                <p className="mt-1 text-xs text-[#64748B]">
+                  Vælg en stil — Flake bygger automatisk 5 hooks, storyboard og færdigt ad-format.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+                {VIDEO_STYLE_PRESETS.map((p) => {
+                  const meta = PRESET_META[p.id];
+                  const selected = presetId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setPresetId(p.id);
+                        void runGenerate({
+                          overridePreset: p.id,
+                          clonedFromAd: activeProject?.clonedFromAd,
+                        });
+                      }}
+                      className={`group relative aspect-[4/5] overflow-hidden rounded-2xl bg-gradient-to-br ${meta.gradient} text-left transition-all ${
+                        selected
+                          ? "ring-[2.5px] ring-[#0027eb] ring-offset-2"
+                          : "hover:scale-[1.01]"
+                      }`}
+                    >
+                      {previewProductImage && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={previewProductImage}
+                          alt={meta.title}
+                          style={{ filter: p.filterCss }}
+                          className="absolute inset-0 h-full w-full object-cover opacity-55 mix-blend-luminosity transition-transform duration-500 group-hover:scale-105"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
+                      <div className="absolute inset-x-3.5 bottom-3.5">
+                        <span className="font-mono-num text-[9.5px] font-bold tracking-wider text-white/75">
+                          {meta.tag}
+                        </span>
+                        <p className="font-display text-[15px] font-bold text-white">
+                          {meta.title}
                         </p>
-                      </button>
-                    );
-                  })}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 4. LIVE VIDEO PREVIEW STAGE */}
+          {subTab === "video" && stageMode === "preview" && activeProject && (
+            <div className="flex flex-col items-center space-y-4">
+              {/* Hook Switcher Pills */}
+              <div className="no-scrollbar flex max-w-full gap-1.5 overflow-x-auto pb-0.5">
+                {activeProject.hooks.map((h, idx) => {
+                  const active = h.id === activeProject.selectedHookId;
+                  return (
+                    <button
+                      key={h.id}
+                      type="button"
+                      onClick={() => {
+                        const nextScenes = activeProject.scenes.map((sc, i) =>
+                          i === 0
+                            ? {
+                                ...sc,
+                                spokenLine: h.spokenHook,
+                                onScreenCaption: h.onScreenText,
+                              }
+                            : sc
+                        );
+                        updateActive({
+                          selectedHookId: h.id,
+                          scenes: nextScenes,
+                        });
+                        setSceneIdx(0);
+                      }}
+                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
+                        active
+                          ? "bg-[#0027eb] text-white"
+                          : "bg-[#F3F5F9] text-[#475569] hover:text-[#0F172A]"
+                      }`}
+                    >
+                      Hook {idx + 1} · {h.predictedThumbstopPct}%
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Centerpiece Phone Frame */}
+              <div
+                className={`relative aspect-[9/16] w-full max-w-[275px] overflow-hidden rounded-[26px] border-[5px] border-[#0F172A] bg-gradient-to-b ${backdropStyle} shadow-[0_24px_54px_-14px_rgba(15,23,42,0.32)]`}
+              >
+                {previewProductImage && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    key={`${currentScene?.id}-${sceneIdx}`}
+                    src={
+                      sceneIdx === 1 && activeProject.clonedFromAd?.thumbnailUrl
+                        ? activeProject.clonedFromAd.thumbnailUrl
+                        : previewProductImage
+                    }
+                    alt={activeProject.productTitle}
+                    style={{ filter: activePreset.filterCss }}
+                    className={`absolute inset-0 h-full w-full object-cover opacity-85 transition-transform duration-1000 ${
+                      sceneIdx % 2 === 0 ? "scale-105" : "scale-100"
+                    }`}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/45" />
+
+                <div className="relative z-10 flex gap-1 px-3 pt-2.5">
+                  {displayScenes.map((sc, i) => (
+                    <div
+                      key={sc.id}
+                      className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30"
+                    >
+                      <div
+                        className={`h-full rounded-full bg-white transition-all duration-300 ${
+                          i <= sceneIdx ? "w-full" : "w-0"
+                        }`}
+                      />
+                    </div>
+                  ))}
                 </div>
 
-                {/* Single Inline Scene Editor (only visible when user clicks a scene frame) */}
-                {editingSceneIdx !== null && activeProject.scenes[editingSceneIdx] && (
-                  <div className="grid grid-cols-1 gap-2 rounded-2xl border border-[#DCE4FF] bg-white p-3 sm:grid-cols-2">
+                <div className="relative z-10 flex items-center justify-between px-3.5 pt-2.5 text-white">
+                  <span className="rounded-full bg-black/45 px-2.5 py-0.5 text-[10px] font-bold backdrop-blur-md">
+                    {PRESET_META[activeProject.stylePresetId].title}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPlaying((v) => !v)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-black/45 backdrop-blur-md"
+                  >
+                    {playing ? (
+                      <Pause className="h-3.5 w-3.5" />
+                    ) : (
+                      <Play className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+
+                {currentScene && (
+                  <div className="absolute inset-x-3.5 bottom-13 z-10 space-y-2 text-center">
+                    <div className="inline-block rounded-xl bg-white px-3 py-1.5 font-display text-[13px] font-bold leading-tight text-[#0F172A] shadow-lg">
+                      {currentScene.onScreenCaption}
+                    </div>
+                    <p className="rounded-xl bg-black/55 px-2.5 py-1.5 text-[11px] leading-snug text-white/95 backdrop-blur-md">
+                      &ldquo;{currentScene.spokenLine}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                <div className="absolute inset-x-3 bottom-3 z-10 flex items-center justify-between rounded-xl bg-[#0027eb] px-3 py-1.5 text-[11px] font-bold text-white">
+                  <span className="truncate">{activeProject.brandName}</span>
+                  <span>{activeProject.ctaText} →</span>
+                </div>
+              </div>
+
+              {/* 4-Frame Visual Scene Scrubber */}
+              <div className="grid w-full max-w-xl grid-cols-2 gap-2 sm:grid-cols-4">
+                {displayScenes.map((sc, idx) => (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => {
+                      setPlaying(false);
+                      setSceneIdx(idx);
+                      setEditingSceneIdx(editingSceneIdx === idx ? null : idx);
+                    }}
+                    className={`rounded-xl border p-2.5 text-left transition-all ${
+                      idx === sceneIdx
+                        ? "border-[#0027eb] bg-[#0027eb]/[0.05]"
+                        : "border-[#ECEFF5] bg-[#FAFBFD] hover:border-[#CBD5E1]"
+                    }`}
+                  >
+                    <span className="font-mono-num text-[9.5px] font-bold text-[#94A3B8]">
+                      {sc.timeRange}
+                    </span>
+                    <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-[#0F172A]">
+                      {sc.onScreenCaption}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {editingSceneIdx !== null &&
+                activeProject.scenes[editingSceneIdx] && (
+                  <div className="grid w-full max-w-xl grid-cols-1 gap-2 sm:grid-cols-2">
                     <input
                       type="text"
                       value={activeProject.scenes[editingSceneIdx].spokenLine}
@@ -978,11 +1258,13 @@ export function VideoStudioView({
                         updateActive({ scenes: nextScenes });
                       }}
                       placeholder="Voiceover"
-                      className="rounded-xl border border-[#E2E6EF] bg-[#FAFBFD] px-3 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
+                      className="rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
                     />
                     <input
                       type="text"
-                      value={activeProject.scenes[editingSceneIdx].onScreenCaption}
+                      value={
+                        activeProject.scenes[editingSceneIdx].onScreenCaption
+                      }
                       onChange={(e) => {
                         const nextScenes = activeProject.scenes.map((item, i) =>
                           i === editingSceneIdx
@@ -992,357 +1274,68 @@ export function VideoStudioView({
                         updateActive({ scenes: nextScenes });
                       }}
                       placeholder="Tekst på skærm"
-                      className="rounded-xl border border-[#E2E6EF] bg-[#FAFBFD] px-3 py-2 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
+                      className="rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3 py-2 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
                     />
                   </div>
                 )}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Right: HERO Live Phone Stage + Clean Hook Switcher (5 cols) */}
-          <div className="xl:col-span-5">
-            {activeProject && (
-              <div className="flex flex-col items-center rounded-3xl border border-[#ECEFF5] bg-white p-5 shadow-[0_12px_36px_-16px_rgba(15,23,42,0.12)]">
-                {/* Compact Hook Pills */}
-                <div className="no-scrollbar mb-4 flex w-full gap-1.5 overflow-x-auto pb-0.5">
-                  {activeProject.hooks.map((h, idx) => {
-                    const active = h.id === activeProject.selectedHookId;
-                    return (
-                      <button
-                        key={h.id}
-                        type="button"
-                        onClick={() => {
-                          const nextScenes = activeProject.scenes.map((sc, i) =>
-                            i === 0
-                              ? {
-                                  ...sc,
-                                  spokenLine: h.spokenHook,
-                                  onScreenCaption: h.onScreenText,
-                                }
-                              : sc
-                          );
-                          updateActive({
-                            selectedHookId: h.id,
-                            scenes: nextScenes,
-                          });
-                          setSceneIdx(0);
-                        }}
-                        className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
-                          active
-                            ? "bg-[#0027eb] text-white"
-                            : "bg-[#F3F5F9] text-[#475569] hover:text-[#0F172A]"
-                        }`}
-                      >
-                        Hook {idx + 1} · {h.predictedThumbstopPct}%
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Live Phone Frame */}
-                <div
-                  className={`relative aspect-[9/16] w-full max-w-[290px] overflow-hidden rounded-[28px] border-[5px] border-[#0F172A] bg-gradient-to-b ${backdropStyle} shadow-[0_24px_54px_-14px_rgba(15,23,42,0.38)]`}
-                >
-                  {previewProductImage && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      key={`${currentScene?.id}-${sceneIdx}`}
-                      src={
-                        sceneIdx === 1 && activeProject.clonedFromAd?.thumbnailUrl
-                          ? activeProject.clonedFromAd.thumbnailUrl
-                          : previewProductImage
-                      }
-                      alt={activeProject.productTitle}
-                      style={{ filter: activePreset.filterCss }}
-                      className={`absolute inset-0 h-full w-full object-cover opacity-85 transition-transform duration-1000 ${
-                        sceneIdx % 2 === 0 ? "scale-105" : "scale-100"
-                      }`}
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/45" />
-
-                  {/* Story Progress Bars */}
-                  <div className="relative z-10 flex gap-1 px-3 pt-2.5">
-                    {displayScenes.map((sc, i) => (
-                      <div
-                        key={sc.id}
-                        className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30"
-                      >
-                        <div
-                          className={`h-full rounded-full bg-white transition-all duration-300 ${
-                            i <= sceneIdx ? "w-full" : "w-0"
-                          }`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Minimal Top Controls */}
-                  <div className="relative z-10 flex items-center justify-between px-3.5 pt-2.5 text-white">
-                    <span className="rounded-full bg-black/45 px-2.5 py-0.5 text-[10px] font-bold backdrop-blur-md">
-                      {SHORT_PRESET_LABELS[activeProject.stylePresetId].title}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setSpeakAudio((v) => !v)}
-                        aria-label="Lyd"
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-black/45 backdrop-blur-md"
-                      >
-                        {speakAudio ? (
-                          <Volume2 className="h-3.5 w-3.5" />
-                        ) : (
-                          <VolumeX className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPlaying((v) => !v)}
-                        aria-label="Afspil"
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-black/45 backdrop-blur-md"
-                      >
-                        {playing ? (
-                          <Pause className="h-3.5 w-3.5" />
-                        ) : (
-                          <Play className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Live Kinetic Caption */}
-                  {currentScene && (
-                    <div className="absolute inset-x-3.5 bottom-13 z-10 space-y-2 text-center">
-                      <div className="inline-block rounded-xl bg-white px-3 py-1.5 font-display text-[13.5px] font-bold leading-tight text-[#0F172A] shadow-lg">
-                        {currentScene.onScreenCaption}
-                      </div>
-                      <p className="rounded-xl bg-black/55 px-2.5 py-1.5 text-[11px] leading-snug text-white/95 backdrop-blur-md">
-                        &ldquo;{currentScene.spokenLine}&rdquo;
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Bottom Meta CTA Strip */}
-                  <div className="absolute inset-x-3 bottom-3 z-10 flex items-center justify-between rounded-xl bg-[#0027eb] px-3 py-1.5 text-[11px] font-bold text-white">
-                    <span className="truncate">{activeProject.brandName}</span>
-                    <span>{activeProject.ctaText} →</span>
-                  </div>
-                </div>
-
-                {/* Clean 1-Row Footer Actions (Icon + Icon + Primary Launch) */}
-                <div className="mt-4 flex w-full max-w-[290px] items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={copyBriefText}
-                    title="Kopiér brief"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E6E9F0] bg-white text-[#475569] hover:border-[#0027eb] hover:text-[#0027eb]"
-                  >
-                    {copiedBrief ? (
-                      <Check className="h-4 w-4 text-[#16A34A]" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onSaveToSwipeFolder(activeProject)}
-                    title="Gem i Swipe Folder"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E6E9F0] bg-white text-[#475569] hover:border-[#0027eb] hover:text-[#0027eb]"
-                  >
-                    <Bookmark className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onQueueForLaunch(activeProject)}
-                    className="adtrack-btn-primary inline-flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-semibold text-white"
-                  >
-                    <Rocket className="h-3.5 w-3.5" />
-                    Send til Launch
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* =====================================================================
-          TAB 2: STATIC AD CLONER (CANVAS-FIRST)
-         ===================================================================== */}
-      {subTab === "static" && activeProject && (
-        <StaticCanvasAdRenderer
-          project={activeProject}
-          onUpdateProject={updateActive}
-          onQueueForLaunch={onQueueForLaunch}
-        />
-      )}
-
-      {/* =====================================================================
-          TAB 3: MINIMAL URL MINER
-         ===================================================================== */}
-      {subTab === "miner" && (
-        <div className="mx-auto max-w-3xl space-y-5">
-          <div className="flex items-center gap-2 rounded-full border border-[#DCE4FF] bg-white p-2 shadow-[0_8px_28px_-12px_rgba(0,39,235,0.18)]">
-            <Link2 className="ml-2.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
-            <input
-              type="url"
-              value={minerUrl}
-              onChange={(e) => setMinerUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void runMineUrl();
-                }
-              }}
-              placeholder="Indsæt produktside-URL..."
-              className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-[16px] text-[#0F172A] outline-none sm:text-sm"
-            />
-            <button
-              type="button"
-              disabled={mining}
-              onClick={() => void runMineUrl()}
-              className="adtrack-btn-primary inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
-            >
-              {mining ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              Mine
-            </button>
-          </div>
-
-          {minedInsights && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-1.5">
-                {minedInsights.painPoints.slice(0, 3).map((x, i) => (
-                  <span
-                    key={`p-${i}`}
-                    className="rounded-full bg-[#FFF1F2] px-3 py-1 text-xs font-medium text-[#BE123C]"
-                  >
-                    {x}
-                  </span>
-                ))}
-                {minedInsights.usps.slice(0, 3).map((x, i) => (
-                  <span
-                    key={`u-${i}`}
-                    className="rounded-full bg-[#ECFDF3] px-3 py-1 text-xs font-medium text-[#15803D]"
-                  >
-                    {x}
-                  </span>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {minedInsights.recommendedAngles.map((ang, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
+          {/* 5. HISTORY / ASSETS POSTER WALL */}
+          {subTab !== "static" && subTab !== "miner" && stageMode === "history" && (
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+              {projects.map((p) => {
+                const img = p.productImageUrl || p.clonedFromAd?.thumbnailUrl;
+                return (
+                  <div
+                    key={p.id}
                     onClick={() => {
-                      setSubTab("video");
-                      setPresetId(ang.presetId);
-                      setAngleInput(ang.title);
-                      void runGenerate({
-                        overridePreset: ang.presetId,
-                        overrideMode: "video",
-                        overrideProduct: minedInsights.title,
-                        overrideAngle: ang.title,
-                      });
+                      setActiveProject(p);
+                      setSubTab(p.mode === "static_clone" ? "static" : "video");
+                      setStageMode("preview");
                     }}
-                    className="group flex flex-col justify-between rounded-2xl border border-[#ECEFF5] bg-white p-4 text-left transition-all hover:border-[#0027eb]"
+                    className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#0F172A]"
                   >
-                    <div>
-                      <span className="rounded-full bg-[#0027eb]/[0.08] px-2.5 py-0.5 text-[10px] font-bold text-[#0027eb]">
-                        {SHORT_PRESET_LABELS[ang.presetId].title}
-                      </span>
-                      <p className="mt-2.5 font-display text-sm font-bold text-[#0F172A]">
-                        {ang.title}
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-xs text-[#64748B]">
-                        &ldquo;{ang.hook}&rdquo;
-                      </p>
-                    </div>
-                    <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0027eb]">
-                      Åbn i Studio
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    {img && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={img}
+                        alt={p.title}
+                        style={{ filter: getPresetById(p.stylePresetId).filterCss }}
+                        className="h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
+                    <span className="absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
+                      {PRESET_META[p.stylePresetId].title}
                     </span>
-                  </button>
-                ))}
-              </div>
+                    <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
+                      <p className="truncate font-display text-[13px] font-bold text-white">
+                        {p.title}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onQueueForLaunch(p);
+                        }}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#0F172A] transition-colors hover:bg-[#0027eb] hover:text-white"
+                      >
+                        <Rocket className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {projects.length === 0 && (
+                <div className="col-span-full py-16 text-center text-xs text-[#94A3B8]">
+                  Ingen videoer endnu — vælg en stil og klik Generér.
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
-
-      {/* =====================================================================
-          TAB 4: VISUAL POSTER GALLERY (ASSETS)
-         ===================================================================== */}
-      {subTab === "assets" && (
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
-          {projects.map((p) => {
-            const img = p.productImageUrl || p.clonedFromAd?.thumbnailUrl;
-            return (
-              <div
-                key={p.id}
-                onClick={() => {
-                  setActiveProject(p);
-                  setSubTab(p.mode === "static_clone" ? "static" : "video");
-                }}
-                className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#0F172A]"
-              >
-                {img && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={img}
-                    alt={p.title}
-                    style={{ filter: getPresetById(p.stylePresetId).filterCss }}
-                    className="h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30" />
-
-                <div className="absolute inset-x-3 top-3 flex items-center justify-between">
-                  <span className="rounded-full bg-black/55 px-2.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
-                    {SHORT_PRESET_LABELS[p.stylePresetId].title}
-                  </span>
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      p.status === "live"
-                        ? "bg-[#22C55E]"
-                        : p.status === "queued"
-                          ? "bg-[#3B82F6]"
-                          : "bg-white/60"
-                    }`}
-                  />
-                </div>
-
-                <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-display text-[13px] font-bold text-white">
-                      {p.title}
-                    </p>
-                    <p className="truncate text-[10.5px] text-white/75">
-                      {p.productTitle}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onQueueForLaunch(p);
-                    }}
-                    title="Launch"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#0F172A] shadow transition-colors hover:bg-[#0027eb] hover:text-white"
-                  >
-                    <Rocket className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
