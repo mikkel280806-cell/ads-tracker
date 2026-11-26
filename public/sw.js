@@ -1,5 +1,5 @@
 // Minimal Service Worker for Flake PWA installability
-const CACHE_NAME = "flake-shell-v73-onboarding-en";
+const CACHE_NAME = "flake-shell-v74-onboarding-dark-pills";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
