@@ -1195,84 +1195,82 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           : "🇺🇸";
 
   return (
-    <div className="animate-view-in space-y-3.5">
+    <div className="animate-view-in space-y-2.5">
       {/* =====================================================================
-          ROW 1: ATRIA VIEW TABS ROW (All brands + Saved Views + New view + Gear)
+          ROW 1: VIEW TABS + SEARCH BAR + "Can't find a brand?" (SINGLE ROW)
          ===================================================================== */}
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => {
-            setActiveViewId("all");
-            resetAllBrandFilters();
-            setSortBy("recommended");
-          }}
-          className={`inline-flex h-9 min-w-[80px] items-center justify-center rounded-md px-3 text-[13px] font-semibold transition-colors ${
-            activeViewId === "all"
-              ? "bg-[#0027eb] text-white shadow-xs"
-              : "border border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-          }`}
-        >
-          All brands
-        </button>
+        <div className="flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => {
+              setActiveViewId("all");
+              resetAllBrandFilters();
+              setSortBy("recommended");
+            }}
+            className={`inline-flex h-8 min-w-[78px] items-center justify-center rounded-md px-3 text-[13px] font-semibold transition-colors ${
+              activeViewId === "all"
+                ? "bg-[#0027eb] text-white"
+                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+            }`}
+          >
+            All brands
+          </button>
 
-        {customViews.map((cv) => {
-          const isActive = activeViewId === cv.id;
-          return (
-            <button
-              key={cv.id}
-              type="button"
-              data-no-glass="true"
-              onClick={() => {
-                setActiveViewId(cv.id);
-                applyFilterSnapshot(cv.filters, cv.sortBy);
-              }}
-              className={`inline-flex h-9 max-w-[180px] items-center justify-center truncate rounded-md px-3 text-[13px] font-semibold transition-colors ${
-                isActive
-                  ? "bg-[#0027eb] text-white shadow-xs"
-                  : "border border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-              }`}
-            >
-              <span className="truncate">{cv.name}</span>
-            </button>
-          );
-        })}
+          {customViews.map((cv) => {
+            const isActive = activeViewId === cv.id;
+            return (
+              <button
+                key={cv.id}
+                type="button"
+                data-no-glass="true"
+                onClick={() => {
+                  setActiveViewId(cv.id);
+                  applyFilterSnapshot(cv.filters, cv.sortBy);
+                }}
+                className={`inline-flex h-8 max-w-[180px] items-center justify-center truncate rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
+                  isActive
+                    ? "bg-[#0027eb] text-white"
+                    : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+                }`}
+              >
+                <span className="truncate">{cv.name}</span>
+              </button>
+            );
+          })}
 
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => setCreateViewOpen(true)}
-          className="inline-flex h-8 items-center gap-1 rounded-md border border-dashed border-[#CBD5E1] bg-transparent px-2.5 text-[12.5px] font-medium text-[#475569] transition-colors hover:border-[#94A3B8] hover:bg-white hover:text-[#0F172A]"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New view
-        </button>
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => setCreateViewOpen(true)}
+            className="ml-1 inline-flex h-8 items-center gap-1 rounded-md border border-[#E2E6EF] bg-white px-2.5 text-[12.5px] font-medium text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
+          >
+            <Plus className="h-3.5 w-3.5 text-[#64748B]" />
+            New view
+          </button>
 
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => setManageViewsOpen(true)}
-          aria-label="Manage views"
-          title="Manage views"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E2E6EF] bg-white text-[#64748B] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-        >
-          <Settings className="h-3.5 w-3.5" />
-        </button>
-      </div>
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => setManageViewsOpen(true)}
+            aria-label="Manage views"
+            title="Manage views"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
 
-      {/* =====================================================================
-          ROW 2: SEARCH BAR + "Can't find a brand?"
-         ===================================================================== */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative h-10 w-full max-w-[460px] flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+        {/* Inline Search Input */}
+        <div className="relative h-9 min-w-[220px] max-w-[460px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search brands"
-            className="h-10 w-full rounded-lg border border-[#E2E6EF] bg-white pl-10 pr-8 text-[13.5px] text-[#0F172A] shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition-all placeholder:text-[#94A3B8] focus:border-[#0027eb] focus:ring-2 focus:ring-[#0027eb]/15"
+            className="h-9 w-full rounded-lg border border-[#E2E6EF] bg-white pl-9 pr-8 text-[13px] text-[#0F172A] outline-none transition-all placeholder:text-[#94A3B8] focus:border-[#0027eb] focus:ring-2 focus:ring-[#0027eb]/15"
           />
           {searchQuery && (
             <button
@@ -1294,15 +1292,15 @@ export const ShopsTableView = React.memo(function ShopsTableView({
             setError(null);
             setRequestModalOpen(true);
           }}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E2E6EF] bg-white px-3 text-[12.5px] font-medium text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
+          className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-[#334155] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
         >
-          <HelpCircle className="h-3.5 w-3.5 text-[#64748B]" />
+          <HelpCircle className="h-4 w-4 text-[#64748B]" />
           <span>Can&apos;t find a brand?</span>
         </button>
       </div>
 
       {/* =====================================================================
-          ROW 3: FILTER CONTROL ROW (Filters Hide/Show + Sort + Clear all)
+          ROW 2: FILTER CONTROL ROW (Filters Hide/Show + Sort + Clear all)
          ===================================================================== */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -1380,12 +1378,12 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                     }}
                     className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors ${
                       active
-                        ? "bg-[#EEF2FF] font-semibold text-[#0027eb]"
+                        ? "bg-[#EFEFF2] font-semibold text-[#0F172A]"
                         : "font-medium text-[#334155] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
                     }`}
                   >
                     <span className="truncate">{opt.label}</span>
-                    {active && <Check className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />}
+                    {active && <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />}
                   </button>
                 );
               })}
@@ -1627,6 +1625,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         maxBound={5_000_000}
         step={50_000}
         ticks={["0", "1M", "2M", "3M", "4M", "No limit"]}
+        unitSuffix="visits"
         value={trafficRange}
         onChange={setTrafficRange}
         quickRanges={[
@@ -1761,6 +1760,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         maxBound={2000}
         step={10}
         ticks={["0", "500", "1,000", "1,500", "No limit"]}
+        unitSuffix="ads"
         value={activeAdsRange}
         onChange={setActiveAdsRange}
         quickRanges={[
@@ -1781,6 +1781,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         maxBound={1000}
         step={5}
         ticks={["0", "250", "500", "750", "No limit"]}
+        unitSuffix="ads"
         value={adsLaunchedRange}
         onChange={setAdsLaunchedRange}
         windowLabel="Time window"
@@ -1911,6 +1912,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         maxBound={2000}
         step={10}
         ticks={["0", "500", "1,000", "1,500", "No limit"]}
+        unitSuffix="products"
         value={productCountRange}
         onChange={setProductCountRange}
         quickRanges={[
@@ -1931,6 +1933,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
         maxBound={100}
         step={1}
         ticks={["0", "25", "50", "75", "No limit"]}
+        unitSuffix="products"
         value={newLaunchesRange}
         onChange={setNewLaunchesRange}
         windowLabel="Time window"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Check,
@@ -342,21 +342,28 @@ export function AtriaFilterPill({
       type="button"
       data-no-glass="true"
       onClick={onToggle}
-      className={`inline-flex h-7 select-none items-center gap-1 rounded-md border px-2.5 text-[12px] font-medium transition-colors ${
+      className={`inline-flex h-7 select-none items-center gap-1 rounded-md border px-2.5 text-[12px] transition-colors ${
         active
-          ? "border-[#0027eb]/35 bg-[#EEF2FF] text-[#0027eb]"
+          ? "border-[#D8DDE6] bg-[#ECEFF4] text-[#0F172A] hover:bg-[#E4E8F0]"
           : open
-            ? "border-[#94A3B8] bg-[#F8FAFC] text-[#0F172A]"
-            : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+            ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
+            : "border-[#E2E6EF] bg-white text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
       }`}
     >
-      <span className="truncate max-w-[165px]">
-        {activeLabel ? `${label}: ${activeLabel}` : label}
+      <span className="truncate max-w-[195px]">
+        {activeLabel ? (
+          <>
+            <span className="font-normal text-[#64748B]">{label}: </span>
+            <span className="font-semibold text-[#0F172A]">{activeLabel}</span>
+          </>
+        ) : (
+          <span className="font-medium">{label}</span>
+        )}
       </span>
       {open ? (
-        <ChevronUp className="h-3 w-3 shrink-0 opacity-70" />
+        <ChevronUp className="h-3 w-3 shrink-0 text-[#475569]" />
       ) : (
-        <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+        <ChevronDown className="h-3 w-3 shrink-0 text-[#475569]" />
       )}
     </button>
   );
@@ -368,18 +375,24 @@ export function AtriaPopoverHeader({
   badge,
   onClear,
   hasValue,
+  bordered = false,
 }: {
   title: string;
   subtitle?: string;
   badge?: React.ReactNode;
   onClear?: () => void;
   hasValue?: boolean;
+  bordered?: boolean;
 }) {
   return (
-    <div className="border-b border-[#F1F4F9] px-4 py-3">
+    <div
+      className={`px-5 pt-4 ${
+        bordered ? "border-b border-[#EEF0F4] pb-3.5" : "pb-2"
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h4 className="font-display text-[13.5px] font-semibold text-[#0F172A]">
+          <h4 className="font-display text-[15px] font-bold tracking-[-0.01em] text-[#0F172A]">
             {title}
           </h4>
           {badge}
@@ -389,10 +402,10 @@ export function AtriaPopoverHeader({
             type="button"
             data-no-glass="true"
             onClick={onClear}
-            className={`text-[12px] font-medium transition-colors ${
+            className={`text-[13px] font-medium transition-colors ${
               hasValue
-                ? "text-[#0027eb] hover:text-[#001fc2]"
-                : "text-[#94A3B8] hover:text-[#475569]"
+                ? "text-[#0F172A] hover:text-[#475569]"
+                : "text-[#9CA3AF] hover:text-[#64748B]"
             }`}
           >
             Clear
@@ -400,7 +413,7 @@ export function AtriaPopoverHeader({
         )}
       </div>
       {subtitle && (
-        <p className="mt-0.5 text-[11.5px] leading-snug text-[#64748B]">
+        <p className="mt-1 text-[12.5px] leading-snug text-[#64748B]">
           {subtitle}
         </p>
       )}
@@ -412,6 +425,17 @@ export interface RangeFilterValue {
   min: number | null;
   max: number | null;
   window?: string;
+}
+
+function formatTooltipNum(n: number, prefix?: string, unitSuffix?: string): string {
+  const numStr =
+    n >= 1_000_000
+      ? `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
+      : n >= 10_000
+        ? `${Math.round(n / 1000)}K`
+        : n.toLocaleString("en-US");
+  const core = `${prefix ?? ""}${numStr}`;
+  return unitSuffix ? `${core} ${unitSuffix}` : core;
 }
 
 export function AtriaRangeFilterPopover({
@@ -436,8 +460,9 @@ export function AtriaRangeFilterPopover({
   windowOptions,
   windowLabel = "Time period",
   prefix,
+  unitSuffix,
   extraContent,
-  width = 340,
+  width = 376,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -460,11 +485,91 @@ export function AtriaRangeFilterPopover({
   windowOptions?: string[];
   windowLabel?: string;
   prefix?: string;
+  unitSuffix?: string;
   extraContent?: React.ReactNode;
   width?: number;
 }) {
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [activeThumb, setActiveThumb] = useState<"min" | "max" | null>(null);
+  const [hoveredThumb, setHoveredThumb] = useState<"min" | "max" | null>(null);
+
   const hasValue = value.min !== null || value.max !== null;
-  const sliderVal = value.min ?? minBound;
+  const span = Math.max(1, maxBound - minBound);
+
+  const clampedMin = Math.min(
+    maxBound,
+    Math.max(minBound, value.min ?? minBound)
+  );
+  const clampedMax = Math.min(
+    maxBound,
+    Math.max(clampedMin, value.max ?? maxBound)
+  );
+
+  const minPct = ((clampedMin - minBound) / span) * 100;
+  const maxPct = ((clampedMax - minBound) / span) * 100;
+
+  const snapValue = (raw: number) => {
+    const snapped = Math.round((raw - minBound) / step) * step + minBound;
+    return Math.min(maxBound, Math.max(minBound, snapped));
+  };
+
+  const clientXToVal = (clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return minBound;
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return snapValue(minBound + ratio * span);
+  };
+
+  const applyThumbVal = (thumb: "min" | "max", nextVal: number) => {
+    if (thumb === "min") {
+      const capped = Math.min(nextVal, clampedMax);
+      onChange({
+        ...value,
+        min: capped <= minBound ? null : capped,
+      });
+    } else {
+      const floored = Math.max(nextVal, clampedMin);
+      onChange({
+        ...value,
+        max: floored >= maxBound ? null : floored,
+      });
+    }
+  };
+
+  const handleTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const targetVal = clientXToVal(e.clientX);
+    const distMin = Math.abs(targetVal - clampedMin);
+    const distMax = Math.abs(targetVal - clampedMax);
+    const chosen: "min" | "max" = distMin <= distMax ? "min" : "max";
+    setActiveThumb(chosen);
+    applyThumbVal(chosen, targetVal);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handleTrackPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!activeThumb) return;
+    applyThumbVal(activeThumb, clientXToVal(e.clientX));
+  };
+
+  const handleTrackPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!activeThumb) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setActiveThumb(null);
+  };
+
+  const handleTickClick = (idx: number) => {
+    const denom = Math.max(1, ticks.length - 1);
+    const pct = idx / denom;
+    const val = snapValue(minBound + pct * span);
+    const distMin = Math.abs(val - clampedMin);
+    const distMax = Math.abs(val - clampedMax);
+    applyThumbVal(distMin <= distMax ? "min" : "max", val);
+  };
+
+  const showMinTooltip = activeThumb === "min" || hoveredThumb === "min";
+  const showMaxTooltip = activeThumb === "max" || hoveredThumb === "max";
 
   return (
     <FlakePopover
@@ -473,7 +578,7 @@ export function AtriaRangeFilterPopover({
       anchorRef={anchorRef}
       align="left"
       width={width}
-      maxHeight={520}
+      maxHeight={560}
     >
       <AtriaPopoverHeader
         title={title}
@@ -489,40 +594,153 @@ export function AtriaRangeFilterPopover({
         }
       />
 
-      <div className="space-y-3.5 p-4">
-        {/* Slider + Ticks */}
-        <div>
-          <input
-            type="range"
-            min={minBound}
-            max={maxBound}
-            step={step}
-            value={Math.min(maxBound, Math.max(minBound, sliderVal))}
-            onChange={(e) => {
-              const num = Number(e.target.value);
-              onChange({
-                ...value,
-                min: num <= minBound ? null : num,
-              });
-            }}
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#E2E8F0] accent-[#0027eb]"
-          />
-          <div className="mt-1.5 flex items-center justify-between font-mono-num text-[10.5px] text-[#94A3B8]">
-            {ticks.map((t) => (
-              <span key={t}>{t}</span>
-            ))}
+      <div className="space-y-4 px-5 pb-5 pt-3">
+        {/* Custom Dual-Thumb Range Slider with Tick Stops & Floating Tooltip */}
+        <div className="pt-2">
+          <div
+            ref={trackRef}
+            onPointerDown={handleTrackPointerDown}
+            onPointerMove={handleTrackPointerMove}
+            onPointerUp={handleTrackPointerUp}
+            onPointerCancel={handleTrackPointerUp}
+            className="relative flex h-6 cursor-pointer touch-none select-none items-center"
+          >
+            {/* Full Neutral Track */}
+            <div className="h-[3.5px] w-full rounded-full bg-[#E5E7EB]" />
+
+            {/* Active Cobalt Range Segment */}
+            <div
+              className="pointer-events-none absolute h-[3.5px] rounded-full bg-[#93B4FF]"
+              style={{
+                left: `${minPct}%`,
+                width: `${Math.max(0, maxPct - minPct)}%`,
+              }}
+            />
+
+            {/* Tick Stop Dots */}
+            {ticks.map((t, idx) => {
+              const pct =
+                ticks.length <= 1 ? 0 : (idx / (ticks.length - 1)) * 100;
+              const inRange = pct >= minPct - 0.5 && pct <= maxPct + 0.5;
+              return (
+                <span
+                  key={`${t}-${idx}`}
+                  style={{ left: `${pct}%` }}
+                  className={`pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 bg-white transition-colors ${
+                    inRange ? "border-[#93B4FF]" : "border-[#D1D5DB]"
+                  }`}
+                />
+              );
+            })}
+
+            {/* Min Thumb */}
+            <button
+              type="button"
+              data-no-glass="true"
+              aria-label={`Minimum ${title}`}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setActiveThumb("min");
+                trackRef.current?.setPointerCapture(e.pointerId);
+              }}
+              onMouseEnter={() => setHoveredThumb("min")}
+              onMouseLeave={() =>
+                setHoveredThumb((prev) => (prev === "min" ? null : prev))
+              }
+              style={{ left: `${minPct}%` }}
+              className={`absolute z-10 h-[18px] w-[18px] -translate-x-1/2 rounded-full border-[2.5px] bg-white transition-shadow ${
+                activeThumb === "min" || hoveredThumb === "min"
+                  ? "border-[#0027eb] ring-4 ring-[#0027eb]/15"
+                  : value.min !== null
+                    ? "border-[#0027eb]"
+                    : "border-[#93B4FF] hover:border-[#0027eb]"
+              }`}
+            >
+              {showMinTooltip && (
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#1C1F26] px-2.5 py-1 text-[12px] font-semibold text-white shadow-lg">
+                  {formatTooltipNum(clampedMin, prefix, unitSuffix)}
+                  <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-[#1C1F26]" />
+                </span>
+              )}
+            </button>
+
+            {/* Max Thumb */}
+            <button
+              type="button"
+              data-no-glass="true"
+              aria-label={`Maximum ${title}`}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setActiveThumb("max");
+                trackRef.current?.setPointerCapture(e.pointerId);
+              }}
+              onMouseEnter={() => setHoveredThumb("max")}
+              onMouseLeave={() =>
+                setHoveredThumb((prev) => (prev === "max" ? null : prev))
+              }
+              style={{ left: `${maxPct}%` }}
+              className={`absolute z-10 h-[18px] w-[18px] -translate-x-1/2 rounded-full border-[2.5px] bg-white transition-shadow ${
+                activeThumb === "max" || hoveredThumb === "max"
+                  ? "border-[#0027eb] ring-4 ring-[#0027eb]/15"
+                  : value.max !== null
+                    ? "border-[#0027eb]"
+                    : "border-[#93B4FF] hover:border-[#0027eb]"
+              }`}
+            >
+              {showMaxTooltip && (
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#1C1F26] px-2.5 py-1 text-[12px] font-semibold text-white shadow-lg">
+                  {value.max === null && maxPlaceholder === "No limit"
+                    ? "No limit"
+                    : formatTooltipNum(clampedMax, prefix, unitSuffix)}
+                  <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-[#1C1F26]" />
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Tick Labels */}
+          <div className="relative mt-1.5 h-5">
+            {ticks.map((t, idx) => {
+              const pct =
+                ticks.length <= 1 ? 0 : (idx / (ticks.length - 1)) * 100;
+              const isFirst = idx === 0;
+              const isLast = idx === ticks.length - 1;
+              const inRange = pct >= minPct - 0.5 && pct <= maxPct + 0.5;
+              return (
+                <button
+                  key={`${t}-${idx}`}
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => handleTickClick(idx)}
+                  style={{ left: `${pct}%` }}
+                  className={`absolute top-0 whitespace-nowrap text-[12px] transition-colors ${
+                    isFirst
+                      ? "translate-x-0"
+                      : isLast
+                        ? "-translate-x-full"
+                        : "-translate-x-1/2"
+                  } ${
+                    inRange
+                      ? "font-medium text-[#0F172A]"
+                      : "font-normal text-[#64748B] hover:text-[#0F172A]"
+                  }`}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Min to Max Inputs */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+        {/* Min to Max Inputs (with inline clear × + unitSuffix) */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2.5">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-[#64748B]">
+            <label className="mb-1.5 block text-[12.5px] font-medium text-[#475569]">
               {minLabel}
             </label>
-            <div className="flex items-center rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
+            <div className="flex h-10 items-center gap-1.5 rounded-xl border border-[#D8DDE6] bg-white px-3 transition-all focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
               {prefix && (
-                <span className="mr-1 text-xs font-medium text-[#94A3B8]">
+                <span className="text-[13px] font-medium text-[#64748B]">
                   {prefix}
                 </span>
               )}
@@ -537,20 +755,38 @@ export function AtriaRangeFilterPopover({
                   });
                 }}
                 placeholder={minPlaceholder}
-                className="w-full bg-transparent font-mono-num text-[12.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+                className="min-w-0 flex-1 bg-transparent font-mono-num text-[13.5px] font-medium text-[#0F172A] outline-none placeholder:text-[#9CA3AF] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
+              {value.min !== null && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => onChange({ ...value, min: null })}
+                  aria-label="Clear minimum"
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#CBD5E1] text-white transition-colors hover:bg-[#94A3B8]"
+                >
+                  <X className="h-2.5 w-2.5 stroke-[3]" />
+                </button>
+              )}
+              {value.min !== null && unitSuffix && (
+                <span className="shrink-0 text-[13px] font-normal text-[#0F172A]">
+                  {unitSuffix}
+                </span>
+              )}
             </div>
           </div>
 
-          <span className="pb-2 text-[11.5px] text-[#94A3B8]">to</span>
+          <span className="pb-2.5 text-[13px] font-normal text-[#64748B]">
+            to
+          </span>
 
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-[#64748B]">
+            <label className="mb-1.5 block text-[12.5px] font-medium text-[#475569]">
               {maxLabel}
             </label>
-            <div className="flex items-center rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
+            <div className="flex h-10 items-center gap-1.5 rounded-xl border border-[#D8DDE6] bg-white px-3 transition-all focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
               {prefix && (
-                <span className="mr-1 text-xs font-medium text-[#94A3B8]">
+                <span className="text-[13px] font-medium text-[#64748B]">
                   {prefix}
                 </span>
               )}
@@ -565,8 +801,24 @@ export function AtriaRangeFilterPopover({
                   });
                 }}
                 placeholder={maxPlaceholder}
-                className="w-full bg-transparent font-mono-num text-[12.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+                className="min-w-0 flex-1 bg-transparent font-mono-num text-[13.5px] font-medium text-[#0F172A] outline-none placeholder:text-[#9CA3AF] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
+              {value.max !== null && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => onChange({ ...value, max: null })}
+                  aria-label="Clear maximum"
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#CBD5E1] text-white transition-colors hover:bg-[#94A3B8]"
+                >
+                  <X className="h-2.5 w-2.5 stroke-[3]" />
+                </button>
+              )}
+              {value.max !== null && unitSuffix && (
+                <span className="shrink-0 text-[13px] font-normal text-[#0F172A]">
+                  {unitSuffix}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -575,11 +827,11 @@ export function AtriaRangeFilterPopover({
 
         {/* Optional Time period / window segmented radio */}
         {windowOptions && windowOptions.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-[11px] font-medium text-[#64748B]">
+          <div className="border-t border-[#EEF0F4] pt-3.5">
+            <p className="mb-2 text-[12.5px] font-semibold text-[#0F172A]">
               {windowLabel}
             </p>
-            <div className="flex flex-wrap gap-1 rounded-lg bg-[#F3F5F9] p-1">
+            <div className="flex flex-wrap gap-1 rounded-xl bg-[#F3F5F9] p-1">
               {windowOptions.map((opt) => {
                 const active = (value.window || windowOptions[0]) === opt;
                 return (
@@ -588,7 +840,7 @@ export function AtriaRangeFilterPopover({
                     type="button"
                     data-no-glass="true"
                     onClick={() => onChange({ ...value, window: opt })}
-                    className={`flex-1 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium transition-all ${
+                    className={`flex-1 whitespace-nowrap rounded-lg px-2 py-1.5 text-[11.5px] font-medium transition-all ${
                       active
                         ? "bg-white font-semibold text-[#0F172A] shadow-xs"
                         : "text-[#64748B] hover:text-[#0F172A]"
@@ -602,13 +854,19 @@ export function AtriaRangeFilterPopover({
           </div>
         )}
 
-        {/* Quick Ranges Pills */}
+        {/* Quick Ranges Pills (Atria rounded-full style) */}
         {quickRanges && quickRanges.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-[11px] font-medium text-[#64748B]">
+          <div className="border-t border-[#EEF0F4] pt-3.5">
+            <p className="mb-2.5 text-[13px] font-semibold text-[#0F172A]">
               {quickTitle}
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div
+              className={
+                quickRanges.length === 3
+                  ? "grid grid-cols-3 gap-2"
+                  : "flex flex-wrap gap-2"
+              }
+            >
               {quickRanges.map((qr) => {
                 const isSelected = value.min === qr.min && value.max === qr.max;
                 return (
@@ -623,10 +881,10 @@ export function AtriaRangeFilterPopover({
                         max: isSelected ? null : qr.max,
                       })
                     }
-                    className={`rounded-md border px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
+                    className={`rounded-full border px-3 py-1.5 text-center text-[12.5px] transition-colors ${
                       isSelected
-                        ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                        : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
+                        ? "border-transparent bg-[#EFEFF2] font-semibold text-[#0F172A]"
+                        : "border-[#D8DDE6] bg-white font-medium text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
                     }`}
                   >
                     {qr.label}
@@ -713,13 +971,13 @@ export function AtriaGrowthFilterPopover({
                       direction: active ? null : opt.id,
                     })
                   }
-                  className={`flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[12px] font-semibold transition-colors ${
+                  className={`flex items-center justify-center gap-1.5 rounded-full border py-2 text-[12.5px] font-medium transition-colors ${
                     active
-                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                      : "border-[#E2E6EF] bg-white text-[#334155] hover:bg-[#F7F8FB]"
+                      ? "border-transparent bg-[#EFEFF2] font-semibold text-[#0F172A]"
+                      : "border-[#D8DDE6] bg-white text-[#0F172A] hover:bg-[#F7F8FB]"
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-3.5 w-3.5 text-[#475569]" />
                   {opt.label}
                 </button>
               );

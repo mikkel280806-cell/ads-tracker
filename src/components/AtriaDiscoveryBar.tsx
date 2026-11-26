@@ -10,13 +10,13 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronUp,
   Coins,
   ExternalLink,
   Filter,
-  Flame,
   Globe,
-  Heart,
   HelpCircle,
   Image as ImageIcon,
   Layers,
@@ -1039,20 +1039,32 @@ const SEASONAL_PRESETS = [
   { label: "Holiday Season", start: "2026-12-01", end: "2026-12-26" },
 ];
 
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
+const SHORT_MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
   "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
+
+function formatLongIsoDate(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return `${SHORT_MONTH_NAMES[m - 1]} ${d}, ${y}`;
+}
+
+function getTodayIso(): string {
+  const now = new Date();
+  return toIsoDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
 
 const WEEKDAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -1061,62 +1073,101 @@ function CalendarMonthGrid({
   month,
   startDate,
   endDate,
+  todayIso,
   onSelectIso,
 }: {
   year: number;
   month: number;
   startDate: string;
   endDate: string;
+  todayIso: string;
   onSelectIso: (iso: string) => void;
 }) {
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const prevMonthYear = month === 0 ? year - 1 : year;
+  const prevMonthIdx = month === 0 ? 11 : month - 1;
+  const nextMonthYear = month === 11 ? year + 1 : year;
+  const nextMonthIdx = month === 11 ? 0 : month + 1;
 
-  const cells: Array<number | null> = [];
-  for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const cells: Array<{
+    day: number;
+    iso: string;
+    outside: boolean;
+  }> = [];
+
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    const d = prevMonthDays - i;
+    cells.push({
+      day: d,
+      iso: toIsoDate(prevMonthYear, prevMonthIdx, d),
+      outside: true,
+    });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({
+      day: d,
+      iso: toIsoDate(year, month, d),
+      outside: false,
+    });
+  }
+  let trailingDay = 1;
+  while (cells.length < 42) {
+    cells.push({
+      day: trailingDay,
+      iso: toIsoDate(nextMonthYear, nextMonthIdx, trailingDay),
+      outside: true,
+    });
+    trailingDay++;
+  }
 
   return (
-    <div className="w-[216px]">
-      <div className="mb-2 text-center text-[12px] font-semibold text-[#0F172A]">
-        {MONTH_NAMES[month]} {year}
-      </div>
-      <div className="mb-1 grid grid-cols-7 text-center text-[10.5px] font-medium text-[#94A3B8]">
+    <div className="w-full">
+      <div className="mb-2 grid grid-cols-7 text-center text-[12.5px] font-medium text-[#0F172A]">
         {WEEKDAY_HEADERS.map((wd) => (
-          <span key={wd} className="py-0.5">
+          <span key={wd} className="py-1">
             {wd}
           </span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-y-0.5 text-center">
-        {cells.map((day, idx) => {
-          if (day === null) {
-            return <span key={`empty-${idx}`} className="h-7" />;
-          }
-          const iso = toIsoDate(year, month, day);
-          const isStart = startDate === iso;
-          const isEnd = endDate === iso;
+      <div className="grid grid-cols-7 gap-y-1 text-center">
+        {cells.map((cell) => {
+          const isFuture = cell.iso > todayIso;
+          const isToday = !cell.outside && cell.iso === todayIso;
+          const isStart = !cell.outside && startDate === cell.iso;
+          const isEnd = !cell.outside && endDate === cell.iso;
           const isInRange =
+            !cell.outside &&
             Boolean(startDate) &&
             Boolean(endDate) &&
-            iso > startDate &&
-            iso < endDate;
+            cell.iso > startDate &&
+            cell.iso < endDate;
 
           return (
             <button
-              key={iso}
+              key={cell.iso}
               type="button"
               data-no-glass="true"
-              onClick={() => onSelectIso(iso)}
-              className={`h-7 w-full font-mono-num text-[11.5px] transition-colors ${
+              disabled={isFuture}
+              onClick={() => {
+                if (!isFuture) onSelectIso(cell.iso);
+              }}
+              className={`mx-auto flex h-8 w-8 items-center justify-center font-mono-num text-[12.5px] transition-colors ${
                 isStart || isEnd
-                  ? "rounded-md bg-[#0027eb] font-semibold text-white"
+                  ? "rounded-lg bg-[#0027eb] font-semibold text-white"
                   : isInRange
-                    ? "bg-[#EEF2FF] font-medium text-[#0027eb]"
-                    : "rounded-md text-[#334155] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+                    ? "w-full rounded-none bg-[#EEF2FF] font-medium text-[#0F172A]"
+                    : isToday
+                      ? "rounded-lg border border-[#0027eb] font-medium text-[#0F172A] hover:bg-[#EEF2FF]/60"
+                      : isFuture
+                        ? "w-full cursor-not-allowed rounded-none bg-[#F3F4F6] text-[#B4BAC5]"
+                        : cell.outside
+                          ? "rounded-lg text-[#B4BAC5] hover:bg-[#F7F8FB]"
+                          : "rounded-lg text-[#0F172A] hover:bg-[#F1F5F9]"
               }`}
             >
-              {day}
+              {cell.day}
             </button>
           );
         })}
@@ -1137,8 +1188,17 @@ function LaunchTimeFilter({
   onChange: (patch: Partial<DiscoveryFiltersState>) => void;
 }) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const [viewYear, setViewYear] = useState(2026);
-  const [viewMonth, setViewMonth] = useState(9); // Oct + Nov 2026
+  const todayIso = useMemo(() => getTodayIso(), []);
+  const [viewYear, setViewYear] = useState(() => {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return prev.getFullYear();
+  });
+  const [viewMonth, setViewMonth] = useState(() => {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return prev.getMonth();
+  });
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   const hasValue = Boolean(
@@ -1174,7 +1234,10 @@ function LaunchTimeFilter({
   };
 
   const handleDayClick = (iso: string) => {
-    if (!filters.launchStartDate || (filters.launchStartDate && filters.launchEndDate)) {
+    if (
+      !filters.launchStartDate ||
+      (filters.launchStartDate && filters.launchEndDate)
+    ) {
       onChange({
         launchPreset: null,
         launchStartDate: iso,
@@ -1211,7 +1274,11 @@ function LaunchTimeFilter({
     { id: "months", title: "Recent months", items: RECENT_MONTH_PRESETS },
     { id: "quarters", title: "Quarters", items: QUARTER_PRESETS },
     { id: "years", title: "Years", items: YEAR_PRESETS },
-    { id: "seasonal", title: "Seasonal events", items: SEASONAL_PRESETS },
+    {
+      id: "seasonal",
+      title: "Seasonal events 🎉",
+      items: SEASONAL_PRESETS,
+    },
   ];
 
   return (
@@ -1229,66 +1296,73 @@ function LaunchTimeFilter({
         onOpenChange={onOpenChange}
         anchorRef={triggerRef}
         align="left"
-        width={676}
-        maxHeight={460}
+        width={716}
+        maxHeight={500}
       >
-        {/* Top Date Range Summary Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-[#F1F4F9] px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-3.5 w-3.5 text-[#64748B]" />
-            <div className="flex items-center gap-1.5 text-[12px]">
-              <input
-                type="date"
-                value={filters.launchStartDate}
-                onChange={(e) =>
-                  onChange({
-                    launchPreset: null,
-                    launchStartDate: e.target.value,
-                  })
-                }
-                aria-label="Start date"
-                className="rounded-md border border-[#E2E6EF] bg-[#FAFBFD] px-2 py-1 font-mono-num text-[11.5px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-              />
-              <span className="text-[#94A3B8]">→</span>
-              <input
-                type="date"
-                value={filters.launchEndDate}
-                onChange={(e) =>
-                  onChange({
-                    launchPreset: null,
-                    launchEndDate: e.target.value,
-                  })
-                }
-                aria-label="End date"
-                className="rounded-md border border-[#E2E6EF] bg-[#FAFBFD] px-2 py-1 font-mono-num text-[11.5px] text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-              />
-            </div>
+        {/* Top Header Bar: Title + Subtitle left | Single Range Box + Clear right */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#EEF0F4] px-6 py-4">
+          <div className="min-w-0">
+            <h4 className="font-display text-[15px] font-bold tracking-[-0.01em] text-[#0F172A]">
+              Launch time
+            </h4>
+            <p className="mt-0.5 text-[12.5px] text-[#64748B]">
+              Show ads that were live between the selected time range
+            </p>
           </div>
 
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() =>
-              onChange({
-                launchPreset: null,
-                launchStartDate: "",
-                launchEndDate: "",
-              })
-            }
-            className={`text-[12px] font-medium transition-colors ${
-              hasValue
-                ? "text-[#0027eb] hover:text-[#001fc2]"
-                : "text-[#94A3B8] hover:text-[#475569]"
-            }`}
-          >
-            Clear
-          </button>
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-9 min-w-[274px] items-center rounded-lg border border-[#D8DDE6] bg-white px-3 text-[13px]">
+              <span
+                className={`min-w-[84px] ${
+                  filters.launchStartDate
+                    ? "font-medium text-[#475569]"
+                    : "text-[#9CA3AF]"
+                }`}
+              >
+                {filters.launchStartDate
+                  ? formatLongIsoDate(filters.launchStartDate)
+                  : "Start date"}
+              </span>
+              <span className="mx-3 text-[#9CA3AF]">→</span>
+              <span
+                className={`min-w-[84px] ${
+                  filters.launchEndDate
+                    ? "font-medium text-[#475569]"
+                    : "text-[#9CA3AF]"
+                }`}
+              >
+                {filters.launchEndDate
+                  ? formatLongIsoDate(filters.launchEndDate)
+                  : "End date"}
+              </span>
+              <Calendar className="ml-auto h-4 w-4 shrink-0 text-[#9CA3AF]" />
+            </div>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() =>
+                onChange({
+                  launchPreset: null,
+                  launchStartDate: "",
+                  launchEndDate: "",
+                })
+              }
+              className={`text-[13px] font-medium transition-colors ${
+                hasValue
+                  ? "text-[#0F172A] hover:text-[#475569]"
+                  : "text-[#9CA3AF] hover:text-[#64748B]"
+              }`}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         {/* Dual-Pane Body */}
-        <div className="grid grid-cols-[192px_1fr] divide-x divide-[#F1F4F9]">
+        <div className="grid grid-cols-[204px_1fr] divide-x divide-[#EEF0F4]">
           {/* Left Preset Sidebar */}
-          <div className="workspace-scroll max-h-[370px] overflow-y-auto p-2">
+          <div className="workspace-scroll max-h-[385px] overflow-y-auto px-4 py-3">
             <div className="space-y-0.5">
               {LAUNCH_QUICK_PRESETS.map((preset) => {
                 const active = filters.launchPreset === preset.id;
@@ -1304,20 +1378,20 @@ function LaunchTimeFilter({
                         launchEndDate: "",
                       })
                     }
-                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors ${
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13.5px] transition-colors ${
                       active
-                        ? "bg-[#EEF2FF] font-semibold text-[#0027eb]"
-                        : "font-medium text-[#334155] hover:bg-[#F7F8FB]"
+                        ? "bg-[#EFEFF2] font-semibold text-[#0F172A]"
+                        : "font-normal text-[#0F172A] hover:bg-[#F7F8FB]"
                     }`}
                   >
                     <span>{preset.label}</span>
-                    {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
+                    {active && <Check className="h-3.5 w-3.5 text-[#0F172A]" />}
                   </button>
                 );
               })}
             </div>
 
-            <div className="my-2 border-t border-[#F1F4F9]" />
+            <div className="my-2.5 border-t border-[#EEF0F4]" />
 
             <div className="space-y-0.5">
               {collapsibleGroups.map((grp) => {
@@ -1330,17 +1404,15 @@ function LaunchTimeFilter({
                       onClick={() =>
                         setExpandedGroup(isOpen ? null : grp.id)
                       }
-                      className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12px] font-medium text-[#475569] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
+                      className="flex w-full items-center gap-2 rounded-lg px-1.5 py-2 text-left text-[13.5px] font-normal text-[#334155] transition-colors hover:bg-[#F7F8FB] hover:text-[#0F172A]"
                     >
+                      <span className="inline-block w-3 text-center text-[10px] text-[#64748B]">
+                        {isOpen ? "▾" : "▸"}
+                      </span>
                       <span>{grp.title}</span>
-                      {isOpen ? (
-                        <ChevronUp className="h-3.5 w-3.5 text-[#94A3B8]" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5 text-[#94A3B8]" />
-                      )}
                     </button>
                     {isOpen && (
-                      <div className="ml-2 mt-0.5 space-y-0.5 border-l border-[#E6E9F0] pl-2">
+                      <div className="ml-4 mt-0.5 space-y-0.5 border-l border-[#E6E9F0] pl-2.5">
                         {grp.items.map((item) => {
                           const isSelected =
                             filters.launchStartDate === item.start &&
@@ -1353,9 +1425,9 @@ function LaunchTimeFilter({
                               onClick={() =>
                                 applyDateSpan(item.label, item.start, item.end)
                               }
-                              className={`block w-full rounded-md px-2 py-1 text-left text-[11.5px] transition-colors ${
+                              className={`block w-full rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors ${
                                 isSelected
-                                  ? "bg-[#EEF2FF] font-semibold text-[#0027eb]"
+                                  ? "bg-[#EFEFF2] font-semibold text-[#0F172A]"
                                   : "text-[#475569] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
                               }`}
                             >
@@ -1372,37 +1444,68 @@ function LaunchTimeFilter({
           </div>
 
           {/* Right Dual-Month Calendar */}
-          <div className="p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={() => shiftMonths(-1)}
-                aria-label="Previous month"
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-[#E2E6EF] bg-white text-[#475569] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-              <span className="text-[11.5px] font-medium text-[#64748B]">
-                Select start &amp; end date
-              </span>
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={() => shiftMonths(1)}
-                aria-label="Next month"
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-[#E2E6EF] bg-white text-[#475569] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+          <div className="px-5 py-3">
+            {/* Dual Month Nav Bar */}
+            <div className="mb-3 flex items-center justify-between border-b border-[#EEF0F4] pb-3">
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => shiftMonths(-12)}
+                  aria-label="Previous year"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => shiftMonths(-1)}
+                  aria-label="Previous month"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid flex-1 grid-cols-2 gap-6 text-center text-[14px] font-bold text-[#0F172A]">
+                <span>
+                  {SHORT_MONTH_NAMES[viewMonth]} {viewYear}
+                </span>
+                <span>
+                  {SHORT_MONTH_NAMES[nextMonthIndex]} {nextMonthYear}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => shiftMonths(1)}
+                  aria-label="Next month"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => shiftMonths(12)}
+                  aria-label="Next year"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex flex-wrap justify-between gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <CalendarMonthGrid
                 year={viewYear}
                 month={viewMonth}
                 startDate={filters.launchStartDate}
                 endDate={filters.launchEndDate}
+                todayIso={todayIso}
                 onSelectIso={handleDayClick}
               />
               <CalendarMonthGrid
@@ -1410,6 +1513,7 @@ function LaunchTimeFilter({
                 month={nextMonthIndex}
                 startDate={filters.launchStartDate}
                 endDate={filters.launchEndDate}
+                todayIso={todayIso}
                 onSelectIso={handleDayClick}
               />
             </div>
@@ -1454,7 +1558,7 @@ function StatusFilter({
         onOpenChange={onOpenChange}
         anchorRef={triggerRef}
         align="left"
-        width={240}
+        width={284}
       >
         <AtriaPopoverHeader
           title="Status"
@@ -1462,15 +1566,11 @@ function StatusFilter({
           hasValue={value !== "all"}
           onClear={() => onChange("all")}
         />
-        <div className="space-y-1 p-2">
+        <div className="grid grid-cols-2 gap-2 px-5 pb-5 pt-2.5">
           {(
             [
-              { id: "active", label: "Active ads only", dot: "bg-[#16A34A]" },
-              {
-                id: "inactive",
-                label: "Inactive ads only",
-                dot: "bg-[#94A3B8]",
-              },
+              { id: "active", label: "Active" },
+              { id: "inactive", label: "Inactive" },
             ] as const
           ).map((opt) => {
             const active = value === opt.id;
@@ -1480,17 +1580,13 @@ function StatusFilter({
                 type="button"
                 data-no-glass="true"
                 onClick={() => onChange(active ? "all" : opt.id)}
-                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[12.5px] transition-colors ${
+                className={`flex items-center justify-center rounded-full border py-2 text-[13px] transition-colors ${
                   active
-                    ? "bg-[#EEF2FF] font-semibold text-[#0027eb]"
-                    : "font-medium text-[#334155] hover:bg-[#F7F8FB]"
+                    ? "border-transparent bg-[#EFEFF2] font-semibold text-[#0F172A]"
+                    : "border-[#D8DDE6] bg-white font-medium text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${opt.dot}`} />
-                  {opt.label}
-                </span>
-                {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
+                {opt.label}
               </button>
             );
           })}
@@ -1777,12 +1873,12 @@ function GenderFilter({
                 onClick={() => onChange(active ? "all" : opt.id)}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[12.5px] transition-colors ${
                   active
-                    ? "bg-[#EEF2FF] font-semibold text-[#0027eb]"
+                    ? "bg-[#EFEFF2] font-semibold text-[#0F172A]"
                     : "font-medium text-[#334155] hover:bg-[#F7F8FB]"
                 }`}
               >
                 <span>{opt.label}</span>
-                {active && <Check className="h-3.5 w-3.5 text-[#0027eb]" />}
+                {active && <Check className="h-3.5 w-3.5 text-[#0F172A]" />}
               </button>
             );
           })}
@@ -1861,11 +1957,11 @@ function FormatFilter({
                 onClick={() => toggle(opt.id)}
                 className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border py-3 text-[12px] font-semibold transition-colors ${
                   active
-                    ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                    : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
+                    ? "border-transparent bg-[#EFEFF2] text-[#0F172A]"
+                    : "border-[#D8DDE6] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4 text-[#475569]" />
                 <span>{opt.label}</span>
               </button>
             );
@@ -2324,6 +2420,7 @@ function RangeFilterSlot({
   windowOptions,
   windowLabel,
   prefix,
+  unitSuffix,
   extraContent,
   width,
 }: {
@@ -2349,6 +2446,7 @@ function RangeFilterSlot({
   windowOptions?: string[];
   windowLabel?: string;
   prefix?: string;
+  unitSuffix?: string;
   extraContent?: React.ReactNode;
   width?: number;
 }) {
@@ -2385,6 +2483,7 @@ function RangeFilterSlot({
         windowOptions={windowOptions}
         windowLabel={windowLabel}
         prefix={prefix}
+        unitSuffix={unitSuffix}
         extraContent={extraContent}
         width={width}
       />
@@ -2701,13 +2800,13 @@ function CantFindAdvertiserModal({
 
               <ul className="mt-4 space-y-2.5 text-[12.5px] text-[#334155]">
                 <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#EEF2FF] text-[#0027eb]">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#ECEFF4] text-[#0F172A]">
                     <Check className="h-2.5 w-2.5 stroke-[3]" />
                   </span>
                   <span>Meta and TikTok advertisers</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#EEF2FF] text-[#0027eb]">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#ECEFF4] text-[#0F172A]">
                     <Check className="h-2.5 w-2.5 stroke-[3]" />
                   </span>
                   <span>
@@ -2838,127 +2937,121 @@ export function AtriaDiscoveryBar({
   const sampleEstSpendK = ((199.8 * assumedCpm) / 1000).toFixed(1);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {/* ====================================================================
-          ROW 1: VIEW TABS ROW (NO BFCM!)
+          ROW 1: VIEW TABS + SEARCH BAR + "Can't find an advertiser?" (SINGLE ROW)
          ==================================================================== */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => onViewTabChange("all")}
-          className={`inline-flex h-9 min-w-[68px] items-center justify-center rounded-md px-3 text-[13px] font-semibold transition-colors ${
-            activeViewTab === "all"
-              ? "bg-[#0027eb] text-white"
-              : "bg-transparent text-[#334155] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-          }`}
-        >
-          All ads
-        </button>
-
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => onViewTabChange("trending")}
-          className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold transition-colors ${
-            activeViewTab === "trending"
-              ? "bg-[#0027eb] text-white"
-              : "bg-transparent text-[#334155] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-          }`}
-        >
-          <Flame
-            className={`h-3.5 w-3.5 ${
-              activeViewTab === "trending" ? "text-white" : "text-[#0027eb]"
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => onViewTabChange("all")}
+            className={`inline-flex h-8 min-w-[66px] items-center justify-center rounded-md px-3 text-[13px] font-semibold transition-colors ${
+              activeViewTab === "all"
+                ? "bg-[#0027eb] text-white"
+                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
             }`}
-          />
-          <span>Trending</span>
-        </button>
+          >
+            All ads
+          </button>
 
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => onViewTabChange("following")}
-          className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold transition-colors ${
-            activeViewTab === "following"
-              ? "bg-[#0027eb] text-white"
-              : "bg-transparent text-[#334155] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-          }`}
-        >
-          <Heart
-            className={`h-3.5 w-3.5 ${
-              activeViewTab === "following" ? "text-white" : "text-[#0027eb]"
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => onViewTabChange("trending")}
+            className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
+              activeViewTab === "trending"
+                ? "bg-[#0027eb] text-white"
+                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
             }`}
-          />
-          <span>Following</span>
-          {followedCount > 0 && (
-            <span
-              className={`ml-0.5 rounded-full px-1.5 py-0.2 font-mono-num text-[11px] font-semibold ${
-                activeViewTab === "following"
-                  ? "bg-white/20 text-white"
-                  : "bg-[#EEF2FF] text-[#0027eb]"
-              }`}
-            >
-              {followedCount}
+          >
+            <span aria-hidden="true" className="text-[14px] leading-none">
+              🔥
             </span>
-          )}
-        </button>
+            <span>Trending</span>
+          </button>
 
-        {/* User-saved custom views */}
-        {customViews.map((cv) => {
-          const active = activeViewTab === cv.id;
-          return (
-            <button
-              key={cv.id}
-              type="button"
-              data-no-glass="true"
-              onClick={() => handleSelectCustomView(cv)}
-              className={`inline-flex h-9 max-w-[160px] items-center rounded-md px-3 text-[13px] font-semibold transition-colors ${
-                active
-                  ? "bg-[#0027eb] text-white"
-                  : "bg-transparent text-[#334155] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-              }`}
-            >
-              <span className="truncate">{cv.name}</span>
-            </button>
-          );
-        })}
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => onViewTabChange("following")}
+            className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
+              activeViewTab === "following"
+                ? "bg-[#0027eb] text-white"
+                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+            }`}
+          >
+            <span aria-hidden="true" className="text-[14px] leading-none">
+              ❤️
+            </span>
+            <span>Following</span>
+            {followedCount > 0 && (
+              <span
+                className={`ml-0.5 rounded-full px-1.5 py-0.2 font-mono-num text-[11px] font-semibold ${
+                  activeViewTab === "following"
+                    ? "bg-white/20 text-white"
+                    : "bg-[#ECEFF4] text-[#0F172A]"
+                }`}
+              >
+                {followedCount}
+              </span>
+            )}
+          </button>
 
-        {/* + New view */}
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => setCreateViewOpen(true)}
-          className="ml-1 inline-flex h-8 items-center gap-1 rounded-md border border-dashed border-[#CBD5E1] bg-white px-2.5 text-[12.5px] font-medium text-[#475569] transition-colors hover:border-[#0027eb]/50 hover:bg-[#EEF2FF]/50 hover:text-[#0027eb]"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>New view</span>
-        </button>
+          {/* User-saved custom views */}
+          {customViews.map((cv) => {
+            const active = activeViewTab === cv.id;
+            return (
+              <button
+                key={cv.id}
+                type="button"
+                data-no-glass="true"
+                onClick={() => handleSelectCustomView(cv)}
+                className={`inline-flex h-8 max-w-[160px] items-center rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
+                  active
+                    ? "bg-[#0027eb] text-white"
+                    : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+                }`}
+              >
+                <span className="truncate">{cv.name}</span>
+              </button>
+            );
+          })}
 
-        {/* Gear (Manage views) */}
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => setManageViewsOpen(true)}
-          aria-label="Manage views"
-          title="Manage views"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-        >
-          <Settings className="h-4 w-4" />
-        </button>
-      </div>
+          {/* + New view */}
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => setCreateViewOpen(true)}
+            className="ml-1 inline-flex h-8 items-center gap-1 rounded-md border border-[#E2E6EF] bg-white px-2.5 text-[12.5px] font-medium text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
+          >
+            <Plus className="h-3.5 w-3.5 text-[#64748B]" />
+            <span>New view</span>
+          </button>
 
-      {/* ====================================================================
-          ROW 2: SEARCH BAR + "Can't find an advertiser?"
-         ==================================================================== */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex h-10 max-w-[600px] flex-1 items-center rounded-lg border border-[#E2E6EF] bg-white px-3 transition-all focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
-          <Search className="mr-2.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
+          {/* Gear (Manage views) */}
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => setManageViewsOpen(true)}
+            aria-label="Manage views"
+            title="Manage views"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Inline Search Input */}
+        <div className="relative flex h-9 min-w-[220px] max-w-[460px] flex-1 items-center rounded-lg border border-[#E2E6EF] bg-white px-3 transition-all focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
+          <Search className="mr-2 h-4 w-4 shrink-0 text-[#64748B]" />
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search for ads or advertisers with AI"
-            className="w-full bg-transparent text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+            className="w-full bg-transparent text-[13px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
           />
           {search.length > 0 && (
             <button
@@ -2973,11 +3066,12 @@ export function AtriaDiscoveryBar({
           )}
         </div>
 
+        {/* Right: Can't find an advertiser? */}
         <button
           type="button"
           data-no-glass="true"
           onClick={() => setCantFindOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-medium text-[#475569] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+          className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-[#334155] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
         >
           <HelpCircle className="h-4 w-4 text-[#64748B]" />
           <span>Can&apos;t find an advertiser?</span>
@@ -2985,7 +3079,7 @@ export function AtriaDiscoveryBar({
       </div>
 
       {/* ====================================================================
-          ROW 3: FILTER CONTROL ROW (Filters Hide/Show · Sort · Spend CPM)
+          ROW 2: FILTER CONTROL ROW (Filters Hide/Show · Sort · Spend CPM)
          ==================================================================== */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Filters Hide / Show */}
@@ -2995,13 +3089,13 @@ export function AtriaDiscoveryBar({
           onClick={() => setFiltersExpanded((prev) => !prev)}
           className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
             filtersExpanded
-              ? "border-[#CBD5E1] bg-white text-[#0F172A]"
+              ? "border-[#E2E6EF] bg-white text-[#0F172A] hover:border-[#CBD5E1]"
               : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
           }`}
         >
-          <Filter className="h-3.5 w-3.5 text-[#64748B]" />
-          <span>Filters</span>
-          <span className="text-[#94A3B8]">
+          <Filter className="h-3.5 w-3.5 text-[#475569]" />
+          <span className="font-semibold text-[#0F172A]">Filters</span>
+          <span className="text-[#64748B]">
             {filtersExpanded ? "Hide" : "Show"}
           </span>
           {activeFilterCount > 0 && (
@@ -3010,9 +3104,9 @@ export function AtriaDiscoveryBar({
             </span>
           )}
           {filtersExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5 text-[#64748B]" />
+            <ChevronUp className="h-3.5 w-3.5 text-[#475569]" />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-[#64748B]" />
+            <ChevronDown className="h-3.5 w-3.5 text-[#475569]" />
           )}
         </button>
 
@@ -3026,7 +3120,7 @@ export function AtriaDiscoveryBar({
           }
           className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
             openPopover === "sort"
-              ? "border-[#0027eb]/40 bg-[#EEF2FF]/60 text-[#0F172A]"
+              ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
               : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
           }`}
         >
@@ -3035,7 +3129,7 @@ export function AtriaDiscoveryBar({
           <span className="font-semibold text-[#0F172A]">
             {currentSortMeta.label}
           </span>
-          <ChevronDown className="h-3.5 w-3.5 text-[#64748B]" />
+          <ChevronDown className="h-3.5 w-3.5 text-[#475569]" />
         </button>
 
         <FlakePopover
@@ -3059,24 +3153,20 @@ export function AtriaDiscoveryBar({
                   }}
                   className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[12.5px] transition-colors ${
                     active
-                      ? "bg-[#EEF2FF] font-semibold text-[#0027eb]"
+                      ? "bg-[#EFEFF2] font-semibold text-[#0F172A]"
                       : "font-medium text-[#334155] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
                   }`}
                 >
                   <span className="flex flex-col">
                     <span>{opt.label}</span>
                     {opt.sublabel && (
-                      <span
-                        className={`text-[10.5px] font-normal ${
-                          active ? "text-[#0027eb]/75" : "text-[#94A3B8]"
-                        }`}
-                      >
+                      <span className="text-[10.5px] font-normal text-[#64748B]">
                         {opt.sublabel}
                       </span>
                     )}
                   </span>
                   {active && (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />
+                    <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />
                   )}
                 </button>
               );
@@ -3094,16 +3184,16 @@ export function AtriaDiscoveryBar({
           }
           className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
             openPopover === "spend_cpm"
-              ? "border-[#0027eb]/40 bg-[#EEF2FF]/60 text-[#0F172A]"
+              ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
               : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
           }`}
         >
-          <Coins className="h-3.5 w-3.5 text-[#0027eb]" />
+          <Coins className="h-3.5 w-3.5 text-[#64748B]" />
           <span className="text-[#64748B]">Spend:</span>
           <span className="font-mono-num font-semibold text-[#0F172A]">
             ${assumedCpm} CPM
           </span>
-          <ChevronDown className="h-3.5 w-3.5 text-[#64748B]" />
+          <ChevronDown className="h-3.5 w-3.5 text-[#475569]" />
         </button>
 
         <FlakePopover
@@ -3117,30 +3207,30 @@ export function AtriaDiscoveryBar({
             title="Est. ad spend"
             subtitle="Estimated ad spend = Reach ÷ 1,000 × CPM"
             badge={
-              <span className="rounded border border-[#0027eb]/20 bg-[#EEF2FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#0027eb]">
+              <span className="rounded border border-[#E2E6EF] bg-[#F3F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
                 EU/UK
               </span>
             }
           />
-          <div className="space-y-3.5 p-4">
+          <div className="space-y-3.5 px-5 pb-5 pt-2.5">
             {/* Assumed CPM Input + Reset */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-[11.5px] font-medium text-[#64748B]">
+                <label className="text-[12px] font-medium text-[#475569]">
                   Assumed CPM
                 </label>
                 <button
                   type="button"
                   data-no-glass="true"
                   onClick={() => onAssumedCpmChange(DEFAULT_ASSUMED_CPM)}
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium text-[#0027eb] hover:text-[#001fc2]"
+                  className="inline-flex items-center gap-1 text-[12px] font-medium text-[#475569] hover:text-[#0F172A]"
                 >
-                  <RotateCcw className="h-3 w-3" />
+                  <RotateCcw className="h-3 w-3 text-[#64748B]" />
                   Reset
                 </button>
               </div>
-              <div className="flex items-center rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-1.5 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
-                <span className="mr-1.5 text-xs font-semibold text-[#94A3B8]">
+              <div className="flex h-10 items-center rounded-xl border border-[#D8DDE6] bg-white px-3 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
+                <span className="mr-1.5 text-xs font-semibold text-[#64748B]">
                   $
                 </span>
                 <input
@@ -3155,9 +3245,9 @@ export function AtriaDiscoveryBar({
                       onAssumedCpmChange(next);
                     }
                   }}
-                  className="w-full bg-transparent font-mono-num text-[13px] font-semibold text-[#0F172A] outline-none"
+                  className="w-full bg-transparent font-mono-num text-[13.5px] font-semibold text-[#0F172A] outline-none"
                 />
-                <span className="ml-1.5 text-[11px] font-medium text-[#94A3B8]">
+                <span className="ml-1.5 shrink-0 text-[11.5px] font-medium text-[#64748B]">
                   per 1K reach
                 </span>
               </div>
@@ -3166,7 +3256,7 @@ export function AtriaDiscoveryBar({
             {/* Crisp Visual Sample Card */}
             <div className="rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] p-3">
               <div className="flex items-center justify-between gap-2">
-                <div className="rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-2 text-center flex-1">
+                <div className="flex-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-2 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-[#94A3B8]">
                     EU/UK Reach
                   </p>
@@ -3174,12 +3264,12 @@ export function AtriaDiscoveryBar({
                     199.8K
                   </p>
                 </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-[#0027eb]" />
-                <div className="rounded-lg border border-[#0027eb]/25 bg-[#EEF2FF] px-2.5 py-2 text-center flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0027eb]/80">
+                <ArrowRight className="h-4 w-4 shrink-0 text-[#64748B]" />
+                <div className="flex-1 rounded-lg border border-[#D8DDE6] bg-white px-2.5 py-2 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#64748B]">
                     Est. spend
                   </p>
-                  <p className="mt-0.5 font-mono-num text-[14px] font-bold text-[#0027eb]">
+                  <p className="mt-0.5 font-mono-num text-[14px] font-bold text-[#0F172A]">
                     ${sampleEstSpendK}K
                   </p>
                 </div>
@@ -3206,7 +3296,7 @@ export function AtriaDiscoveryBar({
             type="button"
             data-no-glass="true"
             onClick={onResetFilters}
-            className="ml-1 text-[12.5px] font-semibold text-[#0027eb] transition-colors hover:text-[#001fc2]"
+            className="ml-1 text-[12.5px] font-medium text-[#475569] transition-colors hover:text-[#0F172A]"
           >
             Clear all
           </button>
@@ -3214,16 +3304,17 @@ export function AtriaDiscoveryBar({
       </div>
 
       {/* ====================================================================
-          ROW 4: EXPANDED 4-GROUP FILTER PANEL (ALL 22 FILTERS)
+          ROW 3: EXPANDED 3-LINE COMPACT FILTER PANEL (ALL 22 FILTERS)
          ==================================================================== */}
       {filtersExpanded && (
-        <div className="space-y-2.5 rounded-xl border border-[#ECEFF5] bg-[#F7F8FB] px-4 py-3">
-          {/* GROUP 1: LIFECYCLE (3) */}
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-            <span className="w-[86px] shrink-0 text-[11.5px] font-semibold text-[#64748B]">
-              Lifecycle
-            </span>
+        <div className="space-y-2 rounded-xl border border-[#ECEFF5] bg-[#F7F8FB] px-3.5 py-2.5">
+          {/* LINE 1: LIFECYCLE (3) + TARGETING (3) SIDE-BY-SIDE */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
+              <span className="w-[74px] shrink-0 text-[11.5px] font-medium text-[#64748B]">
+                Lifecycle
+              </span>
+
               {/* 1. Launch time */}
               <LaunchTimeFilter
                 open={openPopover === "launch_time"}
@@ -3243,15 +3334,16 @@ export function AtriaDiscoveryBar({
               {/* 3. Days running */}
               <RangeFilterSlot
                 pillLabel="Days running"
-                activeLabel={formatRangeBadge(filters.daysRunning, "d")}
+                activeLabel={formatRangeBadge(filters.daysRunning, " days")}
                 open={openPopover === "days_running"}
                 onOpenChange={setPopoverFor("days_running")}
                 title="Days running"
-                subtitle="Filter by how long an ad has been running"
+                subtitle="Filter by how long an ad has been live"
                 minBound={0}
                 maxBound={60}
                 step={1}
                 ticks={["0", "15", "30", "45", "No limit"]}
+                unitSuffix="days"
                 value={filters.daysRunning}
                 onChange={(daysRunning) => patchFilters({ daysRunning })}
                 quickRanges={[
@@ -3261,14 +3353,12 @@ export function AtriaDiscoveryBar({
                 ]}
               />
             </div>
-          </div>
 
-          {/* GROUP 2: TARGETING (3) */}
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-            <span className="w-[86px] shrink-0 text-[11.5px] font-semibold text-[#64748B]">
-              Targeting
-            </span>
             <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11.5px] font-medium text-[#64748B]">
+                Targeting
+              </span>
+
               {/* 4. Country */}
               <CountryFilter
                 open={openPopover === "country"}
@@ -3316,9 +3406,9 @@ export function AtriaDiscoveryBar({
             </div>
           </div>
 
-          {/* GROUP 3: CREATIVE (11) */}
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-            <span className="w-[86px] shrink-0 text-[11.5px] font-semibold text-[#64748B] sm:pt-1">
+          {/* LINE 2: CREATIVE (11) WITH SUBTLE HAIRLINE DIVIDERS */}
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-0">
+            <span className="w-[80px] shrink-0 text-[11.5px] font-medium text-[#64748B] sm:pt-1">
               Creative
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -3342,6 +3432,7 @@ export function AtriaDiscoveryBar({
                 maxBound={150}
                 step={5}
                 ticks={["0s", "30s", "1m", "2m", "No limit"]}
+                unitSuffix="sec"
                 value={filters.videoLength}
                 onChange={(videoLength) => patchFilters({ videoLength })}
                 quickRanges={[
@@ -3382,6 +3473,7 @@ export function AtriaDiscoveryBar({
                 maxBound={30}
                 step={1}
                 ticks={["1", "10", "25", "No limit"]}
+                unitSuffix="ads"
                 value={filters.creativeReuse}
                 onChange={(creativeReuse) => patchFilters({ creativeReuse })}
                 quickRanges={[
@@ -3390,6 +3482,8 @@ export function AtriaDiscoveryBar({
                   { label: "Scaled (20+)", min: 20, max: null },
                 ]}
               />
+
+              <span className="mx-0.5 hidden h-4 w-px bg-[#E2E6EF] sm:inline-block" />
 
               {/* 12. Theme */}
               <SearchCheckboxFilterSlot
@@ -3412,7 +3506,7 @@ export function AtriaDiscoveryBar({
                 title="Visual styles"
                 subtitle="Filter video ads by production aesthetic"
                 badge={
-                  <span className="rounded border border-[#0027eb]/20 bg-[#EEF2FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#0027eb]">
+                  <span className="rounded border border-[#E2E6EF] bg-[#F3F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
                     Video only
                   </span>
                 }
@@ -3447,6 +3541,7 @@ export function AtriaDiscoveryBar({
                 maxBound={1000}
                 step={25}
                 ticks={["0", "250", "500", "750", "No limit"]}
+                unitSuffix="chars"
                 value={filters.adCopyLength}
                 onChange={(adCopyLength) => patchFilters({ adCopyLength })}
                 quickTitle="Quick sizes"
@@ -3470,6 +3565,8 @@ export function AtriaDiscoveryBar({
                 onChange={(languages) => patchFilters({ languages })}
               />
 
+              <span className="mx-0.5 hidden h-4 w-px bg-[#E2E6EF] sm:inline-block" />
+
               {/* 17. Partner ads */}
               <PartnerAdsFilter
                 open={openPopover === "partner_ads"}
@@ -3480,9 +3577,9 @@ export function AtriaDiscoveryBar({
             </div>
           </div>
 
-          {/* GROUP 4: PERFORMANCE (5) */}
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-            <span className="w-[86px] shrink-0 text-[11.5px] font-semibold text-[#64748B]">
+          {/* LINE 3: PERFORMANCE (5) */}
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-0">
+            <span className="w-[80px] shrink-0 text-[11.5px] font-medium text-[#64748B]">
               Performance
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -3555,8 +3652,8 @@ export function AtriaDiscoveryBar({
                 title="Est. ad spend"
                 subtitle="Estimated ad spend = Reach ÷ 1,000 × CPM"
                 badge={
-                  <span className="inline-flex items-center gap-1 rounded border border-[#0027eb]/20 bg-[#EEF2FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#0027eb]">
-                    <Globe className="h-2.5 w-2.5" />
+                  <span className="inline-flex items-center gap-1 rounded border border-[#E2E6EF] bg-[#F3F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
+                    <Globe className="h-2.5 w-2.5 text-[#64748B]" />
                     EU/UK
                   </span>
                 }
@@ -3570,13 +3667,13 @@ export function AtriaDiscoveryBar({
                 windowOptions={["Today", "7d avg", "30d avg", "All time"]}
                 windowLabel="Time period"
                 extraContent={
-                  <div className="rounded-lg border border-[#ECEFF5] bg-[#FAFBFD] px-3 py-2">
+                  <div className="rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-3 py-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-medium text-[#64748B]">
+                      <span className="text-[11.5px] font-medium text-[#64748B]">
                         Assumed CPM
                       </span>
                       <div className="flex items-center gap-2">
-                        <div className="flex w-20 items-center rounded-md border border-[#E2E6EF] bg-white px-2 py-1 focus-within:border-[#0027eb]">
+                        <div className="flex w-20 items-center rounded-lg border border-[#D8DDE6] bg-white px-2 py-1 focus-within:border-[#0027eb]">
                           <span className="mr-1 text-[11px] text-[#94A3B8]">
                             $
                           </span>
@@ -3601,7 +3698,7 @@ export function AtriaDiscoveryBar({
                           onClick={() =>
                             onAssumedCpmChange(DEFAULT_ASSUMED_CPM)
                           }
-                          className="text-[11px] font-medium text-[#0027eb] hover:text-[#001fc2]"
+                          className="text-[11.5px] font-medium text-[#475569] hover:text-[#0F172A]"
                         >
                           Reset
                         </button>
@@ -3614,7 +3711,7 @@ export function AtriaDiscoveryBar({
                   { label: "≥$5K", min: 5_000, max: null },
                   { label: "≥$15K", min: 15_000, max: null },
                 ]}
-                width={352}
+                width={380}
               />
             </div>
           </div>
