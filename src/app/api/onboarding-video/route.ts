@@ -19,9 +19,8 @@ export async function GET() {
     const { data, error } = await supabase
       .from("adtrack_ads")
       .select("id, payload")
-      .eq("media_type", "video")
-      .order("eu_reach", { ascending: false, nullsFirst: false })
-      .limit(80);
+      .order("started_running_at", { ascending: false })
+      .limit(200);
 
     if (error || !data) {
       return NextResponse.json({ ok: true, videos: [] });
@@ -30,13 +29,14 @@ export async function GET() {
     const candidates: OnboardingVideoItem[] = [];
     for (const row of data) {
       const p = (row.payload || {}) as Record<string, unknown>;
+      if (p.media_type !== "video") continue;
       const mediaUrl = typeof p.media_url === "string" ? p.media_url.trim() : "";
       const thumb =
         (typeof p.fallback_image_url === "string" && p.fallback_image_url) ||
         (typeof p.thumbnail_url === "string" && p.thumbnail_url) ||
         "";
       if (!mediaUrl || !/^https?:\/\//i.test(mediaUrl)) continue;
-      // Prefer permanent R2 / direct MP4 streams that play cleanly in <video>
+
       const isDirectPlayable =
         /r2\.dev|cloudflarestorage|\.mp4(\?|$)/i.test(mediaUrl) ||
         /fbcdn\.net|scontent/i.test(mediaUrl);
@@ -51,9 +51,9 @@ export async function GET() {
       });
     }
 
-    // Prioritize R2-hosted permanent videos first, then shuffle cleanly
-    const r2First = candidates.filter((v) => /r2\.dev/i.test(v.mediaUrl));
-    const pool = r2First.length >= 6 ? r2First : candidates;
+    // Strongly prefer permanent R2-hosted videos so playback never expires
+    const r2Only = candidates.filter((v) => /r2\.dev|cloudflarestorage/i.test(v.mediaUrl));
+    const pool = r2Only.length >= 4 ? r2Only : candidates;
 
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
