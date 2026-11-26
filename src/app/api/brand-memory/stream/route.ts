@@ -19,14 +19,14 @@ export async function POST(request: NextRequest) {
     rawUrl = (body.url || "").trim();
   } catch {
     return new Response(
-      JSON.stringify({ ok: false, error: "Ugyldig forespørgsel." }),
+      JSON.stringify({ ok: false, error: "Invalid request." }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
   if (!rawUrl) {
     return new Response(
-      JSON.stringify({ ok: false, error: "Indtast venligst din shop-URL." }),
+      JSON.stringify({ ok: false, error: "Please enter your store URL." }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return new Response(
       JSON.stringify({
         ok: false,
-        error: "Ugyldig webadresse. Prøv f.eks. archandpillar.dk",
+        error: "Invalid website URL. Try e.g. archandpillar.dk",
       }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.)/i.test(parsed.hostname)) {
     return new Response(
-      JSON.stringify({ ok: false, error: "Lokale adresser understøttes ikke." }),
+      JSON.stringify({ ok: false, error: "Local addresses are not supported." }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }

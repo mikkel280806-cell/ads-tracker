@@ -37,11 +37,11 @@ interface OnboardingVideo {
 
 const ROLE_OPTIONS = [
   { id: "Brand owner / founder", label: "Brand owner / founder", icon: Store },
-  { id: "Marketer at a brand", label: "Marketer hos et brand", icon: Laptop },
-  { id: "Agency / consultant", label: "Bureau / konsulent", icon: Building2 },
+  { id: "Marketer at a brand", label: "Marketer at a brand", icon: Laptop },
+  { id: "Agency / consultant", label: "Agency / consultant", icon: Building2 },
   { id: "Video editor", label: "Video editor", icon: Film },
   { id: "UGC / content creator", label: "UGC / content creator", icon: Smartphone },
-  { id: "Something else", label: "Noget andet", icon: Briefcase },
+  { id: "Something else", label: "Something else", icon: Briefcase },
 ];
 
 const INDUSTRY_OPTIONS = [
@@ -61,7 +61,7 @@ const INDUSTRY_OPTIONS = [
     label: "Apps, Software & Courses",
     icon: Laptop,
   },
-  { id: "Something else", label: "Noget andet", icon: Package },
+  { id: "Something else", label: "Something else", icon: Package },
 ];
 
 const BRAND_STORAGE_KEY = "flake_studio_brand_memory_v1";
@@ -182,7 +182,7 @@ export function OnboardingFlow() {
   const startBrandStream = async () => {
     const trimmed = urlInput.trim();
     if (!trimmed) {
-      setError("Indtast din hjemmeside — f.eks. archandpillar.dk");
+      setError("Please enter your website — e.g. archandpillar.dk");
       return;
     }
 
@@ -223,7 +223,7 @@ export function OnboardingFlow() {
 
       if (!res.ok || !res.body) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson?.error || "Kunne ikke analysere hjemmesiden.");
+        throw new Error(errJson?.error || "Could not analyze this website.");
       }
 
       const reader = res.body.getReader();
@@ -249,7 +249,7 @@ export function OnboardingFlow() {
           }
 
           if (ev.type === "error") {
-            throw new Error(String(ev.error || "Fejl under analyse."));
+            throw new Error(String(ev.error || "Error analyzing site."));
           }
 
           if (ev.type === "init") {
@@ -311,7 +311,7 @@ export function OnboardingFlow() {
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Kunne ikke indlæse hjemmesiden."
+        err instanceof Error ? err.message : "Could not load website."
       );
       setPhase("input");
     } finally {
@@ -391,7 +391,7 @@ export function OnboardingFlow() {
           <button
             type="button"
             onClick={() => setMuted((m) => !m)}
-            aria-label={muted ? "Slå lyd til" : "Slå lyd fra"}
+            aria-label={muted ? "Unmute video" : "Mute video"}
             className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white/90 backdrop-blur-md transition-colors hover:bg-black/70"
           >
             {muted ? (
@@ -419,7 +419,7 @@ export function OnboardingFlow() {
             <button
               type="button"
               onClick={handleBack}
-              aria-label="Tilbage"
+              aria-label="Back"
               className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.04] text-white/75 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -445,7 +445,7 @@ export function OnboardingFlow() {
             onClick={() => router.push("/")}
             className="absolute right-0 text-xs font-medium text-white/40 transition-colors hover:text-white/80"
           >
-            Spring over
+            Skip
           </button>
         </div>
 
@@ -460,8 +460,8 @@ export function OnboardingFlow() {
               className="animate-onboard-step flex w-full flex-col items-center text-center"
             >
               <h1 className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[38px]">
-                <span className="block text-white">Hvad beskriver</span>
-                <span className="block text-white/45">dig bedst?</span>
+                <span className="block text-white">What best</span>
+                <span className="block text-white/45">describes you?</span>
               </h1>
 
               <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
@@ -488,7 +488,7 @@ export function OnboardingFlow() {
               </div>
 
               <p className="mt-6 text-[12px] text-white/35">
-                Vi opsætter Flake efter hvordan du arbejder
+                We&apos;ll set up Flake around how you work
               </p>
             </div>
           )}
@@ -502,8 +502,8 @@ export function OnboardingFlow() {
               className="animate-onboard-step flex w-full flex-col items-center text-center"
             >
               <h1 className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[38px]">
-                <span className="block text-white">Hvilken branche</span>
-                <span className="block text-white/45">er du i?</span>
+                <span className="block text-white">Which industry</span>
+                <span className="block text-white/45">are you in?</span>
               </h1>
 
               <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
@@ -530,7 +530,7 @@ export function OnboardingFlow() {
               </div>
 
               <p className="mt-6 text-[12px] text-white/35">
-                Vi viser dig annoncer der virker i din kategori
+                We&apos;ll show you ads that are working in your category
               </p>
             </div>
           )}
@@ -544,13 +544,13 @@ export function OnboardingFlow() {
               className="animate-onboard-step flex w-full max-w-[520px] flex-col items-center text-center"
             >
               <h1 className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[38px]">
-                <span className="block text-white">Indsæt din</span>
-                <span className="block text-white/45">brand-side</span>
+                <span className="block text-white">Paste your</span>
+                <span className="block text-white/45">brand page</span>
               </h1>
 
               <p className="mt-3 max-w-md text-[13px] leading-relaxed text-white/50">
-                Din hjemmeside eller webshop. Snow læser den og sætter dit brand
-                op med navn, logo, farver og produkter.
+                Your website or store homepage. Snow reads it and sets up your
+                brand: name, logo, colors and what you sell.
               </p>
 
               {/* PHASE A: URL INPUT */}
@@ -571,14 +571,14 @@ export function OnboardingFlow() {
                         setUrlInput(e.target.value);
                         if (error) setError(null);
                       }}
-                      placeholder="https://ditbrand.dk"
+                      placeholder="https://yourbrand.com"
                       className="w-full flex-1 rounded-full border border-white/[0.14] bg-white/[0.04] px-5 py-3 text-[15px] text-white outline-none transition-all placeholder:text-white/30 focus:border-[#3B66FF] focus:bg-white/[0.07] sm:text-[13.5px]"
                     />
                     <button
                       type="submit"
                       className="adtrack-btn-primary w-full shrink-0 rounded-full px-6 py-3 text-[13.5px] font-semibold text-white sm:w-auto"
                     >
-                      Opret brand
+                      Create brand
                     </button>
                   </form>
 
@@ -590,7 +590,7 @@ export function OnboardingFlow() {
                     <span className="rounded-full bg-[#0027eb] px-2.5 py-0.5 font-mono-num text-[10.5px] font-bold text-white">
                       +300 credits
                     </span>
-                    <span>for at sætte dit brand op</span>
+                    <span>for setting up your brand</span>
                   </div>
                 </div>
               )}
@@ -660,7 +660,7 @@ export function OnboardingFlow() {
                           onClick={() => setEditing((v) => !v)}
                           className="shrink-0 rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-1 text-[11.5px] font-medium text-white/75 transition-colors hover:border-white/25 hover:text-white disabled:opacity-35"
                         >
-                          {editing ? "Gem" : "Rediger"}
+                          {editing ? "Save" : "Edit"}
                         </button>
                       </div>
 
@@ -719,7 +719,7 @@ export function OnboardingFlow() {
                               /* eslint-disable-next-line @next/next/no-img-element */
                               <img
                                 src={topProduct?.image_url || fallbackImageUrl || ""}
-                                alt={topProduct?.title || brandName || "Produkt"}
+                                alt={topProduct?.title || brandName || "Product"}
                                 className="h-full w-full object-cover"
                               />
                             ) : (
@@ -734,7 +734,7 @@ export function OnboardingFlow() {
 
                         <div className="min-w-0 flex-1">
                           <span className="block text-[9.5px] font-bold uppercase tracking-[0.12em] text-white/40">
-                            PRODUKT
+                            PRODUCT
                           </span>
                           {topProduct ? (
                             <p className="animate-onboard-text truncate text-[13px] font-semibold text-white">
@@ -799,7 +799,7 @@ export function OnboardingFlow() {
                         <div className="mt-2.5 flex items-center justify-center gap-2 text-[11.5px] text-white/50">
                           <SnowMark className="h-3.5 w-3.5 text-[#4D6BFF]" />
                           <span>
-                            Snow læser din side og sætter dit brand op...
+                            Snow is reading your site and writing up your brand, so it takes about 5–20 seconds.
                           </span>
                         </div>
                       </>
@@ -807,7 +807,7 @@ export function OnboardingFlow() {
                       <div className="animate-onboard-text flex items-center justify-center gap-1.5 text-[12px] font-medium text-white/75">
                         <Check className="h-3.5 w-3.5 text-[#4ADE80]" />
                         <span>
-                          Dit brand er klar. Du kan altid redigere det under Brands.
+                          Your brand is ready. Check it now or anytime later in Brands.
                         </span>
                       </div>
                     )}
@@ -816,7 +816,7 @@ export function OnboardingFlow() {
                     {creditsAdded && (
                       <div className="animate-onboard-pop mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#86EFAC]">
                         <Sparkles className="h-3.5 w-3.5" />
-                        +300 credits tilføjet
+                        +300 credits added
                       </div>
                     )}
 
@@ -831,7 +831,7 @@ export function OnboardingFlow() {
                           : "cursor-not-allowed border border-white/[0.1] bg-white/[0.05] text-white/35"
                       }`}
                     >
-                      Fortsæt
+                      Continue
                       <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
