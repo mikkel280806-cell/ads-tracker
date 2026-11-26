@@ -206,6 +206,7 @@ export function synthesizeBrandMemoryFromScrape(opts: {
   category: string;
   currency: string;
   products: ProductPreview[];
+  brandColors?: string[];
   pixels: string[];
   shopifyApps: string[];
   trustpilotScore?: number;
@@ -346,7 +347,10 @@ export function synthesizeBrandMemoryFromScrape(opts: {
     objections,
     customerReviews,
     products: opts.products.slice(0, 12),
-    brandColors: ["#0027eb", "#0F172A", "#F7F8FB"],
+    brandColors:
+      opts.brandColors && opts.brandColors.length > 0
+        ? opts.brandColors.slice(0, 4)
+        : ["#0027eb", "#0F172A", "#64748B", "#E2E8F0"],
     pixels: opts.pixels,
     shopifyApps: opts.shopifyApps,
     trustpilotScore: opts.trustpilotScore,

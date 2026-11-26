@@ -9,6 +9,7 @@ import {
   fetchTrustpilotRating,
   scrapeShopifyProducts,
 } from "@/lib/shop-scraper";
+import { extractBrandColorsFromHtml } from "@/lib/brand-colors";
 import { synthesizeBrandMemoryFromScrape } from "@/lib/snow-engine";
 
 export async function POST(request: NextRequest) {
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
       category,
       currency,
       products: productsRes.topProducts.length > 0 ? productsRes.topProducts : productsRes.latestProducts,
+      brandColors: extractBrandColorsFromHtml(html),
       pixels,
       shopifyApps: apps,
       trustpilotScore: tpRes?.score,
