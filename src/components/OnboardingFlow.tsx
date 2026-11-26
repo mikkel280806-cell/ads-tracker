@@ -846,15 +846,7 @@ export function OnboardingFlow() {
           )}
         </div>
 
-        {/* Bottom Subtle Brand Wordmark */}
-        <div className="flex w-full items-center justify-center pb-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons/flake-wordmark-white.png"
-            alt="Flake"
-            className="h-[14px] w-auto opacity-30"
-          />
-        </div>
+        <div className="h-4" aria-hidden="true" />
       </div>
     </div>
   );
