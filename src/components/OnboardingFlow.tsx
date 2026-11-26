@@ -421,7 +421,7 @@ export function OnboardingFlow() {
               data-no-glass="true"
               onClick={handleBack}
               aria-label="Back"
-              className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.12] bg-[#141824] text-white/75 transition-all hover:border-white/25 hover:bg-[#1C2233] hover:text-white"
+              className="flake-btn-obsidian absolute left-0 flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:text-white"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -468,10 +468,10 @@ export function OnboardingFlow() {
                       data-no-glass="true"
                       onClick={() => handleSelectRole(opt.id)}
                       style={{ animationDelay: `${idx * 45}ms` }}
-                      className={`animate-onboard-step inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-medium transition-all duration-200 active:scale-[0.97] ${
+                      className={`animate-onboard-step inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-medium ${
                         active
-                          ? "border-[#3B66FF] bg-[#0027eb]/30 text-white shadow-[0_0_24px_-6px_rgba(0,39,235,0.85)]"
-                          : "border-white/[0.12] bg-[#151925] text-white/90 hover:-translate-y-0.5 hover:border-white/25 hover:bg-[#1D2333] hover:text-white"
+                          ? "adtrack-btn-primary border border-[#3B66FF] text-white"
+                          : "flake-btn-obsidian text-white/90 hover:text-white"
                       }`}
                     >
                       <Icon className="h-3.5 w-3.5 text-white/60" />
@@ -511,10 +511,10 @@ export function OnboardingFlow() {
                       data-no-glass="true"
                       onClick={() => handleSelectIndustry(opt.id)}
                       style={{ animationDelay: `${idx * 35}ms` }}
-                      className={`animate-onboard-step inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-medium transition-all duration-200 active:scale-[0.97] ${
+                      className={`animate-onboard-step inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-medium ${
                         active
-                          ? "border-[#3B66FF] bg-[#0027eb]/30 text-white shadow-[0_0_24px_-6px_rgba(0,39,235,0.85)]"
-                          : "border-white/[0.12] bg-[#151925] text-white/90 hover:-translate-y-0.5 hover:border-white/25 hover:bg-[#1D2333] hover:text-white"
+                          ? "adtrack-btn-primary border border-[#3B66FF] text-white"
+                          : "flake-btn-obsidian text-white/90 hover:text-white"
                       }`}
                     >
                       <Icon className="h-3.5 w-3.5 text-white/60" />
@@ -654,7 +654,7 @@ export function OnboardingFlow() {
                           data-no-glass="true"
                           disabled={phase !== "ready"}
                           onClick={() => setEditing((v) => !v)}
-                          className="shrink-0 rounded-lg border border-white/[0.14] bg-[#171C2B] px-3 py-1 text-[11.5px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-[#1F263A] hover:text-white disabled:opacity-35"
+                          className="flake-btn-obsidian shrink-0 rounded-lg px-3 py-1 text-[11.5px] font-medium text-white/85 hover:text-white disabled:opacity-35"
                         >
                           {editing ? "Save" : "Edit"}
                         </button>
@@ -816,16 +816,16 @@ export function OnboardingFlow() {
                       </div>
                     )}
 
-                    {/* Continue Button: dim disabled -> glowing Flake Cobalt */}
+                    {/* Continue Button: dim disabled -> Flake Cobalt CTA */}
                     <button
                       type="button"
                       data-no-glass="true"
                       disabled={phase !== "ready"}
                       onClick={handleFinish}
-                      className={`mt-5 inline-flex items-center gap-1.5 rounded-full px-6 py-2.5 text-[13px] font-semibold transition-all duration-300 ${
+                      className={`mt-5 inline-flex items-center gap-1.5 rounded-full px-6 py-2.5 text-[13px] font-semibold ${
                         phase === "ready"
-                          ? "adtrack-btn-primary text-white shadow-[0_10px_28px_-6px_rgba(0,39,235,0.8)] hover:scale-[1.02]"
-                          : "cursor-not-allowed border border-white/[0.12] bg-[#141824] text-white/35"
+                          ? "adtrack-btn-primary text-white"
+                          : "flake-btn-obsidian cursor-not-allowed text-white/35"
                       }`}
                     >
                       Continue

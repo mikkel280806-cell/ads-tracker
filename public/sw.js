@@ -1,5 +1,5 @@
 // Minimal Service Worker for Flake PWA installability
-const CACHE_NAME = "flake-shell-v76-onboarding-no-skip";
+const CACHE_NAME = "flake-shell-v77-onboarding-obsidian-glass";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
