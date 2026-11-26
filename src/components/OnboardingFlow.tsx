@@ -348,7 +348,6 @@ export function OnboardingFlow() {
 
   const currentVideo = videos[videoIdx] || null;
   const topProduct = products[0] || null;
-  const extraProducts = products.slice(1, 4);
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-[#050811] text-white">
@@ -593,14 +592,14 @@ export function OnboardingFlow() {
               {/* PHASE B & C: PROGRESSIVE ANIMATED BRAND CARD */}
               {phase !== "input" && (
                 <div className="animate-onboard-pop mt-7 w-full text-left">
-                  <div className="overflow-hidden rounded-2xl border border-white/[0.11] bg-[#101522]/90 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.8)] backdrop-blur-md">
+                  <div className="overflow-hidden rounded-[18px] border border-white/[0.11] bg-[#141720]/70 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.75)] backdrop-blur-[2px]">
                     {/* Top Brand Section */}
                     <div className="p-4 sm:p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-1 items-center gap-3.5">
                           {/* Logo Circle: skeleton -> pop-in */}
                           {logoUrl ? (
-                            <div className="animate-onboard-pop flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-1.5 shadow-md ring-1 ring-white/20">
+                            <div className="animate-onboard-pop flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-1.5 shadow-sm ring-1 ring-white/20">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={logoUrl}
@@ -635,7 +634,7 @@ export function OnboardingFlow() {
                                   className="mt-0.5 w-full rounded-md border border-white/20 bg-white/10 px-2 py-0.5 font-display text-[15px] font-bold text-white outline-none focus:border-[#3B66FF]"
                                 />
                               ) : (
-                                <p className="animate-onboard-text truncate font-display text-[15.5px] font-bold text-white">
+                                <p className="animate-onboard-text truncate font-display text-[15px] font-bold leading-snug text-white">
                                   {brandName}
                                 </p>
                               )
@@ -643,7 +642,7 @@ export function OnboardingFlow() {
                               <div className="onboard-skeleton mt-1 h-4 w-36 rounded-md" />
                             )}
 
-                            <p className="mt-0.5 truncate font-mono-num text-[11.5px] text-white/45">
+                            <p className="truncate font-mono-num text-[11.5px] text-white/45">
                               {domain}
                             </p>
                           </div>
@@ -654,14 +653,14 @@ export function OnboardingFlow() {
                           data-no-glass="true"
                           disabled={phase !== "ready"}
                           onClick={() => setEditing((v) => !v)}
-                          className="flake-btn-obsidian shrink-0 rounded-lg px-3 py-1 text-[11.5px] font-medium text-white/85 hover:text-white disabled:opacity-35"
+                          className="flake-btn-obsidian shrink-0 rounded-lg px-3.5 py-1.5 text-[12px] font-medium text-white/85 hover:text-white disabled:opacity-35"
                         >
                           {editing ? "Save" : "Edit"}
                         </button>
                       </div>
 
                       {/* Description Slot: skeleton bars -> blur-fade text */}
-                      <div className="mt-4">
+                      <div className="mt-3.5">
                         {description ? (
                           editing ? (
                             <textarea
@@ -671,7 +670,7 @@ export function OnboardingFlow() {
                               className="w-full rounded-lg border border-white/20 bg-white/10 p-2 text-xs leading-relaxed text-white outline-none focus:border-[#3B66FF]"
                             />
                           ) : (
-                            <p className="animate-onboard-text line-clamp-2 text-[12.5px] leading-relaxed text-white/65">
+                            <p className="animate-onboard-text line-clamp-2 text-[12.5px] leading-[1.55] text-white/65">
                               {description}
                             </p>
                           )
@@ -684,7 +683,7 @@ export function OnboardingFlow() {
                       </div>
 
                       {/* Brand Colors Swatches: 4 circles popping in staggered */}
-                      <div className="mt-4 flex items-center gap-2">
+                      <div className="mt-3.5 flex items-center gap-2">
                         {brandColors.length > 0
                           ? brandColors.slice(0, 4).map((hex, i) => (
                               <span
@@ -694,90 +693,57 @@ export function OnboardingFlow() {
                                   backgroundColor: hex,
                                   animationDelay: `${i * 85}ms`,
                                 }}
-                                className="animate-onboard-pop h-5 w-5 rounded-full ring-1 ring-white/25 shadow-sm"
+                                className="animate-onboard-pop h-[18px] w-[18px] rounded-full ring-1 ring-white/20 shadow-sm"
                               />
                             ))
                           : [0, 1, 2, 3].map((i) => (
                               <span
                                 key={i}
-                                className="onboard-skeleton h-5 w-5 rounded-full"
+                                className="onboard-skeleton h-[18px] w-[18px] rounded-full"
                               />
                             ))}
                       </div>
                     </div>
 
-                    {/* Divider + Product Section */}
-                    <div className="flex items-center justify-between gap-3 border-t border-white/[0.08] bg-white/[0.02] px-4 py-3.5 sm:px-5">
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        {topProduct || fallbackImageUrl ? (
-                          <div className="animate-onboard-pop h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/15 bg-white/10">
-                            {topProduct?.image_url || fallbackImageUrl ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={topProduct?.image_url || fallbackImageUrl || ""}
-                                alt={topProduct?.title || brandName || "Product"}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-white/50">
-                                <Package className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="onboard-skeleton h-10 w-10 shrink-0 rounded-full" />
-                        )}
+                    {/* Clean Inset Divider */}
+                    <div className="mx-4 border-t border-white/[0.08] sm:mx-5" />
 
-                        <div className="min-w-0 flex-1">
-                          <span className="block text-[9.5px] font-bold uppercase tracking-[0.12em] text-white/40">
-                            PRODUCT
-                          </span>
-                          {topProduct ? (
-                            <p className="animate-onboard-text truncate text-[13px] font-semibold text-white">
-                              {topProduct.title}
-                            </p>
-                          ) : phase === "ready" ? (
-                            <p className="animate-onboard-text truncate text-[13px] font-semibold text-white/80">
-                              {brandName || domain}
-                            </p>
+                    {/* Product Section (Single Hero Product, no extra thumbnails) */}
+                    <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
+                      {topProduct || fallbackImageUrl ? (
+                        <div className="animate-onboard-pop h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white p-0.5 ring-1 ring-white/15">
+                          {topProduct?.image_url || fallbackImageUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={topProduct?.image_url || fallbackImageUrl || ""}
+                              alt={topProduct?.title || brandName || "Product"}
+                              className="h-full w-full rounded-full object-cover"
+                            />
                           ) : (
-                            <div className="onboard-skeleton mt-1 h-3.5 w-32 rounded-md" />
+                            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#151925] text-white/50">
+                              <Package className="h-4 w-4" />
+                            </div>
                           )}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="onboard-skeleton h-10 w-10 shrink-0 rounded-full" />
+                      )}
 
-                      {/* 3 Mini Extra Product Avatars */}
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        {extraProducts.length > 0
-                          ? extraProducts.map((p, idx) => (
-                              <div
-                                key={`${p.title}-${idx}`}
-                                style={{ animationDelay: `${idx * 90}ms` }}
-                                title={p.title}
-                                className="animate-onboard-pop h-7 w-7 overflow-hidden rounded-full border border-white/15 bg-white/10"
-                              >
-                                {p.image_url ? (
-                                  /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img
-                                    src={p.image_url}
-                                    alt={p.title}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-white/40">
-                                    <Package className="h-3 w-3" />
-                                  </div>
-                                )}
-                              </div>
-                            ))
-                          : phase === "streaming"
-                            ? [0, 1, 2].map((i) => (
-                                <span
-                                  key={i}
-                                  className="onboard-skeleton h-7 w-7 rounded-full"
-                                />
-                              ))
-                            : null}
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-[9.5px] font-bold uppercase tracking-[0.12em] text-white/40">
+                          PRODUCT
+                        </span>
+                        {topProduct ? (
+                          <p className="animate-onboard-text truncate text-[13.5px] font-semibold text-white">
+                            {topProduct.title}
+                          </p>
+                        ) : phase === "ready" ? (
+                          <p className="animate-onboard-text truncate text-[13.5px] font-semibold text-white/80">
+                            {brandName || domain}
+                          </p>
+                        ) : (
+                          <div className="onboard-skeleton mt-1 h-3.5 w-32 rounded-md" />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -800,18 +766,18 @@ export function OnboardingFlow() {
                         </div>
                       </>
                     ) : (
-                      <div className="animate-onboard-text flex items-center justify-center gap-1.5 text-[12px] font-medium text-white/75">
-                        <Check className="h-3.5 w-3.5 text-[#4ADE80]" />
+                      <div className="animate-onboard-text flex items-center justify-center gap-1.5 text-[12px] font-medium text-[#4ADE80]">
+                        <Check className="h-3.5 w-3.5 shrink-0 text-[#4ADE80]" />
                         <span>
                           Your brand is ready. Check it now or anytime later in Brands.
                         </span>
                       </div>
                     )}
 
-                    {/* +300 credits added pop-in */}
+                    {/* +300 credits added pop-in (exact same green as ready status) */}
                     {creditsAdded && (
-                      <div className="animate-onboard-pop mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#86EFAC]">
-                        <Sparkles className="h-3.5 w-3.5" />
+                      <div className="animate-onboard-pop mt-2.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#4ADE80]">
+                        <Sparkles className="h-3.5 w-3.5 text-[#4ADE80]" />
                         +300 credits added
                       </div>
                     )}

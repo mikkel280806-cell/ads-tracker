@@ -9,7 +9,11 @@ import {
   fetchTrustpilotRating,
   scrapeShopifyProducts,
 } from "@/lib/shop-scraper";
-import { extractBrandColorsFromHtml } from "@/lib/brand-colors";
+import {
+  extractBrandColorsFromHtml,
+  extractCleanDescriptionFromHtml,
+  extractWebsiteLogoFromHtml,
+} from "@/lib/brand-colors";
 import { synthesizeBrandMemoryFromScrape } from "@/lib/snow-engine";
 
 export async function POST(request: NextRequest) {
@@ -81,12 +85,11 @@ export async function POST(request: NextRequest) {
         const html = fetched.html || "";
 
         const ogImage = html ? extractMeta(html, "og:image") : undefined;
-        const appleTouchMatch = html.match(
-          /<link[^>]+rel=["'][^"']*apple-touch-icon[^"']*["'][^>]+href=["']([^"']+)["']/i
-        )?.[1];
-        const logoCandidate = appleTouchMatch
-          ? new URL(appleTouchMatch, finalOrigin).toString()
-          : `https://www.google.com/s2/favicons?domain=${encodeURIComponent(bareDomain)}&sz=128`;
+        const logoCandidate = extractWebsiteLogoFromHtml(
+          html,
+          finalOrigin,
+          bareDomain
+        );
 
         const brandColors = extractBrandColorsFromHtml(html);
 
@@ -162,10 +165,15 @@ export async function POST(request: NextRequest) {
           cleanedTitle?.split(/[|\-–—·]/)[0]?.trim() ||
           bareDomain.split(".")[0].replace(/^./, (c) => c.toUpperCase());
 
-        const description = html
+        const rawDescription = html
           ? extractMeta(html, "og:description") ||
             extractMeta(html, "description")
           : undefined;
+        const description = extractCleanDescriptionFromHtml(
+          html,
+          rawDescription,
+          brandName
+        );
 
         const category =
           productsRes.categories[0] ||
