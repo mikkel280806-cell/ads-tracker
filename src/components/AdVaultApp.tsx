@@ -42,7 +42,7 @@ import {
   Wand2,
   Zap,
 } from "lucide-react";
-import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
+import type { Ad, Board, Brand, ConnectorStatus } from "@/lib/types";
 import type {
   BrandMemory,
   CreativeProject,
@@ -76,10 +76,17 @@ import {
 import {
   AdvertisersView,
   FollowingView,
-  InspoDiscoveryHeader,
   SavedAdsSubView,
   TopPicksView,
 } from "./InspoSuiteViews";
+import {
+  AtriaDiscoveryBar,
+  DEFAULT_DISCOVERY_FILTERS,
+  matchesDiscoveryFilters,
+  sortDiscoveryAds,
+  type DiscoveryFiltersState,
+  type DiscoverySortOption,
+} from "./AtriaDiscoveryBar";
 import {
   AssetsWorkspaceView,
   BrandsWorkspaceView,
@@ -87,12 +94,7 @@ import {
 } from "./BrandsAssetsMcpViews";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import { dedupeAds, getActiveDays } from "@/lib/url-parser";
-import { buildAdRankIndex, sortAdsForExplore } from "@/lib/ad-ranking";
-import {
-  adMatchesAgeBucket,
-  getCountryDisplay,
-  summarizeAdAudience,
-} from "@/lib/audience-insights";
+import { buildAdRankIndex } from "@/lib/ad-ranking";
 import { preloadFeedWindow } from "@/lib/media-preloader";
 import { AdCard } from "./AdCard";
 import { AdDetailSheet } from "./AdDetailSheet";
@@ -121,10 +123,6 @@ type ActiveView =
   | "assets"
   | "brands"
   | "mcp";
-type SortOption = "top" | "reach" | "longest" | "duplicated" | "newest";
-type MinReachFilter = "all" | "10k" | "50k" | "100k" | "500k";
-type GenderFilter = "all" | "Women" | "Men" | "All";
-type AgeFilter = "all" | "18-24" | "25-34" | "35-44" | "45-54" | "55+";
 
 type AdMarketCounts = {
   all: number;
@@ -158,7 +156,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [fullAdsLoaded, setFullAdsLoaded] = useState(false);
   const [baseServerCounts, setBaseServerCounts] = useState<AdMarketCounts | null>(null);
-  const [filteredServerCounts, setFilteredServerCounts] = useState<AdMarketCounts | null>(null);
 
   // Navigation: Complete 7-section Atria workspace in Flake design system (starts on Discovery)
   const [view, setView] = useState<ActiveView>("explore");
@@ -169,10 +166,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [toast, setToast] = useState<string | null>(null);
 
   // Sub-navigation states across Inspo, Snow, Studio, Brands & MCP
-  const [discoveryViewTab, setDiscoveryViewTab] = useState<
-    "all" | "trending" | "following" | "dk" | "us"
-  >("all");
-  const [discoveryFiltersExpanded, setDiscoveryFiltersExpanded] = useState(false);
+  const [discoveryViewTab, setDiscoveryViewTab] = useState<string>("all");
   const [snowSubView, setSnowSubView] = useState<SnowSubView>("home");
   const [brandsSubView, setBrandsSubView] = useState<BrandsSubView>("overview");
   const [mcpSubView, setMcpSubView] = useState<McpSubView>("overview");
@@ -206,22 +200,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     [scrollWorkspaceToTop]
   );
 
-  // Explore state
+  // Explore state (Atria 22-filter Discovery engine)
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-  const [marketFilter, setMarketFilter] = useState<"ALL" | MarketCode>("ALL");
-  const [mediaFilter, setMediaFilter] = useState<"all" | "video" | "image" | "carousel">("all");
-  const [platformFilter, setPlatformFilter] = useState<string>("all");
-  const [countryFilter, setCountryFilter] = useState<string>("all");
-  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
-  const [ageFilter, setAgeFilter] = useState<AgeFilter>("all");
-  const [minReachFilter, setMinReachFilter] = useState<MinReachFilter>("all");
-  const [scaledOnly, setScaledOnly] = useState<boolean>(false);
-  const [brandFilter, setBrandFilter] = useState<string>("all");
-  const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
-  const [rankMin, setRankMin] = useState<number | null>(null);
-  const [rankMax, setRankMax] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>("top");
+  const [discoveryFilters, setDiscoveryFilters] =
+    useState<DiscoveryFiltersState>(DEFAULT_DISCOVERY_FILTERS);
+  const [discoverySortBy, setDiscoverySortBy] =
+    useState<DiscoverySortOption>("recommended");
+  const [assumedCpm, setAssumedCpm] = useState<number>(9);
   const [visibleLimit, setVisibleLimit] = useState(48);
   const [masonryCols, setMasonryCols] = useState(4);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -1029,10 +1015,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     [dedupedAds, brands]
   );
 
-  // Non-market filtered Explore ads (used both for visibleAds and market-tab totals)
-  const nonMarketFilteredAds = useMemo(() => {
+  const brandCategoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const b of brands) {
+      map.set(b.id, b.category || "");
+    }
+    return map;
+  }, [brands]);
+
+  // Filtered & sorted Explore ads using Atria's full 22-filter + 6-sort Discovery engine
+  const visibleAds = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
-    return dedupedAds.filter((ad) => {
+    const list = dedupedAds.filter((ad) => {
       if (
         ad.source_type === "instagram" ||
         ad.source_type === "manual" ||
@@ -1041,65 +1035,22 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       ) {
         return false;
       }
-      if (brandFilter !== "all" && ad.brand_id !== brandFilter) return false;
-      if (mediaFilter !== "all") {
-        const isRealCarousel =
-          ad.media_type === "carousel" &&
-          Array.isArray(ad.carousel_cards) &&
-          ad.carousel_cards.length >= 2;
-        if (mediaFilter === "carousel" && !isRealCarousel) return false;
-        if (mediaFilter === "video" && (ad.media_type !== "video" || isRealCarousel)) return false;
-        if (
-          mediaFilter === "image" &&
-          (ad.media_type === "video" || isRealCarousel)
-        ) {
-          return false;
-        }
-      }
-      if (timeFilter !== "all") {
-        const days = getActiveDays(ad.started_running_at);
-        if (timeFilter === "7d" && days > 7) return false;
-        if (timeFilter === "30d" && days > 30) return false;
-        if (timeFilter === "90d" && days > 90) return false;
-      }
-      if (platformFilter !== "all") {
-        if (!(ad.platforms || []).includes(platformFilter)) return false;
-      }
-      if (countryFilter !== "all") {
-        const inTargeted = (ad.targeted_countries || []).includes(countryFilter);
-        const inBreakdown = (ad.audience_breakdown || []).some(
-          (b) => b.country === countryFilter
-        );
-        if (!inTargeted && !inBreakdown) return false;
-      }
-      if (genderFilter !== "all") {
-        const aud = summarizeAdAudience(ad);
-        if (!aud.hasBreakdown && !aud.targetGender) return false;
-        if (aud.dominantGender !== genderFilter) return false;
-      }
-      if (ageFilter !== "all") {
-        if (!adMatchesAgeBucket(ad, ageFilter)) return false;
-      }
-      if (minReachFilter !== "all") {
-        const reach = ad.eu_reach || 0;
-        const threshold =
-          minReachFilter === "500k"
-            ? 500_000
-            : minReachFilter === "100k"
-              ? 100_000
-              : minReachFilter === "50k"
-                ? 50_000
-                : 10_000;
-        if (reach < threshold) return false;
-      }
-      if (scaledOnly && (ad.duplicated_count || 1) < 3) {
+      if (
+        discoveryViewTab === "following" &&
+        !followedBrandIds.includes(ad.brand_id)
+      ) {
         return false;
       }
-      if (rankMin !== null || rankMax !== null) {
-        const meta = adRankIndex.get(ad.id);
-        const br = meta?.brandRank ?? 999;
-        if (rankMin !== null && br < rankMin) return false;
-        if (rankMax !== null && br > rankMax) return false;
+      if (
+        !matchesDiscoveryFilters(
+          ad,
+          discoveryFilters,
+          brandCategoryMap,
+          adRankIndex.get(ad.id),
+          assumedCpm
+        )
+      ) {
+        return false;
       }
       if (q) {
         const haystack = [
@@ -1111,6 +1062,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           ad.hook_category,
           ad.landing_page_url,
           ad.cta_text,
+          brandCategoryMap.get(ad.brand_id) || "",
         ]
           .filter(Boolean)
           .join(" ")
@@ -1119,69 +1071,21 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       }
       return true;
     });
+
+    const effectiveSort: DiscoverySortOption =
+      discoveryViewTab === "trending" && discoverySortBy === "recommended"
+        ? "impressions"
+        : discoverySortBy;
+
+    return sortDiscoveryAds(list, effectiveSort, adRankIndex);
   }, [
     dedupedAds,
     adRankIndex,
-    brandFilter,
-    mediaFilter,
-    platformFilter,
-    countryFilter,
-    genderFilter,
-    ageFilter,
-    minReachFilter,
-    scaledOnly,
-    timeFilter,
-    rankMin,
-    rankMax,
+    brandCategoryMap,
+    discoveryFilters,
+    discoverySortBy,
+    assumedCpm,
     deferredSearch,
-  ]);
-
-  // Filtered & sorted Explore ads (only tracked paid ads — excludes personal folder uploads / organic IG Reels)
-  const visibleAds = useMemo(() => {
-    let list =
-      marketFilter === "ALL"
-        ? nonMarketFilteredAds
-        : nonMarketFilteredAds.filter((ad) =>
-            marketFilter === "DK" ? ad.market === "DK" : ad.market !== "DK"
-          );
-
-    if (discoveryViewTab === "following") {
-      list = list.filter((ad) => followedBrandIds.includes(ad.brand_id));
-    }
-
-    const effectiveSort: SortOption =
-      discoveryViewTab === "trending" && sortBy === "top" ? "duplicated" : sortBy;
-
-    if (effectiveSort !== "top") {
-      return [...list].sort((a, b) => {
-        if (effectiveSort === "reach") {
-          const diff = (b.eu_reach || 0) - (a.eu_reach || 0);
-          if (diff !== 0) return diff;
-          return (
-            (adRankIndex.get(b.id)?.winnerScore || 0) -
-            (adRankIndex.get(a.id)?.winnerScore || 0)
-          );
-        }
-        if (effectiveSort === "longest") {
-          return getActiveDays(b.started_running_at) - getActiveDays(a.started_running_at);
-        }
-        if (effectiveSort === "duplicated") {
-          return (b.duplicated_count || 1) - (a.duplicated_count || 1);
-        }
-        return (
-          new Date(b.started_running_at).getTime() -
-          new Date(a.started_running_at).getTime()
-        );
-      });
-    }
-
-    return sortAdsForExplore(list, adRankIndex, brandFilter !== "all");
-  }, [
-    nonMarketFilteredAds,
-    adRankIndex,
-    marketFilter,
-    brandFilter,
-    sortBy,
     discoveryViewTab,
     followedBrandIds,
   ]);
@@ -1197,37 +1101,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     return cols;
   }, [visibleAds, visibleLimit, masonryCols]);
 
-  const activeFilterCount =
-    (mediaFilter !== "all" ? 1 : 0) +
-    (platformFilter !== "all" ? 1 : 0) +
-    (countryFilter !== "all" ? 1 : 0) +
-    (genderFilter !== "all" ? 1 : 0) +
-    (ageFilter !== "all" ? 1 : 0) +
-    (minReachFilter !== "all" ? 1 : 0) +
-    (scaledOnly ? 1 : 0);
-
-  const hasAnyAdsFilter =
-    marketFilter !== "ALL" ||
-    brandFilter !== "all" ||
-    timeFilter !== "all" ||
-    activeFilterCount > 0 ||
-    rankMin !== null ||
-    rankMax !== null ||
-    search.trim().length > 0;
-
   const resetAllAdsFilters = () => {
-    setMarketFilter("ALL");
-    setBrandFilter("all");
-    setTimeFilter("all");
-    setMediaFilter("all");
-    setPlatformFilter("all");
-    setCountryFilter("all");
-    setGenderFilter("all");
-    setAgeFilter("all");
-    setMinReachFilter("all");
-    setScaledOnly(false);
-    setRankMin(null);
-    setRankMax(null);
+    setDiscoveryFilters(DEFAULT_DISCOVERY_FILTERS);
+    setDiscoverySortBy("recommended");
+    setDiscoveryViewTab("all");
     setSearch("");
     setVisibleLimit(48);
   };
@@ -1355,123 +1232,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       // ignore storage errors
     }
   }, [fullAdsLoaded, paidAds.length, dkAdsCount, usAdsCount, baseServerCounts?.rawTotal]);
-
-  const hasNonMarketFilters =
-    brandFilter !== "all" ||
-    mediaFilter !== "all" ||
-    timeFilter !== "all" ||
-    scaledOnly ||
-    deferredSearch.trim().length > 0 ||
-    platformFilter !== "all" ||
-    countryFilter !== "all" ||
-    genderFilter !== "all" ||
-    ageFilter !== "all" ||
-    minReachFilter !== "all" ||
-    rankMin !== null ||
-    rankMax !== null;
-
-  // While Stage 2 is still streaming, fetch exact server-side totals when any non-market filter is active
-  // (and immediately load the selected brand's ads if brandFilter is set!)
-  useEffect(() => {
-    if (fullAdsLoaded) return;
-
-    if (brandFilter !== "all" && !loadedBrandAdsRef.current.has(brandFilter)) {
-      loadedBrandAdsRef.current.add(brandFilter);
-      fetch(`/api/catalog?brandId=${encodeURIComponent(brandFilter)}`, { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (!data?.synced || !Array.isArray(data.ads) || data.ads.length === 0) return;
-          startTransition(() => {
-            setAds((prev) => dedupeAds([...(data.ads as Ad[]), ...prev]));
-          });
-        })
-        .catch(() => {
-          loadedBrandAdsRef.current.delete(brandFilter);
-        });
-    }
-
-    if (!hasNonMarketFilters) return;
-
-    let cancelled = false;
-    const params = new URLSearchParams({ mode: "counts" });
-    if (brandFilter !== "all") params.set("brand", brandFilter);
-    if (mediaFilter !== "all") params.set("media", mediaFilter);
-    if (timeFilter !== "all") params.set("time", timeFilter);
-    if (scaledOnly) params.set("scaled", "1");
-    if (deferredSearch.trim()) params.set("q", deferredSearch.trim());
-
-    const delay = deferredSearch.trim() ? 120 : 0;
-    const timer = window.setTimeout(() => {
-      fetch(`/api/catalog?${params.toString()}`, { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (cancelled || !data?.synced || !data.counts) return;
-          setFilteredServerCounts(data.counts as AdMarketCounts);
-        })
-        .catch(() => {});
-    }, delay);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [
-    fullAdsLoaded,
-    hasNonMarketFilters,
-    brandFilter,
-    mediaFilter,
-    timeFilter,
-    scaledOnly,
-    deferredSearch,
-  ]);
-
-  const filteredMarketCounts = useMemo<AdMarketCounts>(() => {
-    let dk = 0;
-    let us = 0;
-    for (const ad of nonMarketFilteredAds) {
-      if (ad.market === "DK") dk++;
-      else us++;
-    }
-    return { all: dk + us, dk, us };
-  }, [nonMarketFilteredAds]);
-
-  // Display totals strictly based on active filters across the FULL catalog — never partial chunk counts
-  const displayMarketCounts: AdMarketCounts | null = useMemo(() => {
-    if (fullAdsLoaded) return filteredMarketCounts;
-    if (hasNonMarketFilters) {
-      return filteredServerCounts ?? baseServerCounts;
-    }
-    return baseServerCounts;
-  }, [
-    fullAdsLoaded,
-    filteredMarketCounts,
-    hasNonMarketFilters,
-    filteredServerCounts,
-    baseServerCounts,
-  ]);
-
-  const displayAdsTotal: number | null = useMemo(() => {
-    if (!displayMarketCounts) return null;
-    if (marketFilter === "DK") return displayMarketCounts.dk;
-    if (marketFilter === "US") return displayMarketCounts.us;
-    return displayMarketCounts.all;
-  }, [displayMarketCounts, marketFilter]);
-
-  const availableAdCountries = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const ad of paidAds) {
-      const codes = new Set<string>();
-      for (const c of ad.targeted_countries || []) codes.add(c);
-      for (const b of ad.audience_breakdown || []) codes.add(b.country);
-      for (const code of codes) {
-        if (code) counts.set(code, (counts.get(code) || 0) + 1);
-      }
-    }
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 12)
-      .map(([code, count]) => ({ ...getCountryDisplay(code), count }));
-  }, [paidAds]);
 
   return (
     <>
@@ -2467,7 +2227,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
              ================================================================= */}
           {view === "explore" && (
             <div className="animate-view-in space-y-4">
-              <InspoDiscoveryHeader
+              <AtriaDiscoveryBar
                 search={search}
                 onSearchChange={(val) => {
                   setSearch(val);
@@ -2476,71 +2236,19 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 activeViewTab={discoveryViewTab}
                 onViewTabChange={(tab) => {
                   setDiscoveryViewTab(tab);
-                  if (tab === "dk") setMarketFilter("DK");
-                  else if (tab === "us") setMarketFilter("US");
-                  else setMarketFilter("ALL");
                   setVisibleLimit(48);
                 }}
                 followedCount={followedBrandIds.length}
-                filtersExpanded={discoveryFiltersExpanded}
-                onToggleFiltersExpanded={() =>
-                  setDiscoveryFiltersExpanded((v) => !v)
-                }
-                sortBy={sortBy}
-                onSortChange={(val) => setSortBy(val)}
-                mediaFilter={mediaFilter}
-                onMediaFilterChange={(v) => {
-                  setMediaFilter(v);
+                sortBy={discoverySortBy}
+                onSortChange={(val) => setDiscoverySortBy(val)}
+                assumedCpm={assumedCpm}
+                onAssumedCpmChange={setAssumedCpm}
+                filters={discoveryFilters}
+                onFiltersChange={(next) => {
+                  setDiscoveryFilters(next);
                   setVisibleLimit(48);
                 }}
-                platformFilter={platformFilter}
-                onPlatformFilterChange={(v) => {
-                  setPlatformFilter(v);
-                  setVisibleLimit(48);
-                }}
-                timeFilter={timeFilter}
-                onTimeFilterChange={(v) => {
-                  setTimeFilter(v);
-                  setVisibleLimit(48);
-                }}
-                countryFilter={countryFilter}
-                onCountryFilterChange={(v) => {
-                  setCountryFilter(v);
-                  setVisibleLimit(48);
-                }}
-                availableCountries={availableAdCountries}
-                genderFilter={genderFilter}
-                onGenderFilterChange={(v) => {
-                  setGenderFilter(v);
-                  setVisibleLimit(48);
-                }}
-                ageFilter={ageFilter}
-                onAgeFilterChange={(v) => {
-                  setAgeFilter(v);
-                  setVisibleLimit(48);
-                }}
-                minReachFilter={minReachFilter}
-                onMinReachFilterChange={(v) => {
-                  setMinReachFilter(v);
-                  setVisibleLimit(48);
-                }}
-                scaledOnly={scaledOnly}
-                onScaledOnlyChange={(v) => {
-                  setScaledOnly(v);
-                  setVisibleLimit(48);
-                }}
-                brandFilter={brandFilter}
-                onBrandFilterChange={(v) => {
-                  setBrandFilter(v);
-                  setVisibleLimit(48);
-                }}
-                brands={brands}
-                displayAdsTotal={displayAdsTotal}
-                hasAnyFilter={hasAnyAdsFilter}
-                onResetFilters={() => {
-                  resetAllAdsFilters();
-                  setDiscoveryViewTab("all");
-                }}
+                onResetFilters={resetAllAdsFilters}
                 onOpenRequestBrand={() => {
                   navigateWithSkeleton(() => setView("shops"));
                 }}
