@@ -1,11 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const geist = Geist({
   variable: "--font-geist",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const geistSerif = localFont({
+  src: "./fonts/GeistSerif-Regular.woff2",
+  variable: "--font-geist-serif",
+  weight: "400",
   display: "swap",
 });
 
@@ -49,7 +57,7 @@ export default function RootLayout({
     <html
       lang="da"
       suppressHydrationWarning
-      className={geist.variable}
+      className={`${geist.variable} ${geistSerif.variable}`}
     >
       <body className="h-full overflow-hidden bg-[#F7F8FB] text-[#0F172A] antialiased selection:bg-[#0027eb]/15 selection:text-[#0027eb] lg:bg-[#05060B]">
         {children}

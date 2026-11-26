@@ -451,7 +451,7 @@ export function OnboardingFlow() {
               key="step-1"
               className="animate-onboard-step flex w-full flex-col items-center text-center"
             >
-              <h1 className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[38px]">
+              <h1 className="font-geist-serif text-[40px] font-normal leading-[1.06] tracking-[-0.02em] sm:text-[50px]">
                 <span className="block text-white">What best</span>
                 <span className="block text-white/45">describes you?</span>
               </h1>
@@ -494,7 +494,7 @@ export function OnboardingFlow() {
               key="step-2"
               className="animate-onboard-step flex w-full flex-col items-center text-center"
             >
-              <h1 className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[38px]">
+              <h1 className="font-geist-serif text-[40px] font-normal leading-[1.06] tracking-[-0.02em] sm:text-[50px]">
                 <span className="block text-white">Which industry</span>
                 <span className="block text-white/45">are you in?</span>
               </h1>
@@ -537,7 +537,7 @@ export function OnboardingFlow() {
               key="step-3"
               className="animate-onboard-step flex w-full max-w-[520px] flex-col items-center text-center"
             >
-              <h1 className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[38px]">
+              <h1 className="font-geist-serif text-[40px] font-normal leading-[1.06] tracking-[-0.02em] sm:text-[50px]">
                 <span className="block text-white">Paste your</span>
                 <span className="block text-white/45">brand page</span>
               </h1>

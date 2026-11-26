@@ -1,5 +1,5 @@
 // Minimal Service Worker for Flake PWA installability
-const CACHE_NAME = "flake-shell-v78-onboarding-brand-card";
+const CACHE_NAME = "flake-shell-v79-onboarding-geist-serif";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
