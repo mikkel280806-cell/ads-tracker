@@ -4,16 +4,17 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Bookmark,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Film,
   Layers,
   Play,
+  Plus,
   Sparkles,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
-import { getActiveDays } from "@/lib/url-parser";
+import { formatReach, getActiveDays } from "@/lib/url-parser";
 import { preloadImage, preloadVideo } from "@/lib/media-preloader";
 import { InstagramColorIcon } from "./BrandIcons";
 import { FlakePopover } from "./ui/FlakeDropdown";
@@ -27,6 +28,30 @@ interface AdCardProps {
   onToggleBoard: (adId: string, boardId: string) => void;
   onOpenBrand?: (brandId: string) => void;
   onCloneAd?: (ad: Ad) => void;
+  isFollowed?: boolean;
+  onToggleFollow?: (brandId: string) => void;
+}
+
+function formatVideoDuration(seconds?: number): string {
+  if (!seconds || seconds <= 0) return "";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function extractDisplayDomain(url?: string, fallbackHandle?: string): string {
+  if (url) {
+    try {
+      return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(
+        /^www\./i,
+        ""
+      );
+    } catch {
+      // fall through to handle fallback
+    }
+  }
+  const cleanHandle = (fallbackHandle || "").replace(/^@/, "").trim();
+  return cleanHandle ? `${cleanHandle}.com` : "shop.store";
 }
 
 export const AdCard = React.memo(function AdCard({
@@ -38,6 +63,8 @@ export const AdCard = React.memo(function AdCard({
   onToggleBoard,
   onOpenBrand,
   onCloneAd,
+  isFollowed = false,
+  onToggleFollow,
 }: AdCardProps) {
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
   const [copyExpanded, setCopyExpanded] = useState(false);
@@ -138,6 +165,22 @@ export const AdCard = React.memo(function AdCard({
 
   const copyText = (ad.primary_text || "").trim();
   const hasLongCopy = copyText.length > 105;
+  const durationLabel = formatVideoDuration(ad.duration_seconds);
+  const displayDomain = extractDisplayDomain(ad.landing_page_url, ad.brand_handle);
+  const displayHeadline = (ad.headline || "").trim() || ad.brand_name;
+  const ctaLabel = (ad.cta_text || "").trim() || "Shop Now";
+  const duplicatedCount = ad.duplicated_count ?? 1;
+  const formatLabel =
+    ad.media_type === "carousel"
+      ? "Carousel"
+      : ad.media_type === "video"
+        ? "Video"
+        : "Image";
+  const metaSummaryParts = [
+    formatLabel,
+    ad.eu_reach ? `Reach ${formatReach(ad.eu_reach)}` : "",
+    ad.ai_angle || ad.hook_category || ad.platforms[0] || "",
+  ].filter(Boolean);
 
   return (
     <article
@@ -148,26 +191,27 @@ export const AdCard = React.memo(function AdCard({
         setIsHovered(false);
       }}
     >
-      {/* 1. CLEAN KONVERT CARD HEADER: Avatar + Brand Name + [● 2 D | Organic Pill] */}
-      <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
-        <button
-          type="button"
-          onClick={() =>
-            !isOrganic && onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad)
-          }
-          className="flex min-w-0 items-center gap-2 text-left"
-        >
-          <div className="relative shrink-0">
+      {/* 1. ATRIA DISCOVERY CARD HEADER: 32x32 Avatar + Brand Name + Active Days + Reuse + Quick Actions */}
+      <div className="flex items-start justify-between gap-2 px-3 pt-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() =>
+              !isOrganic && onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad)
+            }
+            className="relative shrink-0"
+          >
             {ad.brand_logo_url ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={ad.brand_logo_url}
                 alt={ad.brand_name}
-                className="h-7 w-7 rounded-full border border-[#ECEFF5] bg-white object-contain p-0.5"
+                className="h-8 w-8 rounded-full border border-[#ECEFF5] bg-white object-contain p-0.5"
               />
             ) : (
               <span
-                className="flex h-7 w-7 items-center justify-center rounded-full font-display text-[10.5px] font-bold text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full font-display text-[11px] font-bold text-white"
                 style={{ backgroundColor: ad.brand_avatar_color || "#0F172A" }}
               >
                 {ad.brand_avatar_initials}
@@ -175,48 +219,190 @@ export const AdCard = React.memo(function AdCard({
             )}
             {!isOrganic && rank && rank <= 3 && (
               <span
-                className={`absolute -left-1.5 -top-1.5 inline-flex h-[19px] w-[19px] shrink-0 aspect-square items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ${rankBadgeStyle}`}
+                className={`absolute -left-1.5 -top-1.5 inline-flex h-[18px] w-[18px] shrink-0 aspect-square items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ${rankBadgeStyle}`}
               >
                 {rank}
               </span>
             )}
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() =>
+                  !isOrganic && onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad)
+                }
+                className="truncate text-left font-display text-[13px] font-semibold leading-tight text-[#0F172A] hover:text-[#0027eb]"
+              >
+                {ad.brand_name}
+              </button>
+
+              {onToggleFollow && !isOrganic && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFollow(ad.brand_id);
+                  }}
+                  title={isFollowed ? "Unfollow brand" : "Follow brand"}
+                  className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                    isFollowed
+                      ? "bg-[#EEF2FF] text-[#0027eb]"
+                      : "bg-[#F7F8FB] text-[#64748B] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
+                  }`}
+                >
+                  {isFollowed ? (
+                    <Check className="h-2.5 w-2.5" />
+                  ) : (
+                    <Plus className="h-2.5 w-2.5" />
+                  )}
+                  {isFollowed ? "Following" : "Follow"}
+                </button>
+              )}
+            </div>
+
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+              {isOrganic ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#64748B]">
+                  {isInstagram ? (
+                    <>
+                      <InstagramColorIcon className="h-3 w-3 shrink-0" />
+                      Reel
+                    </>
+                  ) : (
+                    <>
+                      <Film className="h-3 w-3 shrink-0 text-[#64748B]" />
+                      Video
+                    </>
+                  )}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 font-mono-num text-[11px] font-medium text-[#475569]">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      ad.is_active ? "bg-[#22C55E]" : "bg-[#94A3B8]"
+                    }`}
+                  />
+                  {activeDays}d
+                </span>
+              )}
+
+              {duplicatedCount > 1 && (
+                <span className="inline-flex items-center rounded bg-[#EEF2FF] px-1.5 py-0.2 font-mono-num text-[10.5px] font-semibold text-[#0027eb]">
+                  &times;{duplicatedCount}
+                </span>
+              )}
+            </div>
           </div>
+        </div>
 
-          <span className="truncate font-display text-[13px] font-semibold leading-tight text-[#0F172A]">
-            {ad.brand_name}
-          </span>
-        </button>
+        {/* Top-Right Quick Actions: Clone (Sparkles) + Bookmark */}
+        <div
+          className="relative flex shrink-0 items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onCloneAd && !isOrganic && (
+            <button
+              type="button"
+              data-no-glass="true"
+              title="Clone ad to Studio"
+              aria-label="Clone ad to Studio"
+              onClick={() => onCloneAd(ad)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EAECEF] bg-white text-[#475569] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+            </button>
+          )}
 
-        {isOrganic ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[#EAECEF] bg-[#FAFBFD] px-2 py-0.5 text-[10.5px] font-semibold text-[#475569]">
-            {isInstagram ? (
-              <>
-                <InstagramColorIcon className="h-3 w-3 shrink-0" />
-                Reel
-              </>
-            ) : (
-              <>
-                <Film className="h-3 w-3 shrink-0 text-[#64748B]" />
-                Video
-              </>
-            )}
-          </span>
-        ) : (
-          /* Crisp Green-Dot Days Running Pill */
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#EAECEF] bg-white px-2 py-0.5 font-mono-num text-[11px] font-medium text-[#334155]">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                ad.is_active ? "bg-[#22C55E]" : "bg-[#94A3B8]"
-              }`}
+          <button
+            ref={folderBtnRef}
+            type="button"
+            data-no-glass="true"
+            title={
+              inFolders
+                ? savedBoardName
+                  ? `Saved in ${savedBoardName}`
+                  : `Saved in ${ad.board_ids.length} folders`
+                : "Save to folder"
+            }
+            aria-label="Save to folder"
+            onClick={() => setFolderMenuOpen((v) => !v)}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${
+              inFolders
+                ? "border-[#0027eb]/30 bg-[#EEF2FF] text-[#0027eb]"
+                : "border-[#EAECEF] bg-white text-[#475569] hover:border-[#CBD5E1] hover:text-[#0F172A]"
+            }`}
+          >
+            <Bookmark
+              className="h-3.5 w-3.5"
+              fill={inFolders ? "currentColor" : "none"}
             />
-            {activeDays} D
-          </span>
-        )}
+          </button>
+
+          <FlakePopover
+            open={folderMenuOpen}
+            onOpenChange={setFolderMenuOpen}
+            anchorRef={folderBtnRef}
+            align="right"
+            preferredPlacement="bottom"
+            minWidth={210}
+            maxHeight={260}
+          >
+            <div className="workspace-scroll overflow-y-auto overscroll-contain p-1.5">
+              <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+                Save to folder
+              </p>
+              {boards.length === 0 ? (
+                <p className="px-2.5 py-2 text-xs text-[#94A3B8]">
+                  Create a folder in the sidebar first.
+                </p>
+              ) : (
+                boards.map((board) => {
+                  const selected = ad.board_ids.includes(board.id);
+                  return (
+                    <button
+                      key={board.id}
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => onToggleBoard(ad.id, board.id)}
+                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-colors ${
+                        selected
+                          ? "bg-[#0027eb]/[0.08] font-semibold text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
+                          : "font-medium text-[#0F172A] hover:bg-[#F3F5F9]"
+                      }`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: board.accent_color }}
+                        />
+                        <span className="truncate">{board.name}</span>
+                      </span>
+                      {selected && (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </FlakePopover>
+        </div>
+      </div>
+
+      {/* Clean Meta Pill */}
+      <div className="px-3">
+        <div className="mt-1.5 truncate rounded-md bg-[#F7F8FB] px-2.5 py-1 text-[11px] font-medium text-[#475569]">
+          {metaSummaryParts.join(" · ")}
+        </div>
       </div>
 
       {/* 2. AD COPY PREVIEW WITH GRADIENT FADE + FLOATING "See more" PILL */}
       {!compact && copyText && (
-        <div className="relative px-3 pb-2.5">
+        <div className="relative px-3 pb-2.5 pt-2">
           <p
             onClick={() => onOpen(ad)}
             className={`cursor-pointer whitespace-pre-line text-[12.5px] leading-[1.45] text-[#334155] ${
@@ -257,7 +443,7 @@ export const AdCard = React.memo(function AdCard({
       )}
 
       {/* 3. TRUE-ASPECT CREATIVE MEDIA VIEWPORT (never crops 1:1, 4:5, or 9:16) */}
-      <div className="px-2">
+      <div className={`px-2 ${compact || !copyText ? "pt-2" : ""}`}>
         <div
           role="button"
           tabIndex={0}
@@ -362,6 +548,16 @@ export const AdCard = React.memo(function AdCard({
             </div>
           )}
 
+          {/* Top-Left Video Duration Pill */}
+          {activeMediaType === "video" && (
+            <div className="pointer-events-none absolute left-2 top-2 z-10">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-[#050811]/70 px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white shadow-sm backdrop-blur-md">
+                <Clock className="h-2.5 w-2.5" />
+                {durationLabel || "00:24"}
+              </span>
+            </div>
+          )}
+
           {/* Frosted Translucent Circular Play Button */}
           {activeMediaType === "video" && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -384,7 +580,7 @@ export const AdCard = React.memo(function AdCard({
               <button
                 type="button"
                 data-no-glass="true"
-                aria-label="Forrige slide"
+                aria-label="Previous slide"
                 onClick={(e) => {
                   e.stopPropagation();
                   stepSlide(-1);
@@ -397,7 +593,7 @@ export const AdCard = React.memo(function AdCard({
               <button
                 type="button"
                 data-no-glass="true"
-                aria-label="Næste slide"
+                aria-label="Next slide"
                 onClick={(e) => {
                   e.stopPropagation();
                   stepSlide(1);
@@ -434,99 +630,31 @@ export const AdCard = React.memo(function AdCard({
         </div>
       </div>
 
-      {/* 4. FOOTER: "Save to Folder" + optional 1-click "Clone" */}
+      {/* 4. BOTTOM DOMAIN + HEADLINE + CTA FOOTER STRIP */}
       <div
-        className="relative flex items-center gap-1.5 px-2 pb-2 pt-2"
-        onClick={(e) => e.stopPropagation()}
+        onClick={() => onOpen(ad)}
+        className="mt-2 flex cursor-pointer items-center justify-between gap-2.5 rounded-b-[14px] border-t border-[#EAECEF] bg-[#F7F8FB]/80 px-3 py-2.5 transition-colors hover:bg-[#F1F4F9]"
       >
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[10.5px] font-medium uppercase tracking-wide text-[#64748B]">
+            {displayDomain}
+          </p>
+          <p className="truncate text-[12px] font-semibold text-[#0F172A]">
+            {displayHeadline}
+          </p>
+        </div>
+
         <button
-          ref={folderBtnRef}
           type="button"
-          onClick={() => setFolderMenuOpen((v) => !v)}
-          className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors ${
-            inFolders
-              ? "border-[#0027eb]/25 bg-[#0027eb]/[0.08] text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
-              : "border-[#E6E9F0] bg-white text-[#0F172A] hover:bg-[#FAFBFD]"
-          }`}
+          data-no-glass="true"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen(ad);
+          }}
+          className="shrink-0 rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
         >
-          <Bookmark
-            className="h-3.5 w-3.5 shrink-0"
-            fill={inFolders ? "currentColor" : "none"}
-          />
-          <span className="truncate">
-            {inFolders
-              ? ad.board_ids.length > 1
-                ? `Saved in ${ad.board_ids.length} folders`
-                : savedBoardName || "Saved in folder"
-              : "Save to Folder"}
-          </span>
-          <ChevronDown
-            className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
-              folderMenuOpen ? "rotate-180" : ""
-            }`}
-          />
+          {ctaLabel}
         </button>
-
-        {onCloneAd && !isOrganic && (
-          <button
-            type="button"
-            data-no-glass="true"
-            title="Clone ad til mit brand"
-            onClick={() => onCloneAd(ad)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-[#E6E9F0] bg-white px-2.5 py-2 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Clone
-          </button>
-        )}
-
-        <FlakePopover
-          open={folderMenuOpen}
-          onOpenChange={setFolderMenuOpen}
-          anchorRef={folderBtnRef}
-          align="match"
-          preferredPlacement="top"
-          maxHeight={260}
-        >
-          <div className="workspace-scroll overflow-y-auto overscroll-contain p-1.5">
-            <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-              Gem i folder
-            </p>
-            {boards.length === 0 ? (
-              <p className="px-2.5 py-2 text-xs text-[#94A3B8]">
-                Opret en folder i sidebaren først.
-              </p>
-            ) : (
-              boards.map((board) => {
-                const selected = ad.board_ids.includes(board.id);
-                return (
-                  <button
-                    key={board.id}
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => onToggleBoard(ad.id, board.id)}
-                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-colors ${
-                      selected
-                        ? "bg-[#0027eb]/[0.08] font-semibold text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
-                        : "font-medium text-[#0F172A] hover:bg-[#F3F5F9]"
-                    }`}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: board.accent_color }}
-                      />
-                      <span className="truncate">{board.name}</span>
-                    </span>
-                    {selected && (
-                      <Check className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </FlakePopover>
       </div>
     </article>
   );

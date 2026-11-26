@@ -10,12 +10,9 @@ import React, {
   useState,
 } from "react";
 import {
-  ArrowUpDown,
-  Award,
   BarChart3,
   Bookmark,
-  Building2,
-  Calendar,
+  Bot,
   Check,
   ChevronDown,
   Clapperboard,
@@ -23,17 +20,27 @@ import {
   FileBarChart2,
   Film,
   Folder,
-  Info,
-  Lightbulb,
-  ListFilter,
-  PackagePlus,
+  FolderOpen,
+  Gift,
+  Heart,
+  Home,
+  Image as ImageIcon,
+  Layers,
+  Megaphone,
+  Package,
   PanelLeft,
+  PlugZap,
   Plus,
   Radar,
-  Search,
+  Server,
   Sparkles,
   Store,
-  X,
+  Trophy,
+  UserPlus,
+  Users,
+  Video,
+  Wand2,
+  Zap,
 } from "lucide-react";
 import type { Ad, Board, Brand, ConnectorStatus, MarketCode } from "@/lib/types";
 import type {
@@ -44,6 +51,13 @@ import type {
   VideoStylePresetId,
 } from "@/lib/studio-types";
 import { buildClonedSourceFromAd } from "@/lib/studio-types";
+import type {
+  AtriaCollectionPlaceholder,
+  BrandsSubView,
+  McpSubView,
+  SnowSubView,
+  StudioSubTab,
+} from "@/lib/atria-placeholders";
 import { buildOwnAnalyticsDataset } from "@/lib/snow-engine";
 import { BrandMemoryModal } from "./BrandMemoryModal";
 import {
@@ -54,12 +68,23 @@ import {
 import {
   VideoStudioView,
   type StudioDraftTrigger,
-  type StudioSubTab,
 } from "./VideoStudioView";
 import {
   CreativeAnalyticsView,
   type AnalyticsReportId,
 } from "./CreativeAnalyticsView";
+import {
+  AdvertisersView,
+  FollowingView,
+  InspoDiscoveryHeader,
+  SavedAdsSubView,
+  TopPicksView,
+} from "./InspoSuiteViews";
+import {
+  AssetsWorkspaceView,
+  BrandsWorkspaceView,
+  McpWorkspaceView,
+} from "./BrandsAssetsMcpViews";
 import { SEED_ADS, SEED_BRANDS } from "@/lib/seed-data";
 import { dedupeAds, getActiveDays } from "@/lib/url-parser";
 import { buildAdRankIndex, sortAdsForExplore } from "@/lib/ad-ranking";
@@ -82,13 +107,20 @@ import {
   ShopsSkeleton,
 } from "./Skeletons";
 import { GlassTabBar, GlassTabBarItem } from "@/components/ui/glass-tab-bar";
-import {
-  FlakePopover,
-  FlakeSelect,
-  type FlakeSelectOption,
-} from "@/components/ui/FlakeDropdown";
 
-type ActiveView = "shops" | "explore" | "folders" | "snow" | "studio" | "analytics";
+type ActiveView =
+  | "explore"
+  | "shops"
+  | "advertisers"
+  | "top_picks"
+  | "following"
+  | "folders"
+  | "snow"
+  | "studio"
+  | "analytics"
+  | "assets"
+  | "brands"
+  | "mcp";
 type SortOption = "top" | "reach" | "longest" | "duplicated" | "newest";
 type MinReachFilter = "all" | "10k" | "50k" | "100k" | "500k";
 type GenderFilter = "all" | "Women" | "Men" | "All";
@@ -110,6 +142,7 @@ const STORAGE_KEYS = {
   projects: "flake_studio_projects_v1",
   snowMessages: "flake_studio_snow_v1",
   csvAnalytics: "flake_studio_analytics_v1",
+  followedBrands: "flake_followed_brands_v1",
 };
 
 interface AdVaultAppProps {
@@ -127,13 +160,24 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [baseServerCounts, setBaseServerCounts] = useState<AdMarketCounts | null>(null);
   const [filteredServerCounts, setFilteredServerCounts] = useState<AdMarketCounts | null>(null);
 
-  // Navigation: Shops, Explore, Folders + Snow AI, Ad Studio, Analytics & Launch
-  const [view, setView] = useState<ActiveView>("shops");
+  // Navigation: Complete 7-section Atria workspace in Flake design system (starts on Discovery)
+  const [view, setView] = useState<ActiveView>("explore");
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [quickFolderOpen, setQuickFolderOpen] = useState(false);
   const [quickFolderName, setQuickFolderName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+
+  // Sub-navigation states across Inspo, Snow, Studio, Brands & MCP
+  const [discoveryViewTab, setDiscoveryViewTab] = useState<
+    "all" | "trending" | "following" | "dk" | "us"
+  >("all");
+  const [discoveryFiltersExpanded, setDiscoveryFiltersExpanded] = useState(false);
+  const [snowSubView, setSnowSubView] = useState<SnowSubView>("home");
+  const [brandsSubView, setBrandsSubView] = useState<BrandsSubView>("overview");
+  const [mcpSubView, setMcpSubView] = useState<McpSubView>("overview");
+  const [followedBrandIds, setFollowedBrandIds] = useState<string[]>([]);
+  const [creditsCount, setCreditsCount] = useState<number>(700);
 
   // Flake v2 Studio, Snow AI, Brand Memory & Analytics State
   const [brandMemory, setBrandMemory] = useState<BrandMemory | null>(null);
@@ -177,12 +221,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
   const [rankMin, setRankMin] = useState<number | null>(null);
   const [rankMax, setRankMax] = useState<number | null>(null);
-  const [rankMinDraft, setRankMinDraft] = useState("");
-  const [rankMaxDraft, setRankMaxDraft] = useState("");
-  const [rankOpen, setRankOpen] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const rankTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const filtersTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("top");
   const [visibleLimit, setVisibleLimit] = useState(48);
   const [masonryCols, setMasonryCols] = useState(4);
@@ -363,6 +401,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         if (savedSnow) setSnowMessages(JSON.parse(savedSnow) as SnowMessage[]);
         const savedCsv = localStorage.getItem(STORAGE_KEYS.csvAnalytics);
         if (savedCsv) setImportedCsvRows(JSON.parse(savedCsv) as OwnAdMetricRow[]);
+        const savedFollowed = localStorage.getItem(STORAGE_KEYS.followedBrands);
+        if (savedFollowed) {
+          const parsedF = JSON.parse(savedFollowed);
+          if (Array.isArray(parsedF)) setFollowedBrandIds(parsedF);
+        }
+        const savedOnboarding = localStorage.getItem("flake_onboarding_profile_v1");
+        if (savedOnboarding) {
+          const parsedOb = JSON.parse(savedOnboarding) as { credits?: number };
+          if (typeof parsedOb?.credits === "number") {
+            setCreditsCount(700 + parsedOb.credits);
+          }
+        }
       } catch {
         // fallback to scraped catalog
       }
@@ -543,10 +593,37 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(creativeProjects));
       localStorage.setItem(STORAGE_KEYS.snowMessages, JSON.stringify(snowMessages.slice(-40)));
       localStorage.setItem(STORAGE_KEYS.csvAnalytics, JSON.stringify(importedCsvRows));
+      localStorage.setItem(STORAGE_KEYS.followedBrands, JSON.stringify(followedBrandIds));
     } catch {
       // ignore storage errors
     }
-  }, [brandMemory, creativeProjects, snowMessages, importedCsvRows, hydrated]);
+  }, [brandMemory, creativeProjects, snowMessages, importedCsvRows, followedBrandIds, hydrated]);
+
+  const handleToggleFollow = useCallback((brandId: string) => {
+    setFollowedBrandIds((prev) => {
+      const exists = prev.includes(brandId);
+      const next = exists ? prev.filter((id) => id !== brandId) : [...prev, brandId];
+      showToast(exists ? "Removed from Following" : "Added to Following");
+      return next;
+    });
+  }, []);
+
+  const handleCloneCollectionToStudio = useCallback(
+    (col: AtriaCollectionPlaceholder) => {
+      setStudioInitialTab("static");
+      setStudioTrigger({
+        id: `col-${col.id}-${Date.now()}`,
+        mode: "static_clone",
+        angle: col.title,
+      });
+      navigateWithSkeleton(() => {
+        setView("studio");
+        setSelectedShopId(null);
+      });
+      showToast(`Cloning "${col.title}" in Ad Maker`);
+    },
+    [navigateWithSkeleton]
+  );
 
   const ownAnalyticsRows = useMemo(
     () =>
@@ -1061,16 +1138,23 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
   // Filtered & sorted Explore ads (only tracked paid ads — excludes personal folder uploads / organic IG Reels)
   const visibleAds = useMemo(() => {
-    const list =
+    let list =
       marketFilter === "ALL"
         ? nonMarketFilteredAds
         : nonMarketFilteredAds.filter((ad) =>
             marketFilter === "DK" ? ad.market === "DK" : ad.market !== "DK"
           );
 
-    if (sortBy !== "top") {
+    if (discoveryViewTab === "following") {
+      list = list.filter((ad) => followedBrandIds.includes(ad.brand_id));
+    }
+
+    const effectiveSort: SortOption =
+      discoveryViewTab === "trending" && sortBy === "top" ? "duplicated" : sortBy;
+
+    if (effectiveSort !== "top") {
       return [...list].sort((a, b) => {
-        if (sortBy === "reach") {
+        if (effectiveSort === "reach") {
           const diff = (b.eu_reach || 0) - (a.eu_reach || 0);
           if (diff !== 0) return diff;
           return (
@@ -1078,10 +1162,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             (adRankIndex.get(a.id)?.winnerScore || 0)
           );
         }
-        if (sortBy === "longest") {
+        if (effectiveSort === "longest") {
           return getActiveDays(b.started_running_at) - getActiveDays(a.started_running_at);
         }
-        if (sortBy === "duplicated") {
+        if (effectiveSort === "duplicated") {
           return (b.duplicated_count || 1) - (a.duplicated_count || 1);
         }
         return (
@@ -1098,6 +1182,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     marketFilter,
     brandFilter,
     sortBy,
+    discoveryViewTab,
+    followedBrandIds,
   ]);
 
   const exploreMasonryColumns = useMemo(() => {
@@ -1142,8 +1228,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     setScaledOnly(false);
     setRankMin(null);
     setRankMax(null);
-    setRankMinDraft("");
-    setRankMaxDraft("");
     setSearch("");
     setVisibleLimit(48);
   };
@@ -1289,10 +1373,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   // While Stage 2 is still streaming, fetch exact server-side totals when any non-market filter is active
   // (and immediately load the selected brand's ads if brandFilter is set!)
   useEffect(() => {
-    if (fullAdsLoaded) {
-      setFilteredServerCounts(null);
-      return;
-    }
+    if (fullAdsLoaded) return;
 
     if (brandFilter !== "all" && !loadedBrandAdsRef.current.has(brandFilter)) {
       loadedBrandAdsRef.current.add(brandFilter);
@@ -1309,10 +1390,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         });
     }
 
-    if (!hasNonMarketFilters) {
-      setFilteredServerCounts(null);
-      return;
-    }
+    if (!hasNonMarketFilters) return;
 
     let cancelled = false;
     const params = new URLSearchParams({ mode: "counts" });
@@ -1395,53 +1473,6 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       .map(([code, count]) => ({ ...getCountryDisplay(code), count }));
   }, [paidAds]);
 
-  const sortSelectOptions = useMemo<FlakeSelectOption[]>(
-    () => [
-      { value: "top", label: "Top Performing" },
-      { value: "reach", label: "Highest Reach" },
-      { value: "newest", label: "Newest" },
-      { value: "longest", label: "Longest Active" },
-      { value: "duplicated", label: "Most Duplicated" },
-    ],
-    []
-  );
-
-  const brandSelectOptions = useMemo<FlakeSelectOption[]>(
-    () => [
-      { value: "all", label: `${brands.length} Brands` },
-      ...brands.map((b) => ({
-        value: b.id,
-        label: b.name,
-        icon: b.logo_url ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={b.logo_url}
-            alt=""
-            className="h-4 w-4 rounded-full border border-[#ECEFF5] bg-white object-contain p-[1px]"
-          />
-        ) : (
-          <span
-            className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
-            style={{ backgroundColor: b.avatar_color || "#0F172A" }}
-          >
-            {b.avatar_initials.slice(0, 2)}
-          </span>
-        ),
-      })),
-    ],
-    [brands]
-  );
-
-  const timeSelectOptions = useMemo<FlakeSelectOption[]>(
-    () => [
-      { value: "all", label: "All time" },
-      { value: "7d", label: "Last 7 days" },
-      { value: "30d", label: "Last 30 days" },
-      { value: "90d", label: "Last 90 days" },
-    ],
-    []
-  );
-
   return (
     <>
     {/* COMPACT FIXED SOLID WHITE MOBILE TOP BAR (root-level fixed at top: 0 for WebKit edge sampling, Antigravity-tight height) */}
@@ -1488,183 +1519,152 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
     </header>
     <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
       {/* =====================================================================
-          FLAKE COMMAND RAIL + CONTEXTUAL OBSIDIAN DOCK
+          FLAKE COMMAND RAIL + FULL 7-SECTION CONTEXTUAL OBSIDIAN DOCK
          ===================================================================== */}
       {(() => {
         const isInspoView =
-          view === "shops" || view === "explore" || view === "folders";
-        const hasSubDrawer = (isInspoView || view === "analytics") && subNavOpen;
+          view === "explore" ||
+          view === "shops" ||
+          view === "advertisers" ||
+          view === "top_picks" ||
+          view === "following" ||
+          view === "folders";
 
-        const primaryRailItems = [
+        const sectionTitle = isInspoView
+          ? "Inspo"
+          : view === "snow"
+            ? "Snow"
+            : view === "analytics"
+              ? "Analytics"
+              : view === "studio"
+                ? "Ad Maker"
+                : view === "assets"
+                  ? "Assets"
+                  : view === "brands"
+                    ? "Brands"
+                    : "Flake MCP";
+
+        const hasSubDrawer = subNavOpen;
+
+        const switchSection = (
+          targetView: ActiveView,
+          extra?: () => void
+        ) => {
+          const alreadyInSection =
+            (targetView === "explore" && isInspoView) || targetView === view;
+          if (alreadyInSection && !extra) {
+            setSubNavOpen((v) => !v);
+            return;
+          }
+          navigateWithSkeleton(() => {
+            setView(targetView);
+            setSelectedShopId(null);
+            setSelectedFolderId(null);
+            setSubNavOpen(true);
+            extra?.();
+          });
+        };
+
+        const railItems: Array<{
+          id: string;
+          targetView: ActiveView;
+          label: string;
+          active: boolean;
+          accent: boolean;
+          badge: string | null;
+          dot: boolean;
+          icon: React.ReactNode;
+        }> = [
           {
             id: "inspo",
+            targetView: "explore",
             label: "Inspo",
             active: isInspoView,
             accent: false,
-            badge: null as string | null,
+            badge: null,
             dot: false,
             icon: <Compass className="h-[18px] w-[18px]" />,
-            onClick: () => {
-              if (isInspoView) {
-                setSubNavOpen((v) => !v);
-              } else {
-                navigateWithSkeleton(() => {
-                  setView("explore");
-                  setSelectedShopId(null);
-                  setSelectedFolderId(null);
-                  setSubNavOpen(true);
-                });
-              }
-            },
           },
           {
             id: "snow",
+            targetView: "snow",
             label: "Snow",
             active: view === "snow",
             accent: true,
-            badge: null as string | null,
+            badge: null,
             dot: false,
             icon: <SnowMark className="h-[18px] w-[18px]" />,
-            onClick: () => {
-              navigateWithSkeleton(() => {
-                setView("snow");
-                setSelectedShopId(null);
-                setSelectedFolderId(null);
-              });
-            },
-          },
-          {
-            id: "studio",
-            label: "Creation",
-            active: view === "studio" && studioInitialTab !== "assets",
-            accent: false,
-            badge: null as string | null,
-            dot: false,
-            icon: <Lightbulb className="h-[18px] w-[18px]" />,
-            onClick: () => {
-              setStudioInitialTab("video");
-              navigateWithSkeleton(() => {
-                setView("studio");
-                setSelectedShopId(null);
-                setSelectedFolderId(null);
-              });
-            },
           },
           {
             id: "analytics",
+            targetView: "analytics",
             label: "Analytics",
             active: view === "analytics",
             accent: false,
-            badge: null as string | null,
+            badge: null,
             dot: false,
             icon: <BarChart3 className="h-[18px] w-[18px]" />,
-            onClick: () => {
-              if (view === "analytics") {
-                setSubNavOpen((v) => !v);
-              } else {
-                navigateWithSkeleton(() => {
-                  setView("analytics");
-                  setSelectedShopId(null);
-                  setSelectedFolderId(null);
-                  setSubNavOpen(true);
-                });
-              }
-            },
           },
-        ];
-
-        const libraryRailItems = [
+          {
+            id: "studio",
+            targetView: "studio",
+            label: "Ad Maker",
+            active: view === "studio",
+            accent: false,
+            badge: "HOT",
+            dot: false,
+            icon: <Wand2 className="h-[18px] w-[18px]" />,
+          },
           {
             id: "assets",
+            targetView: "assets",
             label: "Assets",
-            active: view === "studio" && studioInitialTab === "assets",
+            active: view === "assets",
             accent: false,
-            badge:
-              creativeProjects.length > 0
-                ? String(creativeProjects.length)
-                : null,
+            badge: null,
             dot: false,
             icon: <Clapperboard className="h-[18px] w-[18px]" />,
-            onClick: () => {
-              setStudioInitialTab("assets");
-              navigateWithSkeleton(() => {
-                setView("studio");
-                setSelectedShopId(null);
-                setSelectedFolderId(null);
-              });
-            },
           },
           {
             id: "brands",
+            targetView: "brands",
             label: "Brands",
-            active: brandMemoryModalOpen,
+            active: view === "brands",
             accent: false,
-            badge: null as string | null,
+            badge: null,
             dot: Boolean(brandMemory),
             icon: <Store className="h-[18px] w-[18px]" />,
-            onClick: () => setBrandMemoryModalOpen(true),
+          },
+          {
+            id: "mcp",
+            targetView: "mcp",
+            label: "MCP",
+            active: view === "mcp",
+            accent: false,
+            badge: null,
+            dot: false,
+            icon: <Server className="h-[18px] w-[18px]" />,
           },
         ];
 
-        const renderRailButton = (item: (typeof primaryRailItems)[number]) => (
-          <button
-            key={item.id}
-            type="button"
-            data-no-glass="true"
-            onClick={item.onClick}
-            className="group relative flex w-full flex-col items-center justify-center gap-1 py-1 text-center transition-all"
-          >
-            {/* Active Cobalt Beacon Pill flush on left rail edge */}
-            <span
-              className={`absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-[#3B66FF] shadow-[0_0_12px_rgba(0,39,235,0.95)] transition-all duration-200 ${
-                item.active ? "h-5 w-[3px] opacity-100" : "h-0 w-[3px] opacity-0"
-              }`}
-            />
-
-            {/* Crisp Icon Tile */}
-            <span
-              className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200 ${
-                item.active && item.accent
-                  ? "bg-[#0027eb] text-white shadow-[0_6px_18px_-4px_rgba(0,39,235,0.85)] ring-1 ring-white/25"
-                  : item.active
-                    ? "bg-white/[0.12] text-white ring-1 ring-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
-                    : "text-white/55 group-hover:bg-white/[0.07] group-hover:text-white"
-              }`}
-            >
-              {item.icon}
-              {item.badge && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0027eb] px-1 font-mono-num text-[9px] font-bold text-white ring-2 ring-[#050811]">
-                  {item.badge}
-                </span>
-              )}
-              {item.dot && (
-                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#22C55E] ring-2 ring-[#050811]" />
-              )}
-            </span>
-
-            <span
-              className={`text-[10px] font-medium leading-none tracking-tight transition-colors ${
-                item.active
-                  ? "text-white"
-                  : "text-white/45 group-hover:text-white/80"
-              }`}
-            >
-              {item.label}
-            </span>
-          </button>
-        );
+        const drawerRowClass = (active: boolean) =>
+          `group flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium transition-all ${
+            active
+              ? "bg-white/[0.11] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+              : "text-white/60 hover:bg-white/[0.05] hover:text-white/90"
+          }`;
 
         return (
           <aside className="relative hidden h-full shrink-0 text-white lg:flex">
-            {/* 1. SLIM COMMAND RAIL (70px — real Flake asterisk emblem + Cobalt beacon) */}
+            {/* 1. SLIM COMMAND RAIL (70px — real Flake asterisk emblem + 7 sections + utility stack) */}
             <div
-              className={`relative z-20 flex h-full flex-col items-center justify-between bg-[#050811] py-4 ${
+              className={`relative z-20 flex h-full flex-col items-center justify-between bg-[#050811] py-3.5 ${
                 hasSubDrawer
-                  ? "w-[70px] border-r border-white/[0.06]"
+                  ? "w-[70px] border-r border-white/[0.07]"
                   : "w-[94px] pr-[24px]"
               }`}
             >
-              <div className="flex w-full flex-col items-center">
+              <div className="no-scrollbar flex w-full flex-col items-center overflow-y-auto">
                 {/* Real Flake Asterisk Emblem */}
                 <button
                   type="button"
@@ -1678,7 +1678,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                     });
                   }}
                   title="Flake"
-                  className="group mb-5 flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] ring-1 ring-white/20 shadow-[0_8px_22px_-6px_rgba(0,39,235,0.85)] transition-all duration-300 hover:scale-105 hover:ring-white/35"
+                  className="group mb-4 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[12px] ring-1 ring-white/20 shadow-[0_8px_22px_-6px_rgba(0,39,235,0.85)] transition-all duration-300 hover:scale-105 hover:ring-white/35"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -1688,138 +1688,255 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   />
                 </button>
 
-                {/* Primary Creative Loop */}
-                <div className="flex w-full flex-col items-center gap-1.5">
-                  {primaryRailItems.map(renderRailButton)}
-                </div>
-
-                {/* Hairline Divider */}
-                <div className="my-3 h-px w-6 bg-white/[0.09]" />
-
-                {/* Workspace Library */}
-                <div className="flex w-full flex-col items-center gap-1.5">
-                  {libraryRailItems.map(renderRailButton)}
+                {/* 7 Atria Core Sections */}
+                <div className="flex w-full flex-col items-center gap-1">
+                  {railItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        if (item.targetView === "studio") {
+                          switchSection("studio", () =>
+                            setStudioInitialTab("video")
+                          );
+                        } else {
+                          switchSection(item.targetView);
+                        }
+                      }}
+                      className="group relative flex w-full flex-col items-center justify-center gap-1 py-1 text-center transition-all"
+                    >
+                      <span
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-[#3B66FF] shadow-[0_0_12px_rgba(0,39,235,0.95)] transition-all duration-200 ${
+                          item.active ? "h-5 w-[3px] opacity-100" : "h-0 w-[3px] opacity-0"
+                        }`}
+                      />
+                      <span
+                        className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200 ${
+                          item.active && item.accent
+                            ? "bg-[#0027eb] text-white shadow-[0_6px_18px_-4px_rgba(0,39,235,0.85)] ring-1 ring-white/25"
+                            : item.active
+                              ? "bg-white/[0.12] text-white ring-1 ring-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
+                              : "text-white/55 group-hover:bg-white/[0.07] group-hover:text-white"
+                        }`}
+                      >
+                        {item.icon}
+                        {item.badge && (
+                          <span className="absolute -right-2 -top-1 rounded-full bg-[#0027eb] px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-white ring-2 ring-[#050811]">
+                            {item.badge}
+                          </span>
+                        )}
+                        {item.dot && (
+                          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#22C55E] ring-2 ring-[#050811]" />
+                        )}
+                      </span>
+                      <span
+                        className={`text-[10px] font-medium leading-none tracking-tight transition-colors ${
+                          item.active
+                            ? "text-white"
+                            : "text-white/45 group-hover:text-white/80"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Bottom Slim Rail Profile */}
-              <div className="flex flex-col items-center gap-2">
+              {/* Bottom Utility Stack (Affiliate · News · Invite · Credits · Panel Toggle) */}
+              <div className="mt-2 flex w-full flex-col items-center gap-1.5 border-t border-white/[0.06] pt-2.5">
+                {!hasSubDrawer && (
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setSubNavOpen(true)}
+                    title="Expand sidebar"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+                  >
+                    <PanelLeft className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => showToast("Affiliate program — 25% recurring commission")}
+                    title="Affiliate program"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white"
+                  >
+                    <Gift className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => showToast("What's new: Ad Maker v2 + Snow AI")}
+                    title="News Center"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white"
+                  >
+                    <Megaphone className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => {
+                      if (navigator.clipboard) {
+                        void navigator.clipboard.writeText(window.location.origin);
+                      }
+                      showToast("Invite link copied");
+                    }}
+                    title="Invite team"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   data-no-glass="true"
-                  title="Mikkel Petersen"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-white/[0.14] to-white/[0.06] font-display text-xs font-bold text-white ring-1 ring-white/15 transition-colors hover:ring-white/30"
+                  onClick={() => {
+                    navigateWithSkeleton(() => {
+                      setView("brands");
+                      setBrandsSubView("overview");
+                      setSubNavOpen(true);
+                    });
+                  }}
+                  title="Workspace credits"
+                  className="inline-flex items-center gap-1 rounded-full border border-white/[0.12] bg-white/[0.07] px-2.5 py-1 font-mono-num text-[10.5px] font-semibold text-white/90 transition-colors hover:border-[#3B66FF] hover:bg-[#0027eb]/30"
                 >
-                  M
+                  <Sparkles className="h-3 w-3 text-[#60A5FA]" />
+                  {creditsCount}
                 </button>
               </div>
             </div>
 
-            {/* 2. CONTEXTUAL SECONDARY DOCK (Inspo / Analytics — auto-collapses on Snow & Creation) */}
+            {/* 2. CONTEXTUAL SECONDARY DOCK (Rendered cleanly for all 7 sections) */}
             {hasSubDrawer && (
-              <div className="adtrack-sidebar relative flex h-full w-[236px] flex-col bg-[#080C18] py-4 pl-4 pr-[36px] text-white">
+              <div className="adtrack-sidebar relative flex h-full w-[244px] flex-col bg-[#080C18] py-4 pl-3.5 pr-[36px] text-white">
                 <SidebarPixelWave />
 
-                {/* Top Wordmark + Section Breadcrumb + Collapse Toggle */}
-                <div className="mb-5 flex items-center justify-between px-1">
+                {/* Top Section Title + Collapse Toggle */}
+                <div className="mb-4 flex items-center justify-between px-1.5">
                   <div className="flex items-center gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/icons/flake-wordmark-white.png"
                       alt="Flake"
-                      className="h-[15px] w-auto select-none opacity-95"
+                      className="h-[14px] w-auto select-none opacity-90"
                     />
                     <span className="text-white/20">/</span>
-                    <span className="text-[12px] font-semibold text-white/75">
-                      {isInspoView ? "Inspo" : "Analytics"}
+                    <span className="text-[12.5px] font-semibold text-white/85">
+                      {sectionTitle}
                     </span>
                   </div>
                   <button
                     type="button"
                     data-no-glass="true"
                     onClick={() => setSubNavOpen(false)}
-                    title="Skjul panel"
+                    title="Collapse sidebar"
                     className="flex h-6 w-6 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/10 hover:text-white"
                   >
                     <PanelLeft className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
-                {isInspoView ? (
+                {/* SECTION 1: INSPO DRAWER */}
+                {isInspoView && (
                   <>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {[
                         {
-                          id: "explore",
+                          id: "explore" as ActiveView,
                           label: "Ads",
                           active: view === "explore",
                           icon: <Radar className="h-[15px] w-[15px]" />,
-                          onClick: () =>
-                            navigateWithSkeleton(() => {
-                              setView("explore");
-                              setSelectedShopId(null);
-                              setSelectedFolderId(null);
-                            }),
+                          badge: null as string | null,
                         },
                         {
-                          id: "shops",
-                          label: "Shops",
+                          id: "shops" as ActiveView,
+                          label: "Brands",
                           active: view === "shops",
                           icon: <Store className="h-[15px] w-[15px]" />,
-                          onClick: () =>
-                            navigateWithSkeleton(() => {
-                              setView("shops");
-                              setSelectedShopId(null);
-                              setSelectedFolderId(null);
-                            }),
+                          badge: null as string | null,
                         },
                         {
-                          id: "folders",
-                          label: "Saved Ads",
+                          id: "advertisers" as ActiveView,
+                          label: "Advertisers",
+                          active: view === "advertisers",
+                          icon: <Users className="h-[15px] w-[15px]" />,
+                          badge: "NEW",
+                        },
+                        {
+                          id: "top_picks" as ActiveView,
+                          label: "Top picks",
+                          active: view === "top_picks",
+                          icon: <Trophy className="h-[15px] w-[15px]" />,
+                          badge: null as string | null,
+                        },
+                        {
+                          id: "following" as ActiveView,
+                          label: "Following",
+                          active: view === "following",
+                          icon: <Heart className="h-[15px] w-[15px]" />,
+                          badge:
+                            followedBrandIds.length > 0
+                              ? String(followedBrandIds.length)
+                              : null,
+                        },
+                        {
+                          id: "folders" as ActiveView,
+                          label: "Saved ads",
                           active: view === "folders" && !selectedFolderId,
                           icon: <Bookmark className="h-[15px] w-[15px]" />,
-                          onClick: () =>
-                            navigateWithSkeleton(() => {
-                              setView("folders");
-                              setSelectedFolderId(null);
-                              setSelectedShopId(null);
-                            }),
+                          badge: null as string | null,
                         },
                       ].map((row) => (
                         <button
                           key={row.id}
                           type="button"
-                          onClick={row.onClick}
-                          className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all ${
-                            row.active
-                              ? "bg-white/[0.1] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-                              : "text-white/60 hover:bg-white/[0.05] hover:text-white/90"
-                          }`}
+                          data-no-glass="true"
+                          onClick={() =>
+                            navigateWithSkeleton(() => {
+                              setView(row.id);
+                              setSelectedShopId(null);
+                              setSelectedFolderId(null);
+                            })
+                          }
+                          className={drawerRowClass(row.active)}
                         >
-                          <span
-                            className={
-                              row.active
-                                ? "text-[#7AA2FF]"
-                                : "text-white/45 group-hover:text-white/75"
-                            }
-                          >
-                            {row.icon}
+                          <span className="flex items-center gap-2.5">
+                            <span
+                              className={
+                                row.active
+                                  ? "text-[#7AA2FF]"
+                                  : "text-white/45 group-hover:text-white/75"
+                              }
+                            >
+                              {row.icon}
+                            </span>
+                            {row.label}
                           </span>
-                          {row.label}
+                          {row.badge && (
+                            <span className="rounded-full bg-[#0027eb] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                              {row.badge}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
 
-                    {/* Boards List with Crisp Color Dots */}
-                    <div className="mt-5 flex min-h-0 flex-1 flex-col border-t border-white/[0.07] pt-4">
+                    {/* Boards Tree */}
+                    <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-white/[0.07] pt-3.5">
                       <div className="mb-2 flex items-center justify-between px-2">
                         <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
                           Boards
                         </span>
                         <button
                           type="button"
+                          data-no-glass="true"
                           onClick={() => setQuickFolderOpen((v) => !v)}
-                          title="Nyt board"
+                          title="New board"
                           className="flex h-5 w-5 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/10 hover:text-white"
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -1842,7 +1959,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             autoFocus
                             value={quickFolderName}
                             onChange={(e) => setQuickFolderName(e.target.value)}
-                            placeholder="Board navn + Enter"
+                            placeholder="Board name + Enter"
                             className="w-full rounded-lg border border-white/15 bg-white/[0.08] px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/40 focus:border-[#4D6BFF]"
                           />
                         </form>
@@ -1859,6 +1976,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             <button
                               key={board.id}
                               type="button"
+                              data-no-glass="true"
                               onClick={() => {
                                 navigateWithSkeleton(() => {
                                   setSelectedFolderId(board.id);
@@ -1888,74 +2006,393 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       </div>
                     </div>
 
-                    {/* Minimal Frosted Extension Pill */}
-                    <button
-                      type="button"
-                      data-no-glass="true"
-                      className="mt-3 flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.08]"
-                    >
-                      <span className="flex items-center gap-2 text-[11.5px] font-medium text-white/80">
-                        <PackagePlus className="h-3.5 w-3.5 text-[#7AA2FF]" />
-                        Chrome Extension
-                      </span>
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#3B66FF]" />
-                    </button>
+                    {/* Save ads from Extension | IG (mobile) card */}
+                    <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-2.5">
+                      <p className="mb-1.5 text-[10px] font-medium text-white/45">
+                        Save ads from
+                      </p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() =>
+                            showToast("Chrome Extension ready for Meta & TikTok Ad Library")
+                          }
+                          className="flex items-center justify-center gap-1.5 rounded-lg bg-white/[0.06] py-1.5 text-[11px] font-medium text-white/80 hover:bg-white/[0.12]"
+                        >
+                          <Compass className="h-3 w-3 text-[#7AA2FF]" />
+                          Extension
+                        </button>
+                        <button
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() =>
+                            navigateWithSkeleton(() => {
+                              setView("folders");
+                              setSelectedFolderId(null);
+                            })
+                          }
+                          className="flex items-center justify-center gap-1.5 rounded-lg bg-white/[0.06] py-1.5 text-[11px] font-medium text-white/80 hover:bg-white/[0.12]"
+                        >
+                          <Film className="h-3 w-3 text-[#7AA2FF]" />
+                          IG (mobile)
+                        </button>
+                      </div>
+                    </div>
                   </>
-                ) : (
-                  /* ANALYTICS NESTED SYSTEM REPORTS TREE */
-                  <>
-                    <div className="mb-4 flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.05] px-2.5 py-2">
-                      <span className="flex min-w-0 items-center gap-2 text-[12.5px] font-semibold text-white">
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-[#38BDF8]" />
-                        <span className="truncate">
-                          {brandMemory ? brandMemory.brandName : "Flake Demo"}
-                        </span>
-                      </span>
+                )}
+
+                {/* SECTION 2: SNOW DRAWER */}
+                {view === "snow" && (
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div className="space-y-1">
                       <button
                         type="button"
+                        data-no-glass="true"
                         onClick={() => setBrandMemoryModalOpen(true)}
-                        className="text-[10.5px] font-medium text-white/45 hover:text-white"
+                        className="mb-3 flex w-full items-center justify-between rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-left text-[12px] font-medium text-white/85 hover:bg-white/[0.09]"
                       >
-                        Skift
+                        <span className="truncate">
+                          {brandMemory ? brandMemory.brandName : "All brands"}
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 text-white/45" />
                       </button>
-                    </div>
 
-                    <p className="px-2 pb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
-                      System reports
-                    </p>
-                    <div className="ml-2.5 space-y-0.5 border-l border-white/[0.09] pl-2.5">
-                      {(
-                        [
-                          { id: "overview", label: "Key metrics overview" },
-                          { id: "top_spend", label: "Top spend ads" },
-                          { id: "top_performing", label: "Top performing ads" },
-                          { id: "top_videos", label: "Top performing videos" },
-                          { id: "top_images", label: "Top performing images" },
-                          { id: "top_hooks", label: "Top hooks & retention" },
-                        ] as Array<{ id: AnalyticsReportId; label: string }>
-                      ).map((rep) => (
+                      {[
+                        { id: "home" as SnowSubView, label: "Home", icon: <Home className="h-[15px] w-[15px]" /> },
+                        { id: "new_task" as SnowSubView, label: "New task", icon: <Plus className="h-[15px] w-[15px]" /> },
+                        { id: "connectors" as SnowSubView, label: "Connectors", icon: <PlugZap className="h-[15px] w-[15px]" /> },
+                        { id: "automations" as SnowSubView, label: "Automations", icon: <Zap className="h-[15px] w-[15px]" /> },
+                        { id: "skills" as SnowSubView, label: "Skills", icon: <Sparkles className="h-[15px] w-[15px]" /> },
+                      ].map((item) => (
                         <button
-                          key={rep.id}
+                          key={item.id}
                           type="button"
-                          onClick={() => setAnalyticsReport(rep.id)}
-                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors ${
-                            analyticsReport === rep.id
-                              ? "bg-white/[0.11] font-semibold text-white"
-                              : "text-white/55 hover:bg-white/[0.05] hover:text-white/90"
-                          }`}
+                          data-no-glass="true"
+                          onClick={() => {
+                            if (item.id === "new_task") {
+                              setSnowMessages([]);
+                            }
+                            setSnowSubView(item.id);
+                          }}
+                          className={drawerRowClass(snowSubView === item.id)}
                         >
-                          <FileBarChart2
-                            className={`h-3.5 w-3.5 shrink-0 ${
-                              analyticsReport === rep.id
-                                ? "text-[#7AA2FF]"
-                                : "opacity-55"
-                            }`}
-                          />
-                          <span className="truncate">{rep.label}</span>
+                          <span className="flex items-center gap-2.5">
+                            <span
+                              className={
+                                snowSubView === item.id ? "text-[#7AA2FF]" : "text-white/45"
+                              }
+                            >
+                              {item.icon}
+                            </span>
+                            {item.label}
+                          </span>
                         </button>
                       ))}
                     </div>
-                  </>
+
+                    {snowMessages.length > 0 && (
+                      <div className="border-t border-white/[0.08] pt-3">
+                        <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                          Recent threads
+                        </p>
+                        <button
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => setSnowSubView("home")}
+                          className="w-full truncate rounded-lg bg-white/[0.07] px-2.5 py-1.5 text-left text-[11.5px] text-white/80"
+                        >
+                          {snowMessages[0]?.content.slice(0, 32)}...
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SECTION 3: ANALYTICS DRAWER */}
+                {view === "analytics" && (
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div>
+                      <div className="mb-3 flex items-center justify-between px-1.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                          Ad accounts
+                        </span>
+                        <button
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => setAnalyticsReport("connect")}
+                          title="Connect ad account"
+                          className="flex h-5 w-5 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="mb-4 flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.05] px-2.5 py-2">
+                        <span className="flex min-w-0 items-center gap-2 text-[12.5px] font-semibold text-white">
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-[#38BDF8]" />
+                          <span className="truncate">
+                            {brandMemory ? brandMemory.brandName : "Flake Demo"}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => setAnalyticsReport("connect")}
+                          className="text-[10.5px] font-medium text-white/45 hover:text-white"
+                        >
+                          Connect
+                        </button>
+                      </div>
+
+                      <p className="px-2 pb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
+                        System reports
+                      </p>
+                      <div className="ml-2 space-y-0.5 border-l border-white/[0.09] pl-2.5">
+                        {(
+                          [
+                            { id: "overview", label: "Key metrics overview" },
+                            { id: "top_spend", label: "Top spend ads" },
+                            { id: "top_performing", label: "Top performing ads" },
+                            { id: "top_videos", label: "Top performing videos" },
+                            { id: "top_images", label: "Top performing images" },
+                            { id: "top_hooks", label: "Top hooks & retention" },
+                            { id: "connect", label: "Connect ad account" },
+                          ] as Array<{ id: AnalyticsReportId; label: string }>
+                        ).map((rep) => (
+                          <button
+                            key={rep.id}
+                            type="button"
+                            data-no-glass="true"
+                            onClick={() => setAnalyticsReport(rep.id)}
+                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors ${
+                              analyticsReport === rep.id
+                                ? "bg-white/[0.11] font-semibold text-white"
+                                : "text-white/55 hover:bg-white/[0.05] hover:text-white/90"
+                            }`}
+                          >
+                            <FileBarChart2
+                              className={`h-3.5 w-3.5 shrink-0 ${
+                                analyticsReport === rep.id
+                                  ? "text-[#7AA2FF]"
+                                  : "opacity-55"
+                              }`}
+                            />
+                            <span className="truncate">{rep.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[11px] text-white/60">
+                      <div className="flex items-center justify-between">
+                        <span>Ad spend tracked</span>
+                        <span className="font-mono-num text-white/90">Live</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SECTION 4: AD MAKER DRAWER */}
+                {view === "studio" && (
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setStudioInitialTab("video")}
+                      className={drawerRowClass(studioInitialTab === "video")}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Video className="h-[15px] w-[15px] text-[#7AA2FF]" />
+                        Video Ads
+                      </span>
+                      <span className="rounded-full bg-[#0027eb] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        NEW
+                      </span>
+                    </button>
+                    <div className="ml-3 space-y-0.5 border-l border-white/[0.08] pl-2.5">
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setStudioInitialTab("video_projects")}
+                        className={drawerRowClass(studioInitialTab === "video_projects")}
+                      >
+                        <span>Video projects</span>
+                      </button>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setStudioInitialTab("media")}
+                        className={drawerRowClass(studioInitialTab === "media")}
+                      >
+                        <span>Media</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-2" />
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setStudioInitialTab("static")}
+                      className={drawerRowClass(studioInitialTab === "static")}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <ImageIcon className="h-[15px] w-[15px] text-[#7AA2FF]" />
+                        Image Ads
+                      </span>
+                    </button>
+                    <div className="ml-3 space-y-0.5 border-l border-white/[0.08] pl-2.5">
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setStudioInitialTab("image_projects")}
+                        className={drawerRowClass(studioInitialTab === "image_projects")}
+                      >
+                        <span>Image projects</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-2" />
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setStudioInitialTab("miner")}
+                      className={drawerRowClass(studioInitialTab === "miner")}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Bot className="h-[15px] w-[15px]" />
+                        AI Playground
+                      </span>
+                      <span className="rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[9px] text-white/60">
+                        Miner
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {/* SECTION 5: ASSETS DRAWER */}
+                {view === "assets" && (
+                  <div className="space-y-2">
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.05] px-3 py-2 text-[12px] font-semibold text-white">
+                      {brandMemory ? brandMemory.brandName : "Arch & Pillar"}
+                    </div>
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setView("assets")}
+                      className={drawerRowClass(true)}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <FolderOpen className="h-[15px] w-[15px] text-[#7AA2FF]" />
+                        All assets
+                      </span>
+                    </button>
+                    <div className="border-t border-white/[0.07] pt-3">
+                      <p className="mb-1.5 px-2 text-[10.5px] font-semibold uppercase tracking-wider text-white/35">
+                        Boards
+                      </p>
+                      {boards.slice(0, 4).map((b) => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() =>
+                            navigateWithSkeleton(() => {
+                              setSelectedFolderId(b.id);
+                              setView("folders");
+                            })
+                          }
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-white/60 hover:bg-white/[0.05] hover:text-white"
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: b.accent_color }}
+                          />
+                          <span className="truncate">{b.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SECTION 6: BRANDS DRAWER */}
+                {view === "brands" && (
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setBrandsSubView("list")}
+                      className={drawerRowClass(brandsSubView === "list")}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Layers className="h-[15px] w-[15px]" />
+                        All brands
+                      </span>
+                    </button>
+                    <div className="my-2 rounded-xl border border-white/[0.08] bg-white/[0.05] px-3 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                        Active brand
+                      </p>
+                      <p className="truncate text-[12.5px] font-semibold text-white">
+                        {brandMemory ? brandMemory.brandName : "Arch & Pillar"}
+                      </p>
+                    </div>
+                    {[
+                      { id: "overview" as BrandsSubView, label: "Overview", icon: <Store className="h-[15px] w-[15px]" /> },
+                      { id: "audience" as BrandsSubView, label: "Audience", icon: <Users className="h-[15px] w-[15px]" /> },
+                      { id: "products" as BrandsSubView, label: "Products", icon: <Package className="h-[15px] w-[15px]" /> },
+                      { id: "competitors" as BrandsSubView, label: "Competitors", icon: <Radar className="h-[15px] w-[15px]" /> },
+                    ].map((bItem) => (
+                      <button
+                        key={bItem.id}
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setBrandsSubView(bItem.id)}
+                        className={drawerRowClass(brandsSubView === bItem.id)}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span
+                            className={
+                              brandsSubView === bItem.id ? "text-[#7AA2FF]" : "text-white/45"
+                            }
+                          >
+                            {bItem.icon}
+                          </span>
+                          {bItem.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* SECTION 7: MCP DRAWER */}
+                {view === "mcp" && (
+                  <div className="space-y-1">
+                    {[
+                      { id: "overview" as McpSubView, label: "Overview", icon: <Server className="h-[15px] w-[15px]" /> },
+                      { id: "prompts" as McpSubView, label: "Prompt library", icon: <Sparkles className="h-[15px] w-[15px]" /> },
+                      { id: "skills" as McpSubView, label: "Skill Hub", icon: <Zap className="h-[15px] w-[15px]" /> },
+                    ].map((mItem) => (
+                      <button
+                        key={mItem.id}
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setMcpSubView(mItem.id)}
+                        className={drawerRowClass(mcpSubView === mItem.id)}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span
+                            className={
+                              mcpSubView === mItem.id ? "text-[#7AA2FF]" : "text-white/45"
+                            }
+                          >
+                            {mItem.icon}
+                          </span>
+                          {mItem.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -2026,568 +2463,88 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {/* =================================================================
-              VIEW 2: ADS (Clean Masonry Ad Discovery)
+              VIEW 2: ADS (Atria Discovery Suite + Masonry Ad Feed)
              ================================================================= */}
           {view === "explore" && (
             <div className="animate-view-in space-y-4">
-              {/* Header: Title + live count left · Centered top search middle · balanced spacer right */}
-              <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_minmax(260px,420px)_1fr]">
-                <div className="flex items-center gap-3">
-                  <h1 className="font-display text-[22px] font-bold leading-tight text-[#0F172A]">
-                    Ads
-                  </h1>
-                  <span className="inline-flex min-w-[46px] items-center justify-center rounded-xl border border-[#ECEFF5] bg-white px-2.5 py-1 font-mono-num text-[12.5px] font-semibold text-[#334155] shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
-                    {displayAdsTotal !== null ? (
-                      displayAdsTotal.toLocaleString("fr-FR")
-                    ) : (
-                      <span className="inline-block h-3.5 w-9 animate-pulse rounded bg-[#EEF1F6]" />
-                    )}
-                  </span>
-                </div>
-
-                {/* Centered Top Search Bar */}
-                <div className="relative w-full">
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
-                  <input
-                    id="explore-search-input"
-                    type="search"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setVisibleLimit(24);
-                    }}
-                    placeholder="Search brands or keywords..."
-                    className="w-full rounded-xl border border-[#E6E9F0] bg-white py-2 pl-9.5 pr-8 text-[16px] text-[#0F172A] shadow-[0_1px_3px_rgba(15,23,42,0.03)] outline-none transition-all placeholder:text-[#94A3B8] focus:border-[#CBD5E1] focus:shadow-[0_4px_14px_-4px_rgba(15,23,42,0.08)] sm:text-[13px]"
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      data-no-glass="true"
-                      onClick={() => {
-                        setSearch("");
-                        setVisibleLimit(24);
-                      }}
-                      aria-label="Clear search"
-                      className="absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[#94A3B8] transition-colors hover:bg-[#F1F5F9] hover:text-[#475569]"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="hidden md:block" />
-              </div>
-
-              {/* UNIFIED FILTER BAR — Exact same layout & bordered pill design as Shops */}
-              <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-3 lg:space-y-0">
-                {/* Clean Segmented Market Control (Alle · DK · US & Global) */}
-                <div className="grid grid-cols-3 rounded-xl bg-[#EFEFF4] p-1 text-xs font-semibold lg:inline-flex lg:w-fit">
-                  {[
-                    { id: "ALL" as const, label: "Alle", count: displayMarketCounts?.all ?? null },
-                    { id: "DK" as const, label: "DK", count: displayMarketCounts?.dk ?? null },
-                    { id: "US" as const, label: "US & Global", count: displayMarketCounts?.us ?? null },
-                  ].map((m) => {
-                    const active = marketFilter === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          setMarketFilter(m.id);
-                          setVisibleLimit(48);
-                        }}
-                        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-all lg:px-3 ${
-                          active
-                            ? "bg-white text-[#0F172A] shadow-xs"
-                            : "text-[#64748B] hover:text-[#0F172A]"
-                        }`}
-                      >
-                        <span>{m.label}</span>
-                        <span
-                          className={`font-mono-num text-[10.5px] font-semibold ${
-                            active ? "text-[#475569]" : "text-[#94A3B8]"
-                          }`}
-                        >
-                          {m.count !== null ? (
-                            m.count.toLocaleString("fr-FR")
-                          ) : (
-                            <span className="inline-block h-2.5 w-7 animate-pulse rounded bg-[#E2E8F0] align-middle" />
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Right Bordered Controls: 2x2 symmetrical grid + full-width sort on mobile, single inline row on desktop */}
-                <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center lg:gap-1.5">
-                  {/* Brands */}
-                  <FlakeSelect
-                    ariaLabel="Vælg shop"
-                    value={brandFilter}
-                    onChange={(val) => {
-                      setBrandFilter(val);
-                      setVisibleLimit(48);
-                    }}
-                    options={brandSelectOptions}
-                    icon={<Building2 className="h-3.5 w-3.5 text-[#475569]" />}
-                    variant="bordered"
-                    align="left"
-                    menuWidth={240}
-                    isActive={brandFilter !== "all"}
-                    triggerClassName="lg:max-w-[170px]"
-                  />
-
-                  {/* Timeframe */}
-                  <FlakeSelect
-                    ariaLabel="Tidsperiode"
-                    value={timeFilter}
-                    onChange={(val) => {
-                      setTimeFilter(val as "all" | "7d" | "30d" | "90d");
-                      setVisibleLimit(48);
-                    }}
-                    options={timeSelectOptions}
-                    icon={<Calendar className="h-3.5 w-3.5 text-[#475569]" />}
-                    variant="bordered"
-                    align="right"
-                    menuWidth={195}
-                    isActive={timeFilter !== "all"}
-                  />
-
-                  {/* Ad Rank Min-Max Popover (bordered pill matching Shops) */}
-                  <div className="relative">
-                    <button
-                      ref={rankTriggerRef}
-                      type="button"
-                      onClick={() => {
-                        setFiltersOpen(false);
-                        setRankMinDraft(rankMin !== null ? String(rankMin) : "");
-                        setRankMaxDraft(rankMax !== null ? String(rankMax) : "");
-                        setRankOpen((v) => !v);
-                      }}
-                      className={`inline-flex w-full items-center justify-between gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13px] font-medium transition-colors lg:w-auto lg:text-xs ${
-                        rankMin !== null || rankMax !== null || rankOpen
-                          ? "border-[#CBD5E1] text-[#0F172A]"
-                          : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
-                      }`}
-                    >
-                      <span className="inline-flex min-w-0 items-center gap-1.5">
-                        <Award className="h-3.5 w-3.5 shrink-0 text-[#475569]" />
-                        <span className="truncate">
-                          {rankMin !== null || rankMax !== null
-                            ? `Rank ${rankMin ?? 1}–${rankMax ?? "∞"}`
-                            : "Ad Rank"}
-                        </span>
-                      </span>
-                      <ChevronDown
-                        className={`h-3.5 w-3.5 shrink-0 text-[#64748B] transition-transform duration-150 ${
-                          rankOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    <FlakePopover
-                      open={rankOpen}
-                      onOpenChange={setRankOpen}
-                      anchorRef={rankTriggerRef}
-                      align="right"
-                      width={330}
-                    >
-                      <div className="space-y-3.5 p-4">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="number"
-                            min={1}
-                            inputMode="numeric"
-                            value={rankMinDraft}
-                            onChange={(e) => setRankMinDraft(e.target.value)}
-                            placeholder="Min"
-                            className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A] sm:text-[14px]"
-                          />
-                          <span className="text-[#94A3B8]">-</span>
-                          <input
-                            type="number"
-                            min={1}
-                            inputMode="numeric"
-                            value={rankMaxDraft}
-                            onChange={(e) => setRankMaxDraft(e.target.value)}
-                            placeholder="50"
-                            className="w-full border-b border-[#E2E6EF] bg-transparent py-1.5 text-[16px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A] sm:text-[14px]"
-                          />
-                        </div>
-
-                        <div className="flex items-start gap-2.5 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-3 text-[12px] leading-[1.45] text-[#475569]">
-                          <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
-                          <p>
-                            Ads are ranked within each brand by reach, scaling and active runtime. The lower the rank, the stronger the ad is performing.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-[#ECEFF5] px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRankMin(null);
-                            setRankMax(null);
-                            setRankMinDraft("");
-                            setRankMaxDraft("");
-                            setVisibleLimit(48);
-                            setRankOpen(false);
-                          }}
-                          className="text-[13px] font-medium text-[#334155] transition-colors hover:text-[#0F172A]"
-                        >
-                          Clear
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const parsedMin = parseInt(rankMinDraft, 10);
-                            const parsedMax = parseInt(rankMaxDraft, 10);
-                            setRankMin(Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null);
-                            setRankMax(Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null);
-                            setVisibleLimit(48);
-                            setRankOpen(false);
-                          }}
-                          className="rounded-xl bg-[#0F172A] px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1E293B]"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </FlakePopover>
-                  </div>
-
-                  {/* Filters Popover (Format, bordered pill matching Shops) */}
-                  <div className="relative">
-                    <button
-                      ref={filtersTriggerRef}
-                      type="button"
-                      onClick={() => {
-                        setRankOpen(false);
-                        setFiltersOpen((v) => !v);
-                      }}
-                      className={`inline-flex w-full items-center justify-between gap-1.5 rounded-xl border bg-white px-3 py-2 text-[13px] font-medium transition-colors lg:w-auto lg:text-xs ${
-                        activeFilterCount > 0 || filtersOpen
-                          ? "border-[#CBD5E1] text-[#0F172A]"
-                          : "border-[#E6E9F0] text-[#334155] hover:border-[#CBD5E1]"
-                      }`}
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
-                        <span>Filters</span>
-                        {activeFilterCount > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0F172A] px-1 font-mono-num text-[10px] font-bold text-white">
-                            {activeFilterCount}
-                          </span>
-                        )}
-                      </span>
-                      <ChevronDown
-                        className={`h-3.5 w-3.5 shrink-0 text-[#64748B] transition-transform duration-150 ${
-                          filtersOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    <FlakePopover
-                      open={filtersOpen}
-                      onOpenChange={setFiltersOpen}
-                      anchorRef={filtersTriggerRef}
-                      align="right"
-                      width={330}
-                      maxHeight={480}
-                    >
-                      <div className="workspace-scroll space-y-3.5 overflow-y-auto overscroll-contain p-3.5">
-                        {/* Format */}
-                        <div>
-                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                            Format
-                          </p>
-                          <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
-                            {(
-                              [
-                                { id: "all", label: "Alle" },
-                                { id: "video", label: "Video" },
-                                { id: "image", label: "Image" },
-                                { id: "carousel", label: "Carousel" },
-                              ] as const
-                            ).map((fmt) => (
-                              <button
-                                key={fmt.id}
-                                type="button"
-                                onClick={() => {
-                                  setMediaFilter(fmt.id);
-                                  setVisibleLimit(48);
-                                }}
-                                className={`rounded-lg py-1 transition-all ${
-                                  mediaFilter === fmt.id
-                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
-                                    : "text-[#64748B] hover:text-[#0F172A]"
-                                }`}
-                              >
-                                {fmt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Platform */}
-                        <div>
-                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                            Platform
-                          </p>
-                          <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
-                            {[
-                              { id: "all", label: "Alle" },
-                              { id: "Facebook", label: "Facebook" },
-                              { id: "Instagram", label: "Instagram" },
-                              { id: "Messenger", label: "Messenger" },
-                              { id: "Threads", label: "Threads" },
-                            ].map((p) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => {
-                                  setPlatformFilter(p.id);
-                                  setVisibleLimit(48);
-                                }}
-                                className={`rounded-lg border px-2.5 py-1 transition-colors ${
-                                  platformFilter === p.id
-                                    ? "border-[#0F172A] bg-[#0F172A] text-white"
-                                    : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
-                                }`}
-                              >
-                                {p.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Min. Real Reach */}
-                        <div>
-                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                            Min. Reach (Meta)
-                          </p>
-                          <div className="grid grid-cols-5 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
-                            {(
-                              [
-                                { id: "all", label: "Alle" },
-                                { id: "10k", label: "10K+" },
-                                { id: "50k", label: "50K+" },
-                                { id: "100k", label: "100K+" },
-                                { id: "500k", label: "500K+" },
-                              ] as const
-                            ).map((opt) => (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => {
-                                  setMinReachFilter(opt.id);
-                                  setVisibleLimit(48);
-                                }}
-                                className={`rounded-lg py-1 transition-all ${
-                                  minReachFilter === opt.id
-                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
-                                    : "text-[#64748B] hover:text-[#0F172A]"
-                                }`}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Målgruppe: Køn */}
-                        <div>
-                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                            Målgruppe · Køn
-                          </p>
-                          <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#F3F4F6] p-1 text-[11.5px] font-medium">
-                            {(
-                              [
-                                { id: "all", label: "Alle" },
-                                { id: "Women", label: "Kvinder" },
-                                { id: "Men", label: "Mænd" },
-                                { id: "All", label: "Begge" },
-                              ] as const
-                            ).map((opt) => (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => {
-                                  setGenderFilter(opt.id);
-                                  setVisibleLimit(48);
-                                }}
-                                className={`rounded-lg py-1 transition-all ${
-                                  genderFilter === opt.id
-                                    ? "bg-white font-semibold text-[#0F172A] shadow-xs"
-                                    : "text-[#64748B] hover:text-[#0F172A]"
-                                }`}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Målgruppe: Aldersgruppe */}
-                        <div>
-                          <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                            Målgruppe · Aldersgruppe
-                          </p>
-                          <div className="grid grid-cols-3 gap-1.5 text-[11.5px] font-medium">
-                            {(
-                              [
-                                { id: "all", label: "Alle aldre" },
-                                { id: "18-24", label: "18–24" },
-                                { id: "25-34", label: "25–34" },
-                                { id: "35-44", label: "35–44" },
-                                { id: "45-54", label: "45–54" },
-                                { id: "55+", label: "55+" },
-                              ] as const
-                            ).map((opt) => (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => {
-                                  setAgeFilter(opt.id);
-                                  setVisibleLimit(48);
-                                }}
-                                className={`rounded-lg border px-2 py-1 transition-colors ${
-                                  ageFilter === opt.id
-                                    ? "border-[#0F172A] bg-[#0F172A] text-white"
-                                    : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
-                                }`}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Land (from real Meta targeted / reached countries) */}
-                        {availableAdCountries.length > 0 && (
-                          <div>
-                            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
-                              Land (Reach)
-                            </p>
-                            <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCountryFilter("all");
-                                  setVisibleLimit(48);
-                                }}
-                                className={`rounded-lg border px-2.5 py-1 transition-colors ${
-                                  countryFilter === "all"
-                                    ? "border-[#0F172A] bg-[#0F172A] text-white"
-                                    : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
-                                }`}
-                              >
-                                Alle
-                              </button>
-                              {availableAdCountries.map((c) => (
-                                <button
-                                  key={c.code}
-                                  type="button"
-                                  onClick={() => {
-                                    setCountryFilter(c.code);
-                                    setVisibleLimit(48);
-                                  }}
-                                  className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 transition-colors ${
-                                    countryFilter === c.code
-                                      ? "border-[#0F172A] bg-[#0F172A] text-white"
-                                      : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
-                                  }`}
-                                >
-                                  <span>{c.flag}</span>
-                                  <span>{c.code}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Scaled Ads Toggle */}
-                        <div className="flex items-center justify-between rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-3 py-2">
-                          <div>
-                            <p className="text-[12px] font-semibold text-[#0F172A]">
-                              Kun skalerede ads
-                            </p>
-                            <p className="text-[10.5px] text-[#64748B]">
-                              3+ aktive duplikater
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={scaledOnly}
-                            onClick={() => {
-                              setScaledOnly((v) => !v);
-                              setVisibleLimit(48);
-                            }}
-                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                              scaledOnly ? "bg-[#0027eb]" : "bg-[#CBD5E1]"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-xs transition-transform ${
-                                scaledOnly ? "translate-x-[18px]" : "translate-x-[3px]"
-                              }`}
-                            />
-                          </button>
-                        </div>
-
-                        {activeFilterCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMediaFilter("all");
-                              setPlatformFilter("all");
-                              setCountryFilter("all");
-                              setGenderFilter("all");
-                              setAgeFilter("all");
-                              setMinReachFilter("all");
-                              setScaledOnly(false);
-                              setVisibleLimit(48);
-                            }}
-                            className="w-full rounded-xl border border-[#E6E9F0] py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
-                          >
-                            Nulstil filtre
-                          </button>
-                        )}
-                      </div>
-                    </FlakePopover>
-                  </div>
-
-                  {/* Sort (clean full-width row on mobile, compact right pill on desktop) */}
-                  <div className="col-span-2 lg:col-span-1">
-                    <FlakeSelect
-                      ariaLabel="Sortér"
-                      value={sortBy}
-                      onChange={(val) => setSortBy(val as SortOption)}
-                      options={sortSelectOptions}
-                      icon={<ArrowUpDown className="h-3.5 w-3.5 text-[#475569]" />}
-                      variant="bordered"
-                      align="right"
-                      menuWidth={210}
-                      isActive={sortBy !== "top"}
-                      triggerClassName="font-semibold text-[#0F172A]"
-                    />
-                  </div>
-
-                  {hasAnyAdsFilter && (
-                    <button
-                      type="button"
-                      data-no-glass="true"
-                      onClick={resetAllAdsFilters}
-                      className="col-span-2 inline-flex items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A] lg:col-span-1 lg:py-2"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                      Nulstil filtre
-                    </button>
-                  )}
-                </div>
-              </div>
+              <InspoDiscoveryHeader
+                search={search}
+                onSearchChange={(val) => {
+                  setSearch(val);
+                  setVisibleLimit(48);
+                }}
+                activeViewTab={discoveryViewTab}
+                onViewTabChange={(tab) => {
+                  setDiscoveryViewTab(tab);
+                  if (tab === "dk") setMarketFilter("DK");
+                  else if (tab === "us") setMarketFilter("US");
+                  else setMarketFilter("ALL");
+                  setVisibleLimit(48);
+                }}
+                followedCount={followedBrandIds.length}
+                filtersExpanded={discoveryFiltersExpanded}
+                onToggleFiltersExpanded={() =>
+                  setDiscoveryFiltersExpanded((v) => !v)
+                }
+                sortBy={sortBy}
+                onSortChange={(val) => setSortBy(val)}
+                mediaFilter={mediaFilter}
+                onMediaFilterChange={(v) => {
+                  setMediaFilter(v);
+                  setVisibleLimit(48);
+                }}
+                platformFilter={platformFilter}
+                onPlatformFilterChange={(v) => {
+                  setPlatformFilter(v);
+                  setVisibleLimit(48);
+                }}
+                timeFilter={timeFilter}
+                onTimeFilterChange={(v) => {
+                  setTimeFilter(v);
+                  setVisibleLimit(48);
+                }}
+                countryFilter={countryFilter}
+                onCountryFilterChange={(v) => {
+                  setCountryFilter(v);
+                  setVisibleLimit(48);
+                }}
+                availableCountries={availableAdCountries}
+                genderFilter={genderFilter}
+                onGenderFilterChange={(v) => {
+                  setGenderFilter(v);
+                  setVisibleLimit(48);
+                }}
+                ageFilter={ageFilter}
+                onAgeFilterChange={(v) => {
+                  setAgeFilter(v);
+                  setVisibleLimit(48);
+                }}
+                minReachFilter={minReachFilter}
+                onMinReachFilterChange={(v) => {
+                  setMinReachFilter(v);
+                  setVisibleLimit(48);
+                }}
+                scaledOnly={scaledOnly}
+                onScaledOnlyChange={(v) => {
+                  setScaledOnly(v);
+                  setVisibleLimit(48);
+                }}
+                brandFilter={brandFilter}
+                onBrandFilterChange={(v) => {
+                  setBrandFilter(v);
+                  setVisibleLimit(48);
+                }}
+                brands={brands}
+                displayAdsTotal={displayAdsTotal}
+                hasAnyFilter={hasAnyAdsFilter}
+                onResetFilters={() => {
+                  resetAllAdsFilters();
+                  setDiscoveryViewTab("all");
+                }}
+                onOpenRequestBrand={() => {
+                  navigateWithSkeleton(() => setView("shops"));
+                }}
+              />
 
               {/* KONVERT-STYLE 4-COLUMN HORIZONTAL MASONRY FEED */}
               <div className="grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -2599,6 +2556,8 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         ad={ad}
                         boards={boards}
                         rank={idx < 3 ? idx + 1 : undefined}
+                        isFollowed={followedBrandIds.includes(ad.brand_id)}
+                        onToggleFollow={handleToggleFollow}
                         onOpen={handleOpenAd}
                         onToggleBoard={handleToggleBoard}
                         onOpenBrand={openShopAnalytics}
@@ -2621,10 +2580,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               {visibleAds.length === 0 && (
                 <div className="py-16 text-center">
                   <p className="font-display text-sm font-bold text-[#0F172A]">
-                    Ingen annoncer matcher dit filter
+                    No ads match your active filters
                   </p>
                   <p className="mt-1 text-xs text-[#64748B]">
-                    Prøv at skifte marked, format eller ryd søgefeltet.
+                    Try switching tabs, format, or clearing your search.
                   </p>
                 </div>
               )}
@@ -2632,9 +2591,86 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {/* =================================================================
-              VIEW 3: FOLDERS
+              VIEW 2B: ADVERTISERS, TOP PICKS & FOLLOWING
              ================================================================= */}
-          {view === "folders" && (
+          {view === "advertisers" && (
+            <div className="animate-view-in">
+              <AdvertisersView
+                brands={brands}
+                ads={ads}
+                followedBrandIds={followedBrandIds}
+                onToggleFollow={handleToggleFollow}
+                onOpenBrand={openShopAnalytics}
+                onCloneAd={(ad) => handleCloneAdToStudio(ad)}
+              />
+            </div>
+          )}
+
+          {view === "top_picks" && (
+            <div className="animate-view-in">
+              <TopPicksView
+                onCloneCollectionToStudio={handleCloneCollectionToStudio}
+                onBrowseAds={() => navigateWithSkeleton(() => setView("explore"))}
+              />
+            </div>
+          )}
+
+          {view === "following" && (
+            <div className="animate-view-in">
+              <FollowingView
+                brands={brands}
+                ads={ads}
+                followedBrandIds={followedBrandIds}
+                onToggleFollow={handleToggleFollow}
+                onOpenBrand={openShopAnalytics}
+                onBrowseBrands={() =>
+                  navigateWithSkeleton(() => setView("advertisers"))
+                }
+              />
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 3: SAVED ADS & BOARDS
+             ================================================================= */}
+          {view === "folders" && !selectedFolderId && (
+            <div className="animate-view-in space-y-6">
+              <SavedAdsSubView
+                ads={ads}
+                boards={boards}
+                onOpenAd={(ad) => setActiveAdId(ad.id)}
+                onToggleBoard={handleToggleBoard}
+                onOpenBrand={openShopAnalytics}
+                onCloneAd={(ad) => handleCloneAdToStudio(ad)}
+                onBrowseAds={() => navigateWithSkeleton(() => setView("explore"))}
+                onOpenUpload={() => {
+                  setStudioInitialTab("media");
+                  navigateWithSkeleton(() => setView("studio"));
+                }}
+              />
+              {boards.length > 0 && (
+                <CollectionsView
+                  boards={boards}
+                  ads={ads}
+                  brands={brands}
+                  selectedFolderId={selectedFolderId}
+                  onSelectFolder={(id) =>
+                    navigateWithSkeleton(() => setSelectedFolderId(id))
+                  }
+                  onCreateBoard={handleCreateBoard}
+                  onUpdateBoard={handleUpdateBoard}
+                  onDeleteBoard={handleDeleteBoard}
+                  onOpenShop={openShopAnalytics}
+                  onOpenAd={(ad) => setActiveAdId(ad.id)}
+                  onToggleBoard={handleToggleBoard}
+                  onAddCustomAd={handleAddCustomAd}
+                  onCloneAd={(ad) => handleCloneAdToStudio(ad)}
+                />
+              )}
+            </div>
+          )}
+
+          {view === "folders" && selectedFolderId && (
             <div className="animate-view-in">
               <CollectionsView
                 boards={boards}
@@ -2666,6 +2702,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 messages={snowMessages}
                 ads={dedupedAds}
                 analyticsRows={ownAnalyticsRows}
+                subView={snowSubView}
+                onSubViewChange={setSnowSubView}
+                onNavigateToStudio={(tab) => {
+                  if (tab) setStudioInitialTab(tab);
+                  navigateWithSkeleton(() => setView("studio"));
+                }}
                 onMessagesChange={setSnowMessages}
                 onOpenBrandMemory={() => setBrandMemoryModalOpen(true)}
                 onCloneAdToStudio={handleCloneAdToStudio}
@@ -2676,7 +2718,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {/* =================================================================
-              VIEW 5: ZERO-SKILL AD STUDIO (VIDEO MAKER + STATIC CLONER + URL MINER)
+              VIEW 5: AD MAKER STUDIO (VIDEO, IMAGE, PROJECTS, MEDIA, PLAYGROUND)
              ================================================================= */}
           {view === "studio" && (
             <div className="animate-view-in">
@@ -2685,6 +2727,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 projects={creativeProjects}
                 incomingTrigger={studioTrigger}
                 initialSubTab={studioInitialTab}
+                onSubTabChange={setStudioInitialTab}
                 onConsumeTrigger={() => setStudioTrigger(null)}
                 onSaveProject={handleSaveStudioProject}
                 onQueueForLaunch={handleQueueProjectForLaunch}
@@ -2695,7 +2738,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {/* =================================================================
-              VIEW 6: CREATIVE ANALYTICS & META LAUNCH
+              VIEW 6: CREATIVE ANALYTICS, CONNECT & META LAUNCH
              ================================================================= */}
           {view === "analytics" && (
             <div className="animate-view-in">
@@ -2704,13 +2747,69 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 projects={creativeProjects}
                 analyticsRows={ownAnalyticsRows}
                 activeReport={analyticsReport}
+                onReportChange={setAnalyticsReport}
+                onOpenMcp={() => navigateWithSkeleton(() => setView("mcp"))}
                 onDoubleDown={handleDoubleDownWinner}
                 onLaunchProjects={handleLaunchProjects}
                 onImportCsvRows={(rows) => {
                   setImportedCsvRows(rows);
-                  showToast(`${rows.length} annoncer importeret til Analytics`);
+                  setAnalyticsReport("overview");
+                  showToast(`${rows.length} ads imported into Analytics`);
                 }}
                 onOpenBrandMemory={() => setBrandMemoryModalOpen(true)}
+              />
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 7: ASSETS, BRANDS & MCP
+             ================================================================= */}
+          {view === "assets" && (
+            <div className="animate-view-in">
+              <AssetsWorkspaceView
+                brandMemory={brandMemory}
+                projects={creativeProjects}
+                onOpenBrandScanner={() => setBrandMemoryModalOpen(true)}
+                onNavigateToStudio={(tab) => {
+                  if (tab) setStudioInitialTab(tab);
+                  navigateWithSkeleton(() => setView("studio"));
+                }}
+              />
+            </div>
+          )}
+
+          {view === "brands" && (
+            <div className="animate-view-in">
+              <BrandsWorkspaceView
+                brandMemory={brandMemory}
+                subView={brandsSubView}
+                onSubViewChange={setBrandsSubView}
+                brands={brands}
+                ads={dedupedAds}
+                onSaveMemory={(mem) => {
+                  setBrandMemory(mem);
+                  showToast(`Saved Brand Memory for ${mem.brandName}`);
+                }}
+                onOpenBrandScanner={() => setBrandMemoryModalOpen(true)}
+                onCreateAdFromProduct={(productTitle) => {
+                  setStudioInitialTab("video");
+                  setStudioTrigger({
+                    id: `prod-${Date.now()}`,
+                    mode: "video",
+                    productTitle,
+                  });
+                  navigateWithSkeleton(() => setView("studio"));
+                }}
+                onOpenCompetitorBrand={openShopAnalytics}
+              />
+            </div>
+          )}
+
+          {view === "mcp" && (
+            <div className="animate-view-in">
+              <McpWorkspaceView
+                subView={mcpSubView}
+                onSubViewChange={setMcpSubView}
               />
             </div>
           )}
@@ -2743,7 +2842,20 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       >
         <GlassTabBar
           aria-label="Hovednavigation"
-          value={view === "folders" ? "explore" : view}
+          value={
+            view === "advertisers" ||
+            view === "top_picks" ||
+            view === "following" ||
+            view === "folders"
+              ? "explore"
+              : view === "assets"
+                ? "studio"
+                : view === "brands"
+                  ? "shops"
+                  : view === "mcp"
+                    ? "analytics"
+                    : view
+          }
           onValueChange={(next) => {
             const target = next as ActiveView;
             navigateWithSkeleton(() => {
