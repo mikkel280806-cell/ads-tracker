@@ -440,14 +440,6 @@ export function OnboardingFlow() {
               />
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="absolute right-0 text-xs font-medium text-white/40 transition-colors hover:text-white/80"
-          >
-            Skip
-          </button>
         </div>
 
         {/* Center Stage Content */}
