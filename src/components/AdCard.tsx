@@ -92,7 +92,8 @@ export const AdCard = React.memo(function AdCard({
   const activeMediaType = activeSlide ? activeSlide.media_type : ad.media_type;
 
   const isVideoFile =
-    activeMediaType === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(activeMediaUrl);
+    /\.(mp4|webm|mov)(\?|$)/i.test(activeMediaUrl) ||
+    (activeMediaType === "video" && activeMediaUrl.includes("video") && activeMediaUrl.includes("fbcdn"));
 
   const primaryImg = imgFailed
     ? ad.fallback_image_url || ""
