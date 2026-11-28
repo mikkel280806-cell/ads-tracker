@@ -127,6 +127,99 @@ function CursorBrandIcon({ className = "h-6 w-6" }: { className?: string }) {
    SHARED SMALL HELPERS
    ============================================================================ */
 
+function extractBareDomain(websiteUrl?: string | null): string | null {
+  if (typeof websiteUrl !== "string") return null;
+  const trimmed = websiteUrl.trim();
+  if (!trimmed) return null;
+  try {
+    const withProtocol = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    const host = new URL(withProtocol).hostname.replace(/^www\./i, "");
+    return host.includes(".") ? host : null;
+  } catch {
+    const stripped = trimmed
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .split(/[/?#]/)[0];
+    return stripped && stripped.includes(".") ? stripped : null;
+  }
+}
+
+function BrandAvatar({
+  name,
+  logoUrl,
+  websiteUrl,
+  initials,
+  sizeClass = "h-10 w-10",
+  textClass = "text-[11px]",
+}: {
+  name: string;
+  logoUrl?: string | null;
+  websiteUrl?: string | null;
+  initials?: string | null;
+  sizeClass?: string;
+  textClass?: string;
+}) {
+  const bareDomain = extractBareDomain(websiteUrl);
+  const faviconUrl = bareDomain
+    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(bareDomain)}&sz=128`
+    : null;
+
+  const sources = [
+    typeof logoUrl === "string" && logoUrl.trim() ? logoUrl.trim() : null,
+    faviconUrl,
+  ].filter((u): u is string => Boolean(u));
+
+  const sourceKey = sources.join("|");
+  const [failedState, setFailedState] = useState<{
+    key: string;
+    index: number;
+  }>({ key: sourceKey, index: 0 });
+
+  const activeIndex = failedState.key === sourceKey ? failedState.index : 0;
+  const currentSrc = sources[activeIndex] ?? null;
+
+  const fallbackInitials =
+    (typeof initials === "string" && initials.trim()) ||
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() ||
+    name.slice(0, 2).toUpperCase();
+
+  if (!currentSrc) {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center rounded-full bg-[#050811] text-white ${sizeClass}`}
+      >
+        <span className={`font-display font-bold tracking-tight ${textClass}`}>
+          {fallbackInitials}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-white p-1 ${sizeClass}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={currentSrc}
+        alt={name}
+        onError={() =>
+          setFailedState({ key: sourceKey, index: activeIndex + 1 })
+        }
+        className="h-full w-full rounded-full object-contain"
+      />
+    </div>
+  );
+}
+
 interface ContextFileItem {
   id: string;
   name: string;
@@ -592,20 +685,13 @@ export function BrandsWorkspaceView({
                   <tr className="transition-colors hover:bg-[#f5f5fa]/50">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-[#f5f5fa] p-1.5">
-                          {activeMemory.logoUrl ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={activeMemory.logoUrl}
-                              alt={activeMemory.brandName}
-                              className="h-full w-full object-contain"
-                            />
-                          ) : (
-                            <span className="font-display text-[11px] font-bold text-[#0F172A]">
-                              {activeMemory.brandName.slice(0, 2).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
+                        <BrandAvatar
+                          name={activeMemory.brandName}
+                          logoUrl={activeMemory.logoUrl}
+                          websiteUrl={activeMemory.websiteUrl || activeMemory.domain}
+                          sizeClass="h-10 w-10"
+                          textClass="text-[11px]"
+                        />
                         <div className="min-w-0">
                           <p className="font-semibold text-[#0F172A]">
                             {activeMemory.brandName}
@@ -653,20 +739,14 @@ export function BrandsWorkspaceView({
                       >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-white p-1">
-                              {brand.logo_url ? (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img
-                                  src={brand.logo_url}
-                                  alt={brand.name}
-                                  className="h-full w-full rounded-full object-contain"
-                                />
-                              ) : (
-                                <span className="font-display text-[11px] font-bold text-[#0F172A]">
-                                  {brand.avatar_initials}
-                                </span>
-                              )}
-                            </div>
+                            <BrandAvatar
+                              name={brand.name}
+                              logoUrl={brand.logo_url}
+                              websiteUrl={brand.website_url}
+                              initials={brand.avatar_initials}
+                              sizeClass="h-10 w-10"
+                              textClass="text-[11px]"
+                            />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-[#0F172A]">
@@ -677,8 +757,11 @@ export function BrandsWorkspaceView({
                                 </span>
                               </div>
                               <p className="truncate text-[12px] text-[#64748B]">
-                                {brand.category} ·{" "}
-                                {brand.website_url.replace(/^https?:\/\//, "")}
+                                {brand.category}
+                                {typeof brand.website_url === "string" &&
+                                brand.website_url.trim()
+                                  ? ` · ${brand.website_url.replace(/^https?:\/\//, "")}`
+                                  : ""}
                               </p>
                             </div>
                           </div>
@@ -806,20 +889,13 @@ export function BrandsWorkspaceView({
       {/* Brand Identity Bar */}
       <div className="flex flex-col justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white p-5 sm:flex-row sm:items-center sm:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-[#f5f5fa] p-2">
-            {activeMemory.logoUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={activeMemory.logoUrl}
-                alt={activeMemory.brandName}
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <span className="font-display text-base font-bold text-[#0F172A]">
-                {activeMemory.brandName.slice(0, 2).toUpperCase()}
-              </span>
-            )}
-          </div>
+          <BrandAvatar
+            name={activeMemory.brandName}
+            logoUrl={activeMemory.logoUrl}
+            websiteUrl={activeMemory.websiteUrl || activeMemory.domain}
+            sizeClass="h-14 w-14"
+            textClass="text-base"
+          />
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="font-display truncate text-[20px] font-bold tracking-tight text-[#0F172A]">
@@ -2144,26 +2220,22 @@ export function BrandsWorkspaceView({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-white p-1.5">
-                      {brand.logo_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={brand.logo_url}
-                          alt={brand.name}
-                          className="h-full w-full rounded-full object-contain"
-                        />
-                      ) : (
-                        <span className="font-display text-[13px] font-bold text-[#0F172A]">
-                          {brand.avatar_initials}
-                        </span>
-                      )}
-                    </div>
+                    <BrandAvatar
+                      name={brand.name}
+                      logoUrl={brand.logo_url}
+                      websiteUrl={brand.website_url}
+                      initials={brand.avatar_initials}
+                      sizeClass="h-11 w-11"
+                      textClass="text-[13px]"
+                    />
                     <div className="min-w-0">
                       <h3 className="font-display truncate text-[15px] font-bold text-[#0F172A]">
                         {brand.name}
                       </h3>
                       <p className="font-mono-num truncate text-[12px] text-[#64748B]">
-                        {brand.website_url.replace(/^https?:\/\//, "")}
+                        {typeof brand.website_url === "string"
+                          ? brand.website_url.replace(/^https?:\/\//, "")
+                          : ""}
                       </p>
                     </div>
                   </div>
