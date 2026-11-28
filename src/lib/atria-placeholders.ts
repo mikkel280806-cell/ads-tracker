@@ -92,10 +92,12 @@ export interface AtriaImageTemplatePlaceholder {
 }
 
 export const ATRIA_PROMO_VIDEOS = {
-  adClone: "https://cdn.tryatria.com/video/ad-clone.mp4",
-  iterateAds: "https://cdn.tryatria.com/video/radar-to-image-flat.mp4",
-  rayaHeroClip1: "https://cdn.tryatria.com/promo/20261029-creativefactory-video-audio-policy-no-background-ff52ce6b.mp4",
-  rayaHeroClip2: "https://cdn.tryatria.com/promo/20261029-creativefactory-zoom-in-4dafd35d.mp4",
+  adClone: "/atria-assets/studio/ad-maker-clone.mp4",
+  iterateAds: "/atria-assets/studio/ad-maker-iterate.mp4",
+  rayaHeroClip1: "/atria-assets/studio/snow-hero-clip-1.mp4",
+  rayaHeroClip2: "/atria-assets/studio/snow-hero-clip-2.mp4",
+  rayaHeroClip3: "/atria-assets/studio/snow-hero-clip-3.mp4",
+  rayaHeroClip4: "/atria-assets/studio/snow-hero-clip-4.mp4",
 };
 
 export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
@@ -107,8 +109,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Static & Pointers",
     description:
       "Clean product hero frames with crisp benefit arrows, social proof badges, and instant hook hierarchy.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_c4cf7f4de3bd40a7a8986e53acfae5da_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-01-static-callout.jpg",
     badge: "Most Cloned",
   },
   {
@@ -119,20 +120,18 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Comparison",
     description:
       "Split-screen positioning layouts contrasting your hero product against generic alternatives without noise.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_38dfc99018fc45618d27d3f31e269e5d_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-02-us-vs-them.jpg",
     badge: "ROAS Leader",
   },
   {
     id: "tp-3",
-    title: "BFCM & Seasonal Offer Winners",
+    title: "Seasonal & Promotional Offer Winners",
     adCount: 68,
     templateCount: 68,
     category: "Promotion",
     description:
       "Urgency-driven bundle offers, tiered savings layouts, and clean price-anchor callouts ready to adapt.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_47799170c38d4bf38b130850d84fd944_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-03-seasonal-offers.jpg",
   },
   {
     id: "tp-4",
@@ -142,8 +141,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Health & Wellness",
     description:
       "Ingredient breakdowns, daily routine timelines, and doctor/customer quote formats proven on Meta.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_ea299e4a551845ec8533df56ac73a147_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-04-health-wellness.jpg",
   },
   {
     id: "tp-5",
@@ -153,8 +151,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Native Organic",
     description:
       "Pattern-interrupt lo-fi formats disguised as Apple Notes, Post-Its, and text screenshots with high CTR.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_f094526a840b4fcaaea83d1832734071_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-05-native-notes.jpg",
   },
   {
     id: "tp-6",
@@ -164,8 +161,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Beauty",
     description:
       "Texture close-ups, 14-day progress split cards, and dermatologist-style proof callouts.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_f1aadada546b473f9d0da39743222096_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-06-beauty-skincare.jpg",
   },
   {
     id: "tp-7",
@@ -175,8 +171,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Fashion",
     description:
       "Minimalist typography overlays and fit/fabric detail zoom grids built for cold traffic prospecting.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_a3de8c09a0b74edf805ae2f1d6523ca4_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-07-apparel-editorial.jpg",
   },
   {
     id: "tp-8",
@@ -186,8 +181,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Social Proof",
     description:
       "Trustpilot & verified customer review stacks paired with lifestyle product photography.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_8f331929eb414c0a8a38a555f140c30f_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-08-social-proof.jpg",
   },
   {
     id: "tp-9",
@@ -197,8 +191,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Direct Response",
     description:
       "Numbered listicle creatives that pre-handle objections before the user ever clicks to the landing page.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_4a6b368a2f99497b8f62b9fb84a848cf_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-09-reasons-why.jpg",
   },
   {
     id: "tp-10",
@@ -208,8 +201,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Home & Living",
     description:
       "Warm interior shots with clean architectural annotations highlighting comfort and build quality.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_52e0824e1b8c4f39aa2428cc751a2d31_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-10-home-ergonomics.jpg",
   },
   {
     id: "tp-11",
@@ -219,8 +211,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Bundles",
     description:
       "Flat-lay kit visualizations that boost AOV by showing every item included in the bundle.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_9d1271687cb04f698e95510bdcf68c_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-01-static-callout.jpg",
   },
   {
     id: "tp-12",
@@ -230,8 +221,7 @@ export const ATRIA_TOP_PICKS_COLLECTIONS: AtriaCollectionPlaceholder[] = [
     category: "Founder",
     description:
       "High-trust editorial letter formats telling the real 'why we built this' story for colder audiences.",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/collection_8dc0a450066747db81d57bf601904d10_image.jpeg",
+    thumbnailUrl: "/atria-assets/inspo/collection-12-founder-memo.jpg",
   },
 ];
 
@@ -241,8 +231,7 @@ export const ATRIA_ADVERTISERS_PLACEHOLDERS: AtriaAdvertiserPlaceholder[] = [
     name: "Meshki",
     domain: "meshki.com",
     industry: "Apparel & Accessories",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/brand_m1399309633614041_5YtCD-qsY9E.jpeg",
+    avatarUrl: "/atria-assets/inspo/adv-meshki.jpg",
     fbFollowers: "412K",
     igFollowers: "2.6M",
     newAds30d: 148,
@@ -255,8 +244,7 @@ export const ATRIA_ADVERTISERS_PLACEHOLDERS: AtriaAdvertiserPlaceholder[] = [
     name: "Legend London",
     domain: "legendlondon.co",
     industry: "Menswear",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/brand_m532567963605592_A1049ztq2Cw.jpeg",
+    avatarUrl: "/atria-assets/inspo/adv-legend-london.jpg",
     fbFollowers: "184K",
     igFollowers: "690K",
     newAds30d: 96,
@@ -269,8 +257,7 @@ export const ATRIA_ADVERTISERS_PLACEHOLDERS: AtriaAdvertiserPlaceholder[] = [
     name: "Tradesman Nutrition",
     domain: "tradesmannutrition.com",
     industry: "Health & Wellness",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/brand_m822932334247182_0PkMzG6ZIn8.jpeg",
+    avatarUrl: "/atria-assets/inspo/adv-tradesman.jpg",
     fbFollowers: "62K",
     igFollowers: "145K",
     newAds30d: 74,
@@ -283,8 +270,7 @@ export const ATRIA_ADVERTISERS_PLACEHOLDERS: AtriaAdvertiserPlaceholder[] = [
     name: "Nude Project",
     domain: "nude-project.com",
     industry: "Streetwear",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/brand_m299266634324735_94tSYHD7byI.jpeg",
+    avatarUrl: "/atria-assets/inspo/adv-nude-project.jpg",
     fbFollowers: "94K",
     igFollowers: "1.3M",
     newAds30d: 112,
@@ -297,8 +283,7 @@ export const ATRIA_ADVERTISERS_PLACEHOLDERS: AtriaAdvertiserPlaceholder[] = [
     name: "Muscle Mat",
     domain: "musclemat.com",
     industry: "Home & Wellness",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/brand_m105396194411046_7CJLhLx6gg8.jpeg",
+    avatarUrl: "/atria-assets/inspo/adv-muscle-mat.jpg",
     fbFollowers: "118K",
     igFollowers: "210K",
     newAds30d: 64,
@@ -312,54 +297,46 @@ export const ATRIA_TRENDING_VIDEOS: AtriaTrendingVideoPlaceholder[] = [
   {
     id: "tv-1",
     brandName: "On",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1728430598258373_Q146J4iB4yo.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m2200870263862030_Iw4tWWLAWig.jpeg",
-    durationLabel: "00:24",
-    activeDays: 68,
+    brandAvatarUrl: "/atria-assets/studio/brand-avatar-04.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-01.jpg",
+    durationLabel: "00:31",
+    activeDays: 6,
     industry: "Fitness, Sports & Outdoors",
-    styleTag: "UGC / handheld",
+    styleTag: "2D animation",
     hookLine: "3 things I wish I knew before switching my daily setup.",
-    presetId: "iphone_ugc",
+    presetId: "pixar_story",
   },
   {
     id: "tv-2",
     brandName: "BYLT Basics",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1779961569778067_UuptTMvykJ4.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1457224572408658_DFK6VGDzc5A.jpeg",
-    durationLabel: "00:31",
-    activeDays: 54,
+    brandAvatarUrl: "/atria-assets/inspo/adv-legend-london.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-04.jpg",
+    durationLabel: "01:53",
+    activeDays: 11,
     industry: "Apparel & Accessories",
-    styleTag: "Studio",
+    styleTag: "UGC / handheld",
     hookLine: "Look at the fit test after 100 washes — zero sag.",
-    presetId: "founder_authority",
+    presetId: "iphone_ugc",
   },
   {
     id: "tv-3",
     brandName: "JSHealth",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m4300075613460119_xONPwMp67J4.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m2805634163211169_TwFzsmhXJwk.jpeg",
-    durationLabel: "00:21",
-    activeDays: 82,
+    brandAvatarUrl: "/atria-assets/inspo/adv-tradesman.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-05.jpg",
+    durationLabel: "02:42",
+    activeDays: 4,
     industry: "Health & Wellness",
-    styleTag: "Realistic",
+    styleTag: "3D / cartoon",
     hookLine: "Stop buying random fixes — here is what actually worked on week 2.",
-    presetId: "iphone_ugc",
+    presetId: "pixar_story",
   },
   {
     id: "tv-4",
     brandName: "Emma",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1565013542339609_MpUnZFgPZ-g.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1653381479674062_mPyiJo3gIpM.jpeg",
-    durationLabel: "00:19",
-    activeDays: 47,
+    brandAvatarUrl: "/atria-assets/inspo/adv-muscle-mat.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-09.jpg",
+    durationLabel: "00:51",
+    activeDays: 16,
     industry: "Home & Electronics",
     styleTag: "Cinematic",
     hookLine: "Why your posture drops every afternoon at 2 PM — visual MOA.",
@@ -368,58 +345,50 @@ export const ATRIA_TRENDING_VIDEOS: AtriaTrendingVideoPlaceholder[] = [
   {
     id: "tv-5",
     brandName: "Gatorade",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m2330464661102260_r3oSJe8v5hk.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m2330464661102260_BkHBAKBsor8.jpeg",
-    durationLabel: "00:26",
+    brandAvatarUrl: "/atria-assets/inspo/adv-nude-project.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-06.jpg",
+    durationLabel: "01:56",
     activeDays: 39,
     industry: "Food & Beverage",
-    styleTag: "3D / cartoon",
+    styleTag: "Claymation / stop motion",
     hookLine: "Wait — watch what happens inside the body in 3 seconds.",
-    presetId: "pixar_story",
+    presetId: "claymation_moa",
   },
   {
     id: "tv-6",
     brandName: "Emma Lab",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1565013542339609_MpUnZFgPZ-g.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1565013542339609_7_Sx3HBMkeU.jpeg",
-    durationLabel: "00:20",
+    brandAvatarUrl: "/atria-assets/studio/brand-avatar-04.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-07.jpg",
+    durationLabel: "03:37",
     activeDays: 63,
     industry: "Health & Wellness",
-    styleTag: "Claymation / stop motion",
+    styleTag: "Motion graphics",
     hookLine: "Stop-motion breakdown of stiffness vs active sitting support.",
-    presetId: "claymation_moa",
+    presetId: "mini_drama",
   },
   {
     id: "tv-7",
     brandName: "On Studio",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1728430598258373_Q146J4iB4yo.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1728430598258373_0IoWN70AXvc.jpeg",
-    durationLabel: "00:25",
+    brandAvatarUrl: "/atria-assets/inspo/adv-meshki.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-08.jpg",
+    durationLabel: "00:33",
     activeDays: 44,
     industry: "Apparel & Accessories",
-    styleTag: "Motion graphics",
+    styleTag: "Studio",
     hookLine: "Side-by-side durability test — creator skeptical at first.",
-    presetId: "mini_drama",
+    presetId: "founder_authority",
   },
   {
     id: "tv-8",
     brandName: "BYLT Crew",
-    brandAvatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1779961569778067_UuptTMvykJ4.jpeg",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1779961569778067_fMTU48mvMF0.jpeg",
-    durationLabel: "00:28",
+    brandAvatarUrl: "/atria-assets/inspo/adv-legend-london.jpg",
+    thumbnailUrl: "/atria-assets/studio/trending-video-02.jpg",
+    durationLabel: "00:10",
     activeDays: 71,
     industry: "Apparel & Accessories",
-    styleTag: "2D animation",
+    styleTag: "Realistic",
     hookLine: "The 3-second texture reveal everyone in the office asked about.",
-    presetId: "pixar_story",
+    presetId: "iphone_ugc",
   },
 ];
 
@@ -429,8 +398,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "3 Feature Pointers Hero",
     category: "Feature Highlight",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1335638612072013_eUn0D5ST62g.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-01.jpg",
     layoutId: "callout_pointers",
   },
   {
@@ -438,8 +406,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "Us vs. Them Split Card",
     category: "Problem/Solution",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m27690321097275518_a0AA91zkQuE.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-02.jpg",
     layoutId: "us_vs_them",
   },
   {
@@ -447,8 +414,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "Creator UGC Overlay Quote",
     category: "UGC/Testimonial",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1888317939240621_eH3jGaJAuvk.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-03.jpg",
     layoutId: "founder_quote",
   },
   {
@@ -456,8 +422,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "Trending Seasonal Offer",
     category: "Discount/Promotion",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1360507625918026_VHOEUBTkgQY.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-04.jpg",
     layoutId: "callout_pointers",
   },
   {
@@ -465,8 +430,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "14-Day Transformation Split",
     category: "Before/After",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m4243083519237126_MvQA0Hb-574.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-05.jpg",
     layoutId: "before_after",
   },
   {
@@ -474,8 +438,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "Sticky Note Pattern Interrupt",
     category: "Trending",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m2008860406649270_NorovItBYS4.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-06.jpg",
     layoutId: "ugly_postit",
   },
   {
@@ -483,8 +446,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "Daily Routine Lifestyle Demo",
     category: "Lifestyle",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m1287050216268218_Fx_ZZq1qj6k.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-07.jpg",
     layoutId: "callout_pointers",
   },
   {
@@ -492,8 +454,7 @@ export const ATRIA_IMAGE_TEMPLATES: AtriaImageTemplatePlaceholder[] = [
     title: "Close-Up Product Benefit Callout",
     category: "Product Demo",
     brandName: "Flake Template",
-    thumbnailUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/adfiles/m4373518106270164_S9AeoISZjNc.jpeg",
+    thumbnailUrl: "/atria-assets/studio/image-template-08.jpg",
     layoutId: "callout_pointers",
   },
 ];
@@ -504,8 +465,7 @@ export const ATRIA_BRAND_SCENARIOS = [
     title: "Work-from-Home Posture Upgrade",
     summary:
       "Replacing a rigid office chair for 6+ hours of daily deep work without lower-back stiffness.",
-    imageUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/4596042a8fc4474ca6804accb7063412.jpg",
+    imageUrl: "/atria-assets/inspo/collection-10-home-ergonomics.jpg",
     hookAngle: "Problem -> Active Posture Demo",
   },
   {
@@ -513,8 +473,7 @@ export const ATRIA_BRAND_SCENARIOS = [
     title: "Minimalist Scandinavian Interior",
     summary:
       "Functional ergonomic design that blends into a curated living room instead of looking like gym gear.",
-    imageUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/bcc35e84afe844e3b5cfc14eee174304.jpg",
+    imageUrl: "/atria-assets/studio/image-template-07.jpg",
     hookAngle: "Aesthetic Proof -> Tactile Material",
   },
   {
@@ -522,8 +481,7 @@ export const ATRIA_BRAND_SCENARIOS = [
     title: "Afternoon Energy & Focus Slump",
     summary:
       "Micro-movement while taking calls keeps core engaged and eliminates 3 PM sluggishness.",
-    imageUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/e5e7da43159042c58e9ce381919be51a.jpg",
+    imageUrl: "/atria-assets/studio/image-template-08.jpg",
     hookAngle: "3-Second Relatable Hook -> Benefit",
   },
 ];
@@ -534,24 +492,21 @@ export const ATRIA_BRAND_PERSONAS = [
     name: "Freja, 31 — Design-Conscious Founder",
     role: "Studio & Home Office",
     desire: "Wants posture support that still matches Nordic oak & linen decor.",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/36f63cecd5ef455a9d1af15631f019d0.jpg",
+    avatarUrl: "/atria-assets/inspo/adv-meshki.jpg",
   },
   {
     id: "per-2",
     name: "Henrik, 39 — Remote Tech Lead",
     role: "8h Desk Routine",
     desire: "Needs lower-back relief and sharper afternoon energy without gym time.",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/40bd13a6bfbb4b03a9da0b9d5d92a4da.jpg",
+    avatarUrl: "/atria-assets/inspo/adv-legend-london.jpg",
   },
   {
     id: "per-3",
     name: "Maja, 27 — Wellness & Pilates Enthusiast",
     role: "Daily Core Stability",
     desire: "Loves clean tactile products backed by real functional benefits.",
-    avatarUrl:
-      "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/eb7463c6f71a48a1bd0682f3981c621d.jpg",
+    avatarUrl: "/atria-assets/inspo/adv-nude-project.jpg",
   },
 ];
 
@@ -559,8 +514,7 @@ export const DEFAULT_DEMO_BRAND_MEMORY: BrandMemory = {
   brandName: "Arch & Pillar",
   domain: "archandpillar.dk",
   websiteUrl: "https://archandpillar.dk",
-  logoUrl:
-    "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/af8c6b16cbc64cceb2b0c0a8fd560543.png",
+  logoUrl: "/atria-assets/studio/brand-avatar-04.jpg",
   tagline: "Design-led active sitting & posture support",
   description:
     "Arch Ball is a design-led seating ball intended to encourage active sitting, support posture, and help relieve or prevent back pain.",
@@ -595,8 +549,7 @@ export const DEFAULT_DEMO_BRAND_MEMORY: BrandMemory = {
       title: "Arch Ball - Oat",
       price: "799",
       currency: "DKK",
-      image_url:
-        "https://cdn.tryatria.com/_images/w:1920/q:75/plain/brands_v2/016b35e5c904443b89cda406894cf789/0061e599ddae49038ec807439625dc04/fd109056cd3f4c4c8852298c5fada5da.jpg",
+      image_url: "/atria-assets/inspo/collection-10-home-ergonomics.jpg",
       url: "https://archandpillar.dk/products/archball",
     },
   ],

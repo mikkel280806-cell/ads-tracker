@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   Bookmark,
@@ -10,6 +11,7 @@ import {
   Clock,
   Copy,
   Download,
+  Eye,
   FileText,
   Film,
   Filter,
@@ -131,19 +133,20 @@ const VIDEO_STYLE_CHIPS: Array<{ id: VideoStylePresetId; label: string }> = [
   { id: "cinema_macro", label: "Cinema Macro" },
 ];
 
+// Exact Atria Ad Maker style filter order
 const ATRIA_STYLE_FILTERS = [
   "All styles",
-  "Realistic",
-  "UGC / handheld",
-  "Studio",
-  "Cinematic",
-  "2D animation",
   "3D / cartoon",
-  "Anime",
   "Claymation / stop motion",
+  "2D animation",
+  "Cinematic",
+  "Anime",
+  "Surreal",
   "Motion graphics",
   "Screen recording",
-  "Surreal",
+  "Studio",
+  "UGC / handheld",
+  "Realistic",
 ] as const;
 
 const IMAGE_TEMPLATE_CATEGORIES = [
@@ -221,6 +224,104 @@ interface PlaygroundResultRow {
   why: string;
   source: string;
   createdAt: string;
+}
+
+function AiAssistantBadges() {
+  return (
+    <span className="inline-flex items-center -space-x-1">
+      {/* Claude official brand mark */}
+      <span
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-[#D97757]"
+        title="Claude"
+      >
+        <svg viewBox="0 0 16 16" className="h-3 w-3" aria-hidden="true">
+          <path
+            d="M8 2.2v11.6M2.2 8h11.6M3.9 3.9l8.2 8.2M12.1 3.9l-8.2 8.2"
+            stroke="#FFFFFF"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </span>
+      {/* ChatGPT / OpenAI official brand mark */}
+      <span
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-[#10A37F]"
+        title="ChatGPT"
+      >
+        <svg viewBox="0 0 16 16" className="h-3 w-3" aria-hidden="true">
+          <circle
+            cx="8"
+            cy="8"
+            r="4.2"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="1.4"
+          />
+          <circle cx="8" cy="8" r="1.4" fill="#FFFFFF" />
+        </svg>
+      </span>
+      {/* Cursor official brand mark */}
+      <span
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-[#0F172A]"
+        title="Cursor"
+      >
+        <svg viewBox="0 0 16 16" className="h-3 w-3" aria-hidden="true">
+          <path d="M8 2.5L13 5.4v5.2L8 13.5 3 10.6V5.4L8 2.5z" fill="#FFFFFF" />
+          <path d="M8 2.5v11l5-2.9V5.4L8 2.5z" fill="#CBD5E1" />
+        </svg>
+      </span>
+    </span>
+  );
+}
+
+function CloneModeIllustration() {
+  return (
+    <div
+      aria-hidden="true"
+      className="flex h-[92px] w-[132px] shrink-0 items-center justify-center gap-2 rounded-[12px] border border-[#ebebf3] bg-[#f5f5fa]"
+    >
+      {/* Left mini reference phone card */}
+      <div className="flex h-[56px] w-[34px] flex-col items-center justify-between rounded-[7px] bg-gradient-to-b from-[#D9F99D] via-[#A3E635] to-[#65A30D] p-1.5 shadow-xs">
+        <span className="h-1 w-3 rounded-full bg-white/80" />
+        <span className="h-5 w-4 rounded-[3px] bg-white/85" />
+        <span className="h-1 w-4 rounded-full bg-white/70" />
+      </div>
+      <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
+      {/* Right mini Flake Cobalt remade phone card */}
+      <div className="flex h-[56px] w-[34px] flex-col items-center justify-between rounded-[7px] bg-gradient-to-b from-[#3B66FF] to-[#0027eb] p-1.5 shadow-xs">
+        <span className="h-1 w-3 rounded-full bg-white/70" />
+        <span className="grid grid-cols-2 gap-0.5">
+          <span className="h-2 w-2 rounded-[2px] bg-white/90" />
+          <span className="h-2 w-2 rounded-[2px] bg-white/60" />
+          <span className="h-2 w-2 rounded-[2px] bg-white/60" />
+          <span className="h-2 w-2 rounded-[2px] bg-white/90" />
+        </span>
+        <span className="h-1 w-4 rounded-full bg-white/70" />
+      </div>
+    </div>
+  );
+}
+
+function ScriptModeIllustration() {
+  return (
+    <div
+      aria-hidden="true"
+      className="flex h-[92px] w-[132px] shrink-0 items-center justify-center gap-2 rounded-[12px] border border-[#ebebf3] bg-[#f5f5fa]"
+    >
+      {/* Left mini script page */}
+      <div className="flex h-[56px] w-[38px] flex-col justify-center gap-1.5 rounded-[7px] border border-[#e2e6ef] bg-white px-2 shadow-xs">
+        <span className="h-1 w-3 rounded-full bg-[#CBD5E1]" />
+        <span className="h-1 w-full rounded-full bg-[#94A3B8]" />
+        <span className="h-1 w-4/5 rounded-full bg-[#CBD5E1]" />
+        <span className="h-1 w-3/5 rounded-full bg-[#E2E8F0]" />
+      </div>
+      <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
+      {/* Right mini Flake Cobalt video card */}
+      <div className="flex h-[56px] w-[34px] items-center justify-center rounded-[7px] bg-gradient-to-b from-[#3B66FF] to-[#0027eb] shadow-xs">
+        <Play className="ml-0.5 h-3.5 w-3.5 fill-white text-white" />
+      </div>
+    </div>
+  );
 }
 
 function buildClonedAdFromTrending(
@@ -489,14 +590,15 @@ function StaticCanvasStage({
   };
 
   return (
-    <div className="mx-auto max-w-[1040px] rounded-2xl border border-[#ECEFF5] bg-white p-6 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)]">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
+    <div className="mx-auto max-w-[1040px] rounded-[16px] border border-[#ebebf3] bg-white p-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-[#ebebf3] pb-4">
         <button
           type="button"
+          data-no-glass="true"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
+          className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="h-3.5 w-3.5 text-[#475569]" />
           Back to Image Ads
         </button>
 
@@ -507,10 +609,10 @@ function StaticCanvasStage({
               type="button"
               data-no-glass="true"
               onClick={() => onUpdateProject({ aspectRatio: ratio })}
-              className={`rounded-full px-3 py-1 font-mono-num text-xs font-semibold transition-colors ${
+              className={`rounded-[8px] px-3 py-1 font-mono-num text-xs font-semibold transition-colors ${
                 project.aspectRatio === ratio
                   ? "bg-[#0027eb] text-white"
-                  : "border border-[#E6E9F0] bg-[#F7F8FB] text-[#475569] hover:text-[#0F172A]"
+                  : "border border-[#ebebf3] bg-[#f5f5fa] text-[#475569] hover:text-[#0F172A]"
               }`}
             >
               {ratio}
@@ -527,10 +629,10 @@ function StaticCanvasStage({
               type="button"
               data-no-glass="true"
               onClick={() => onUpdateProject({ staticLayoutId: l.id })}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              className={`rounded-[8px] px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                 project.staticLayoutId === l.id
                   ? "bg-[#0F172A] text-white"
-                  : "border border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
+                  : "border border-[#ebebf3] bg-white text-[#475569] hover:text-[#0F172A]"
               }`}
             >
               {l.label}
@@ -540,20 +642,20 @@ function StaticCanvasStage({
             type="button"
             data-no-glass="true"
             onClick={() => setEditingText((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-[8px] border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
               editingText
                 ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                : "border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
+                : "border-[#ebebf3] bg-white text-[#475569] hover:text-[#0F172A]"
             }`}
           >
-            <Pencil className="h-3 w-3" />
+            <Pencil className="h-3 w-3 text-[#475569]" />
             Edit Text
           </button>
         </div>
 
         <canvas
           ref={canvasRef}
-          className="max-h-[480px] w-auto rounded-2xl border border-[#E6E9F0] shadow-xl"
+          className="max-h-[480px] w-auto rounded-[16px] border border-[#ebebf3]"
         />
 
         {editingText && (
@@ -563,7 +665,7 @@ function StaticCanvasStage({
               value={project.headline}
               onChange={(e) => onUpdateProject({ headline: e.target.value })}
               placeholder="Headline"
-              className="rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 text-xs font-bold text-[#0F172A] outline-none focus:border-[#0027eb] sm:col-span-2"
+              className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-xs font-bold text-[#0F172A] outline-none focus:border-[#0027eb] sm:col-span-2"
             />
             {[0, 1].map((idx) => (
               <input
@@ -576,7 +678,7 @@ function StaticCanvasStage({
                   onUpdateProject({ callouts: next, usPoints: next });
                 }}
                 placeholder={`Callout ${idx + 1}`}
-                className="rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb]"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb]"
               />
             ))}
           </div>
@@ -585,20 +687,22 @@ function StaticCanvasStage({
         <div className="flex flex-wrap items-center justify-center gap-2.5">
           <button
             type="button"
+            data-no-glass="true"
             onClick={downloadPng}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE1EC] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
+            className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="h-3.5 w-3.5 text-[#475569]" />
             Download PNG
           </button>
           <button
             type="button"
+            data-no-glass="true"
             onClick={() =>
               onQueueForLaunch({ ...project, mode: "static_clone" })
             }
-            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-semibold text-white"
+            className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#001fc2]"
           >
-            <Rocket className="h-3.5 w-3.5" />
+            <Rocket className="h-3.5 w-3.5 text-white" />
             Queue for Meta Launch
           </button>
         </div>
@@ -654,11 +758,12 @@ export function VideoStudioView({
       staticStage: next,
     }));
 
+  const trendingSectionRef = useRef<HTMLDivElement | null>(null);
+
   // Video Ads (/workspace/video-ads) state
   const [videoMode, setVideoMode] = useState<"clone" | "script">("clone");
-  const [trendingIndustry, setTrendingIndustry] = useState<string>(
-    "All industries"
-  );
+  const [trendingIndustry, setTrendingIndustry] =
+    useState<string>("All industries");
   const [trendingStyle, setTrendingStyle] = useState<string>("All styles");
   const [scriptTemplateId, setScriptTemplateId] = useState<string>("pas");
   const [uploadedRefName, setUploadedRefName] = useState<string | null>(null);
@@ -678,7 +783,9 @@ export function VideoStudioView({
   // Core studio controls & active project
   const [presetId, setPresetId] = useState<VideoStylePresetId>("iphone_ugc");
   const [productTitle, setProductTitle] = useState<string>("");
-  const [aspectRatio, setAspectRatio] = useState<"9:16" | "4:5" | "1:1">("9:16");
+  const [aspectRatio, setAspectRatio] = useState<"9:16" | "4:5" | "1:1">(
+    "9:16"
+  );
   const [language, setLanguage] = useState<"da" | "en">("en");
   const [duration, setDuration] = useState<"15s" | "30s">("15s");
   const [creatorPersona, setCreatorPersona] = useState<string>(
@@ -696,9 +803,9 @@ export function VideoStudioView({
   );
 
   // Video Projects & Image Projects filters
-  const [projDateFilter, setProjDateFilter] = useState<
-    "all" | "today" | "7d"
-  >("all");
+  const [projDateFilter, setProjDateFilter] = useState<"all" | "today" | "7d">(
+    "all"
+  );
   const [projBrandFilter, setProjBrandFilter] = useState<string>("all");
   const [projProductFilter, setProjProductFilter] = useState<string>("all");
   const [projStatusFilter, setProjStatusFilter] = useState<string>("all");
@@ -748,8 +855,8 @@ export function VideoStudioView({
     setSubTabState({
       base: initialSubTab,
       tab: next,
-      videoStage: opts?.videoStage ?? (next === "video" ? "picker" : "picker"),
-      staticStage: opts?.staticStage ?? (next === "static" ? "home" : "home"),
+      videoStage: opts?.videoStage ?? "picker",
+      staticStage: opts?.staticStage ?? "home",
     });
     onSubTabChange?.(next);
   };
@@ -1064,7 +1171,6 @@ export function VideoStudioView({
     });
   };
 
-  // Filtered projects for video_projects & image_projects
   const projectFilterOptions = useMemo(() => {
     const brands = Array.from(new Set(projects.map((p) => p.brandName)));
     const prods = Array.from(new Set(projects.map((p) => p.productTitle)));
@@ -1093,7 +1199,6 @@ export function VideoStudioView({
     });
   };
 
-  // Media items combined from projects, brand memory, scenarios, and custom composer generations
   const allMediaItems = useMemo<MediaLibraryItem[]>(() => {
     const items: MediaLibraryItem[] = [...customMediaItems];
     for (const p of projects) {
@@ -1143,7 +1248,13 @@ export function VideoStudioView({
       });
     }
     return items;
-  }, [customMediaItems, projects, brandProducts, activeBrandName, brandMemory?.scrapedAt]);
+  }, [
+    customMediaItems,
+    projects,
+    brandProducts,
+    activeBrandName,
+    brandMemory?.scrapedAt,
+  ]);
 
   const filteredMediaItems = useMemo(() => {
     if (mediaFilter === "All") return allMediaItems;
@@ -1218,11 +1329,25 @@ export function VideoStudioView({
           ? "from-[#020617] via-[#0F172A] to-[#0027eb]"
           : "from-[#050811] via-[#1E293B] to-[#334155]";
 
+  const isVideoPicker = subTab === "video" && videoStageView === "picker";
+
   return (
-    <div className="space-y-5 pb-10">
-      {/* Compact Top Sub-Tab Switcher (for mobile / collapsed sidebar / fast switching) */}
-      <div className="mx-auto flex max-w-[1160px] flex-wrap items-center justify-between gap-3">
-        <div className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-[#E6E9F0] bg-white p-1 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+    <div
+      className="min-h-full w-full pb-16"
+      style={
+        isVideoPicker
+          ? {
+              backgroundColor: "#f8f9fd",
+              backgroundImage:
+                "radial-gradient(ellipse 46% 32% at 10% 0%, rgba(0, 39, 235, 0.085), transparent 72%), radial-gradient(ellipse 42% 30% at 92% 2%, rgba(59, 102, 255, 0.085), transparent 74%), radial-gradient(rgba(15, 23, 42, 0.065) 1px, transparent 1px)",
+              backgroundSize: "100% 100%, 100% 100%, 20px 20px",
+            }
+          : { backgroundColor: "#f5f5fa" }
+      }
+    >
+      {/* Mobile-only Compact Top Sub-Tab Switcher (desktop uses Ad Maker sidebar) */}
+      <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-3 px-4 pt-4 lg:hidden">
+        <div className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-[10px] border border-[#ebebf3] bg-white p-1">
           {TOP_SUBTABS.map((t) => {
             const active = subTab === t.id;
             return (
@@ -1231,7 +1356,7 @@ export function VideoStudioView({
                 type="button"
                 data-no-glass="true"
                 onClick={() => switchSubTab(t.id)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                className={`shrink-0 rounded-[7px] px-3 py-1.5 text-xs font-semibold transition-colors ${
                   active
                     ? "bg-[#050811] text-white"
                     : "text-[#64748B] hover:text-[#0F172A]"
@@ -1245,8 +1370,9 @@ export function VideoStudioView({
 
         <button
           type="button"
+          data-no-glass="true"
           onClick={onOpenBrandMemory}
-          className="inline-flex items-center gap-2 rounded-full border border-[#E6E9F0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
+          className="inline-flex items-center gap-2 rounded-[8px] border border-[#ebebf3] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
         >
           <span className="h-2 w-2 rounded-full bg-[#0027eb]" />
           {activeBrandName}
@@ -1254,106 +1380,133 @@ export function VideoStudioView({
       </div>
 
       {/* =====================================================================
-          SUB-TAB 1: VIDEO ADS (/workspace/video-ads) + INTERACTIVE VIDEO STAGE
+          SUB-TAB 1: VIDEO ADS (/workspace/video-ads) — Live Atria 1:1 Parity
          ===================================================================== */}
-      {subTab === "video" && videoStageView === "picker" && (
-        <div className="mx-auto max-w-[1160px] space-y-10">
-          {/* Top Hero with Subtle Cobalt Dot-Grid Wash */}
-          <div className="relative overflow-hidden rounded-3xl border border-[#ECEFF5] bg-white px-6 py-9 sm:px-10 sm:py-11">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-56 opacity-65"
-              style={{
-                backgroundImage:
-                  "radial-gradient(rgba(0, 39, 235, 0.14) 1px, transparent 1px)",
-                backgroundSize: "18px 18px",
-                maskImage:
-                  "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)",
-                WebkitMaskImage:
-                  "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)",
-              }}
-            />
-
-            <div className="relative z-10 mx-auto max-w-4xl">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h1 className="font-geist-serif text-[34px] leading-[1.12] tracking-tight text-[#0F172A] sm:text-[42px]">
-                  What winning ad will you make?
-                </h1>
-                {activeProject && activeProject.mode !== "static_clone" && (
-                  <button
-                    type="button"
-                    onClick={() => setVideoStageView("stage")}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3.5 py-1.5 text-xs font-semibold text-[#0027eb]"
-                    data-no-glass="true"
-                  >
-                    <Play className="h-3 w-3" />
-                    Resume active project
-                  </button>
-                )}
-              </div>
-
-              {/* 2 Large Radio-Card Mode Selectors */}
-              <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* Card 1: Clone an ad */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setVideoMode("clone")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") setVideoMode("clone");
-                  }}
-                  className={`group cursor-pointer rounded-2xl border p-5 text-left transition-all ${
-                    videoMode === "clone"
-                      ? "border-[#0027eb] bg-white ring-2 ring-[#0027eb]/15 shadow-[0_8px_24px_-8px_rgba(0,39,235,0.14)]"
-                      : "border-[#E6E9F0] bg-[#FAFBFD] hover:border-[#CBD5E1]"
-                  }`}
+      {isVideoPicker && (
+        <div className="mx-auto max-w-[1100px] px-4 pt-5 sm:px-6">
+          {/* Top-right AI Assistant Pill + optional Resume Active Project */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              {activeProject && activeProject.mode !== "static_clone" && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setVideoStageView("stage")}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#d6d6e0] bg-white px-3.5 text-[12px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb]"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                          videoMode === "clone"
-                            ? "border-[#0027eb] bg-[#0027eb]"
-                            : "border-[#CBD5E1] bg-white"
-                        }`}
-                      >
-                        {videoMode === "clone" && (
-                          <span className="h-2 w-2 rounded-full bg-white" />
-                        )}
-                      </span>
-                      <span className="font-display text-[15px] font-bold text-[#0F172A]">
-                        Clone an ad
-                      </span>
-                      <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-[#0027eb]">
-                        NO SCRIPT NEEDED
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-2.5 pl-7 text-xs leading-relaxed text-[#64748B]">
-                    Pick any ad below or upload your own. Snow remakes it for
-                    your product.
+                  <Play className="h-3 w-3 text-[#475569]" />
+                  Resume active project
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={onOpenBrandMemory}
+              className="ml-auto inline-flex h-8 items-center gap-2 rounded-full border border-[#ebebf3] bg-white pl-3.5 pr-1.5 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:border-[#d6d6e0]"
+            >
+              <span>Make videos with your AI assistant</span>
+              <AiAssistantBadges />
+            </button>
+          </div>
+
+          {/* Centered Hero Heading */}
+          <h1 className="mt-4 mb-6 text-center font-sans text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-[#0F172A] sm:text-[38px]">
+            What banger ad will you make?
+          </h1>
+
+          {/* 2-Card Mode Selector (1.35fr / 1fr with bottom pointer notch) */}
+          <div
+            role="tablist"
+            aria-label="Ad creation mode"
+            className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_1fr]"
+          >
+            {/* Card 1: Clone an ad */}
+            <div
+              role="tab"
+              aria-selected={videoMode === "clone"}
+              tabIndex={0}
+              onClick={() => setVideoMode("clone")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setVideoMode("clone");
+                }
+              }}
+              className={`relative cursor-pointer rounded-[16px] bg-white p-5 text-left transition-all ${
+                videoMode === "clone"
+                  ? "border-2 border-[#0027eb] shadow-[0_8px_28px_-8px_rgba(0,39,235,0.18)]"
+                  : "border border-[#ebebf3] hover:border-[#d6d6e0]"
+              }`}
+            >
+              {/* Top-right Radio Indicator */}
+              <span
+                aria-hidden="true"
+                className={`absolute right-4 top-4 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 ${
+                  videoMode === "clone"
+                    ? "border-[#0027eb]"
+                    : "border-[#d6d6e0]"
+                }`}
+              >
+                {videoMode === "clone" && (
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#0027eb]" />
+                )}
+              </span>
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+                <CloneModeIllustration />
+
+                <div className="min-w-0 flex-1 pr-6">
+                  <h2 className="text-[17px] font-bold leading-tight text-[#0F172A]">
+                    Clone an ad
+                  </h2>
+                  <p className="mt-1 text-[10.5px] font-bold uppercase tracking-wider text-[#0027eb]">
+                    NO SCRIPT NEEDED
                   </p>
-                  {videoMode === "clone" && (
-                    <div className="mt-4 flex flex-wrap items-center gap-2 pl-7">
+
+                  <div className="mt-2.5 flex flex-col items-start gap-1.5">
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVideoMode("clone");
+                        trendingSectionRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#F3F4F6] px-3 py-1.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-[#E5E7EB]"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5 text-[#475569]" />
+                      Pick a reference
+                    </button>
+
+                    <div className="flex flex-wrap items-center gap-2">
                       <label
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#DCE1EC] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0F172A] hover:border-[#0027eb]"
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-[#F3F4F6] px-3 py-1.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-[#E5E7EB]"
                       >
-                        <Upload className="h-3 w-3 text-[#0027eb]" />
-                        {uploadedRefName ? uploadedRefName : "Upload reference video"}
+                        <Upload className="h-3.5 w-3.5 text-[#475569]" />
+                        {uploadedRefName ? uploadedRefName : "Upload your own"}
                         <input
                           type="file"
                           accept="video/*,image/*"
                           className="hidden"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) setUploadedRefName(file.name);
+                            if (file) {
+                              setVideoMode("clone");
+                              setUploadedRefName(file.name);
+                            }
                           }}
                         />
                       </label>
                       {uploadedRefName && (
                         <button
                           type="button"
+                          data-no-glass="true"
                           onClick={(e) => {
                             e.stopPropagation();
                             void runGenerate({
@@ -1362,258 +1515,283 @@ export function VideoStudioView({
                               openStage: true,
                             });
                           }}
-                          className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-semibold text-white"
+                          className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
                         >
-                          Remake Upload
-                          <ArrowRight className="h-3 w-3" />
+                          Remake
+                          <ArrowRight className="h-3.5 w-3.5 text-white" />
                         </button>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {/* Card 2: Start from a script */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setVideoMode("script")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") setVideoMode("script");
-                  }}
-                  className={`group cursor-pointer rounded-2xl border p-5 text-left transition-all ${
-                    videoMode === "script"
-                      ? "border-[#0027eb] bg-white ring-2 ring-[#0027eb]/15 shadow-[0_8px_24px_-8px_rgba(0,39,235,0.14)]"
-                      : "border-[#E6E9F0] bg-[#FAFBFD] hover:border-[#CBD5E1]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                          videoMode === "script"
-                            ? "border-[#0027eb] bg-[#0027eb]"
-                            : "border-[#CBD5E1] bg-white"
-                        }`}
-                      >
-                        {videoMode === "script" && (
-                          <span className="h-2 w-2 rounded-full bg-white" />
-                        )}
-                      </span>
-                      <span className="font-display text-[15px] font-bold text-[#0F172A]">
-                        Start from a script
-                      </span>
-                    </div>
                   </div>
-                  <p className="mt-2.5 pl-7 text-xs leading-relaxed text-[#64748B]">
-                    Paste or generate your script.
+
+                  <p className="mt-2 text-[12.5px] text-[#64748B]">
+                    Snow remakes it for your product.
                   </p>
                 </div>
               </div>
 
-              {/* Expanded Script Composer Panel when Card 2 is active */}
-              {videoMode === "script" && (
-                <div className="mt-4 rounded-2xl border border-[#DCE4FF] bg-[#F7F8FB] p-5 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-[#0F172A]">
-                      Script & Creative Brief
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const prod =
-                          effectiveProductTitle ||
-                          "our hero product";
-                        setNoteInput(
-                          `[0-3s Hook]: I used to spend 8 hours at my desk with lower-back stiffness until I switched to ${prod}.\n[3-8s Problem]: Standard chairs lock your spine and drain afternoon focus.\n[8-16s Demo]: ${activeBrandName} encourages micro-movement with a weighted anti-roll base.\n[16-22s CTA]: Try it risk-free for 30 days.`
-                        );
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE4FF] bg-white px-3 py-1 text-[11px] font-semibold text-[#0027eb] hover:bg-[#EEF2FF]"
-                      data-no-glass="true"
-                    >
-                      <Sparkles className="h-3 w-3" />
-                      Try an example script
-                    </button>
-                  </div>
+              {/* Bottom-center downward pointer notch */}
+              {videoMode === "clone" && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-[7px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-r-2 border-b-2 border-[#0027eb] bg-white"
+                />
+              )}
+            </div>
 
-                  <textarea
-                    rows={4}
-                    value={noteInput}
-                    onChange={(e) => setNoteInput(e.target.value)}
-                    placeholder="Paste your hook + talking points or describe the angle you want Snow to direct..."
-                    className="mt-3 w-full resize-none rounded-xl border border-[#DCE1EC] bg-white p-3.5 text-xs leading-relaxed text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0027eb]"
-                  />
+            {/* Card 2: Start from a script */}
+            <div
+              role="tab"
+              aria-selected={videoMode === "script"}
+              tabIndex={0}
+              onClick={() => setVideoMode("script")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setVideoMode("script");
+                }
+              }}
+              className={`relative cursor-pointer rounded-[16px] bg-white p-5 text-left transition-all ${
+                videoMode === "script"
+                  ? "border-2 border-[#0027eb] shadow-[0_8px_28px_-8px_rgba(0,39,235,0.18)]"
+                  : "border border-[#ebebf3] hover:border-[#d6d6e0]"
+              }`}
+            >
+              {/* Top-right Radio Indicator */}
+              <span
+                aria-hidden="true"
+                className={`absolute right-4 top-4 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 ${
+                  videoMode === "script"
+                    ? "border-[#0027eb]"
+                    : "border-[#d6d6e0]"
+                }`}
+              >
+                {videoMode === "script" && (
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#0027eb]" />
+                )}
+              </span>
 
-                  {/* Script template pill selector */}
-                  <div className="mt-3">
-                    <p className="mb-1.5 text-[11px] font-semibold text-[#64748B]">
-                      Script template
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {SCRIPT_TEMPLATES.map((tpl) => {
-                        const active = scriptTemplateId === tpl.id;
-                        return (
-                          <button
-                            key={tpl.id}
-                            type="button"
-                            data-no-glass="true"
-                            onClick={() => {
-                              setScriptTemplateId(tpl.id);
-                              if (!noteInput.trim()) {
-                                setNoteInput(tpl.snippet);
-                              }
-                            }}
-                            className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
-                              active
-                                ? "bg-[#0027eb] text-white"
-                                : "border border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
-                            }`}
-                          >
-                            {tpl.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+              <div className="flex h-full flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+                <ScriptModeIllustration />
 
-                  {/* Brand, Product, Style, Ratio & Start CTA */}
-                  <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[#E6E9F0] pt-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-xl border border-[#E6E9F0] bg-white px-3 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                        Brand
-                      </p>
-                      <button
-                        type="button"
-                        onClick={onOpenBrandMemory}
-                        className="mt-0.5 flex w-full items-center justify-between text-xs font-bold text-[#0F172A] hover:text-[#0027eb]"
-                      >
-                        <span className="truncate">{activeBrandName}</span>
-                        <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
-                      </button>
-                    </div>
-
-                    <div className="rounded-xl border border-[#E6E9F0] bg-white px-3 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                        Product
-                      </p>
-                      {brandProducts.length > 0 ? (
-                        <select
-                          value={effectiveProductTitle}
-                          onChange={(e) => setProductTitle(e.target.value)}
-                          className="mt-0.5 w-full bg-transparent text-xs font-bold text-[#0F172A] outline-none"
-                        >
-                          {brandProducts.map((p, idx) => (
-                            <option key={idx} value={p.title}>
-                              {p.title}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <p className="mt-0.5 text-xs font-bold text-[#0F172A]">
-                          {activeBrandName} Hero
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="rounded-xl border border-[#E6E9F0] bg-white px-3 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                        Aspect Ratio
-                      </p>
-                      <div className="mt-1 flex items-center gap-1.5">
-                        {(["9:16", "4:5"] as const).map((r) => (
-                          <button
-                            key={r}
-                            type="button"
-                            data-no-glass="true"
-                            onClick={() => setAspectRatio(r)}
-                            className={`rounded-full px-2.5 py-0.5 font-mono-num text-[11px] font-bold transition-colors ${
-                              aspectRatio === r
-                                ? "bg-[#0F172A] text-white"
-                                : "bg-[#F3F5F9] text-[#64748B] hover:text-[#0F172A]"
-                            }`}
-                          >
-                            {r}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-end">
-                      <button
-                        type="button"
-                        disabled={generating}
-                        onClick={() =>
-                          void runGenerate({
-                            overrideMode: "video",
-                            overridePreset: presetId,
-                            overrideAngle:
-                              SCRIPT_TEMPLATES.find(
-                                (t) => t.id === scriptTemplateId
-                              )?.label || undefined,
-                            openStage: true,
-                          })
-                        }
-                        className="adtrack-btn-primary flex h-[46px] w-full items-center justify-center gap-2 rounded-xl text-xs font-bold text-white disabled:opacity-60"
-                      >
-                        {generating ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            Start
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Style Pills */}
-                  <div className="mt-3">
-                    <p className="mb-1.5 text-[11px] font-semibold text-[#64748B]">
-                      Style
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {VIDEO_STYLE_CHIPS.map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          data-no-glass="true"
-                          onClick={() => setPresetId(s.id)}
-                          className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
-                            presetId === s.id
-                              ? "bg-[#0027eb] text-white"
-                              : "border border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
-                          }`}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <div className="min-w-0 flex-1 pr-6">
+                  <h2 className="text-[17px] font-bold leading-tight text-[#0F172A]">
+                    Start from a script
+                  </h2>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748B]">
+                    Paste or upload your script.
+                  </p>
                 </div>
+              </div>
+
+              {videoMode === "script" && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-[7px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-r-2 border-b-2 border-[#0027eb] bg-white"
+                />
               )}
             </div>
           </div>
 
-          {/* Clone a trending video ad Section */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-lg font-bold text-[#0F172A]">
-                  Clone a trending video ad
-                </h2>
-                <p className="text-xs text-[#64748B]">
-                  High-performing vertical winners ready to adapt for{" "}
-                  {activeBrandName}.
-                </p>
+          {/* Expanded Script Composer Panel when Card 2 is active */}
+          {videoMode === "script" && (
+            <div className="mt-5 rounded-[16px] border border-[#ebebf3] bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[13.5px] font-bold text-[#0F172A]">
+                  Script &amp; Creative Brief
+                </span>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    const prod = effectiveProductTitle || "our hero product";
+                    setNoteInput(
+                      `[0-3s Hook]: I used to spend 8 hours at my desk with lower-back stiffness until I switched to ${prod}.\n[3-8s Problem]: Standard chairs lock your spine and drain afternoon focus.\n[8-16s Demo]: ${activeBrandName} encourages micro-movement with a weighted anti-roll base.\n[16-22s CTA]: Try it risk-free for 30 days.`
+                    );
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-1 text-[12px] font-medium text-[#0F172A] hover:border-[#0027eb]"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-[#475569]" />
+                  Try an example script
+                </button>
               </div>
 
+              <textarea
+                rows={4}
+                value={noteInput}
+                onChange={(e) => setNoteInput(e.target.value)}
+                placeholder="Paste your hook + talking points or describe the angle you want Snow to direct..."
+                className="mt-3 w-full resize-none rounded-[10px] border border-[#d6d6e0] bg-[#f5f5fa] p-3.5 text-[13px] leading-relaxed text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0027eb] focus:bg-white"
+              />
+
+              {/* Script template pill selector */}
+              <div className="mt-3">
+                <p className="mb-1.5 text-[11.5px] font-semibold text-[#64748B]">
+                  Script template
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SCRIPT_TEMPLATES.map((tpl) => {
+                    const active = scriptTemplateId === tpl.id;
+                    return (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => {
+                          setScriptTemplateId(tpl.id);
+                          if (!noteInput.trim()) {
+                            setNoteInput(tpl.snippet);
+                          }
+                        }}
+                        className={`rounded-[8px] px-3 py-1 text-[12px] font-medium transition-colors ${
+                          active
+                            ? "bg-[#0027eb] text-white"
+                            : "border border-[#ebebf3] bg-white text-[#475569] hover:border-[#d6d6e0] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {tpl.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Brand, Product, Aspect Ratio & Start CTA */}
+              <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[#ebebf3] pt-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-2">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Brand
+                  </p>
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={onOpenBrandMemory}
+                    className="mt-0.5 flex w-full items-center justify-between text-xs font-bold text-[#0F172A] hover:text-[#0027eb]"
+                  >
+                    <span className="truncate">{activeBrandName}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
+                  </button>
+                </div>
+
+                <div className="rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-2">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Product
+                  </p>
+                  {brandProducts.length > 0 ? (
+                    <select
+                      value={effectiveProductTitle}
+                      onChange={(e) => setProductTitle(e.target.value)}
+                      className="mt-0.5 w-full bg-transparent text-xs font-bold text-[#0F172A] outline-none"
+                    >
+                      {brandProducts.map((p, idx) => (
+                        <option key={idx} value={p.title}>
+                          {p.title}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="mt-0.5 text-xs font-bold text-[#0F172A]">
+                      {activeBrandName} Hero
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-2">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                    Aspect Ratio
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {(["9:16", "4:5"] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setAspectRatio(r)}
+                        className={`rounded-[6px] px-2.5 py-0.5 font-mono-num text-[11px] font-bold transition-colors ${
+                          aspectRatio === r
+                            ? "bg-[#0F172A] text-white"
+                            : "bg-white text-[#64748B] hover:text-[#0F172A]"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    disabled={generating}
+                    onClick={() =>
+                      void runGenerate({
+                        overrideMode: "video",
+                        overridePreset: presetId,
+                        overrideAngle:
+                          SCRIPT_TEMPLATES.find(
+                            (t) => t.id === scriptTemplateId
+                          )?.label || undefined,
+                        openStage: true,
+                      })
+                    }
+                    className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#0027eb] text-xs font-bold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-60"
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-white" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        Start
+                        <ArrowRight className="h-3.5 w-3.5 text-white" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Style Pills */}
+              <div className="mt-3">
+                <p className="mb-1.5 text-[11.5px] font-semibold text-[#64748B]">
+                  Style
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {VIDEO_STYLE_CHIPS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setPresetId(s.id)}
+                      className={`rounded-[8px] px-3 py-1 text-[12px] font-medium transition-colors ${
+                        presetId === s.id
+                          ? "bg-[#0027eb] text-white"
+                          : "border border-[#ebebf3] bg-white text-[#475569] hover:text-[#0F172A]"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🔥 Clone a trending video ad Section */}
+          <div ref={trendingSectionRef} className="mt-8 space-y-3.5">
+            <h2 className="flex items-center gap-2 text-[17px] font-bold text-[#0F172A]">
+              <span aria-hidden="true">🔥</span>
+              Clone a trending video ad
+            </h2>
+
+            {/* Inline Industry Select + 12 Style Filter Chips (exact Atria wrapped layout) */}
+            <div className="flex flex-wrap items-center gap-2">
               <select
                 value={trendingIndustry}
                 onChange={(e) => setTrendingIndustry(e.target.value)}
-                className="rounded-full border border-[#DCE1EC] bg-white px-4 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+                aria-label="Filter by industry"
+                className="h-8 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] outline-none transition-colors hover:border-[#d6d6e0] focus:border-[#0027eb]"
               >
                 {trendingIndustries.map((ind) => (
                   <option key={ind} value={ind}>
@@ -1621,10 +1799,7 @@ export function VideoStudioView({
                   </option>
                 ))}
               </select>
-            </div>
 
-            {/* 12 Style Filter Pills */}
-            <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1">
               {ATRIA_STYLE_FILTERS.map((style) => {
                 const active = trendingStyle === style;
                 return (
@@ -1633,10 +1808,10 @@ export function VideoStudioView({
                     type="button"
                     data-no-glass="true"
                     onClick={() => setTrendingStyle(style)}
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    className={`h-8 shrink-0 rounded-[8px] px-3 text-[12.5px] font-medium transition-colors ${
                       active
-                        ? "bg-[#050811] text-white"
-                        : "border border-[#E6E9F0] bg-white text-[#475569] hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                        ? "bg-[#0027eb] text-white"
+                        : "border border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
                     }`}
                   >
                     {style}
@@ -1646,7 +1821,7 @@ export function VideoStudioView({
             </div>
 
             {/* 4-column Vertical (9:16) Video Card Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3.5 pt-1 lg:grid-cols-4">
               {filteredTrendingVideos.map((tv) => (
                 <div
                   key={tv.id}
@@ -1660,73 +1835,61 @@ export function VideoStudioView({
                       openStage: true,
                     });
                   }}
-                  className="group relative aspect-[9/16] cursor-pointer overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#050811] shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl"
+                  className="group relative aspect-[9/16] cursor-pointer overflow-hidden rounded-[12px] border border-[#ebebf3] bg-[#050811] transition-colors hover:border-[#d6d6e0]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={tv.thumbnailUrl}
                     alt={`${tv.brandName} video ad`}
-                    className="h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/35" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/25" />
 
-                  {/* Top-left duration pill */}
-                  <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-0.5 font-mono-num text-[11px] font-semibold text-white backdrop-blur-md">
+                  {/* Top-left light frosted duration pill */}
+                  <span className="absolute left-2.5 top-2.5 rounded-[6px] bg-white/90 px-2 py-0.5 font-mono-num text-[11.5px] font-semibold text-[#0F172A] backdrop-blur-sm">
                     {tv.durationLabel}
                   </span>
 
-                  {/* Top-right style tag */}
-                  <span className="absolute right-3 top-3 rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
-                    {tv.styleTag}
+                  {/* Top-right Details hover pill */}
+                  <span className="pointer-events-none absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-[6px] bg-white/90 px-2 py-0.5 text-[11.5px] font-semibold text-[#0F172A] opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                    <Eye className="h-3 w-3 text-[#475569]" />
+                    Details
                   </span>
 
-                  {/* Centered frosted Play circle */}
-                  <div className="absolute inset-0 flex items-center justify-center transition-opacity group-hover:opacity-0">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md">
-                      <Play className="ml-0.5 h-5 w-5 fill-white" />
+                  {/* Centered Play Circle + Hover Cobalt Clone Ad CTA */}
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-xs transition-all group-hover:bg-white group-hover:text-[#0F172A]">
+                      <Play className="ml-0.5 h-5 w-5 fill-current" />
                     </span>
-                  </div>
 
-                  {/* Hover Clone ad Cobalt CTA */}
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    <span className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white shadow-lg">
+                    <span className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 py-2 text-[13px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100">
                       {generating ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                       ) : (
-                        <Sparkles className="h-3.5 w-3.5" />
+                        <Sparkles className="h-3.5 w-3.5 text-white" />
                       )}
                       Clone ad
                     </span>
                   </div>
 
-                  {/* Bottom Brand Avatar + Name + Green dot active days */}
-                  <div className="absolute inset-x-3.5 bottom-3.5 space-y-2">
-                    <p className="line-clamp-2 text-[11.5px] font-medium leading-snug text-white/90">
-                      &ldquo;{tv.hookLine}&rdquo;
-                    </p>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={tv.brandAvatarUrl}
-                          alt={tv.brandName}
-                          className="h-6 w-6 shrink-0 rounded-full border border-white/40 object-cover"
-                        />
-                        <span className="truncate text-xs font-bold text-white">
-                          {tv.brandName}
-                        </span>
-                      </div>
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/55 px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white backdrop-blur-md">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                        {tv.activeDays}d
-                      </span>
-                    </div>
+                  {/* Bottom Brand Avatar + Green-dot Days Running */}
+                  <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={tv.brandAvatarUrl}
+                      alt={tv.brandName}
+                      className="h-6 w-6 shrink-0 rounded-full border border-white/40 bg-white/10 object-cover"
+                    />
+                    <span className="inline-flex shrink-0 items-center gap-1.5 font-mono-num text-[11.5px] font-semibold text-white drop-shadow-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+                      {tv.activeDays}d
+                    </span>
                   </div>
                 </div>
               ))}
 
               {filteredTrendingVideos.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#DCE1EC] bg-white py-14 text-center">
+                <div className="col-span-full flex flex-col items-center justify-center rounded-[12px] border border-dashed border-[#d6d6e0] bg-white py-14 text-center">
                   <p className="text-sm font-semibold text-[#0F172A]">
                     No trending ads match those filters
                   </p>
@@ -1736,11 +1899,12 @@ export function VideoStudioView({
                   </p>
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={() => {
                       setTrendingIndustry("All industries");
                       setTrendingStyle("All styles");
                     }}
-                    className="mt-4 rounded-full border border-[#DCE1EC] bg-white px-4 py-1.5 text-xs font-semibold text-[#0027eb] hover:border-[#0027eb]"
+                    className="mt-4 rounded-[8px] border border-[#d6d6e0] bg-white px-4 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
                   >
                     Reset filters
                   </button>
@@ -1751,29 +1915,30 @@ export function VideoStudioView({
         </div>
       )}
 
-      {/* INTERACTIVE 2-PANE VIDEO STAGE (Higgsfield / Snow + 5 Hooks + 4 Scenes) */}
+      {/* INTERACTIVE 2-PANE VIDEO STAGE (5 Hooks + 4 Scenes) */}
       {subTab === "video" && videoStageView === "stage" && (
-        <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-[1200px] flex-col gap-5 lg:flex-row">
+        <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-[1200px] flex-col gap-5 px-4 pt-6 sm:px-6 lg:flex-row">
           {/* LEFT CONTROL PANEL */}
-          <div className="flex w-full shrink-0 flex-col justify-between rounded-2xl border border-[#ECEFF5] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)] lg:w-[320px]">
+          <div className="flex w-full shrink-0 flex-col justify-between rounded-[14px] border border-[#ebebf3] bg-white p-4 lg:w-[320px]">
             <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-2.5">
+              <div className="flex items-center justify-between border-b border-[#ebebf3] pb-2.5">
                 <button
                   type="button"
+                  data-no-glass="true"
                   onClick={() => setVideoStageView("picker")}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-3 py-1 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
+                  className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-1 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <ArrowLeft className="h-3.5 w-3.5 text-[#475569]" />
                   Back to Video Ads
                 </button>
-                <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[10px] font-bold text-[#0027eb]">
+                <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[10.5px] font-bold text-[#0027eb]">
                   Snow Stage
                 </span>
               </div>
 
               {/* Active Preset Banner */}
               <div
-                className={`group relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-gradient-to-br ${currentPresetMeta.gradient}`}
+                className={`group relative aspect-[16/9] w-full overflow-hidden rounded-[10px] bg-gradient-to-br ${currentPresetMeta.gradient}`}
               >
                 {previewProductImage && (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -1803,10 +1968,10 @@ export function VideoStudioView({
                     type="button"
                     data-no-glass="true"
                     onClick={() => setPresetId(p.id)}
-                    className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold transition-colors ${
+                    className={`rounded-[7px] px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                       presetId === p.id
                         ? "bg-[#0027eb] text-white"
-                        : "bg-[#F3F5F9] text-[#475569] hover:text-[#0F172A]"
+                        : "bg-[#f5f5fa] text-[#475569] hover:text-[#0F172A]"
                     }`}
                   >
                     {PRESET_META[p.id].shortLabel}
@@ -1815,7 +1980,7 @@ export function VideoStudioView({
               </div>
 
               {/* Reference / Product Box */}
-              <div className="rounded-xl border border-dashed border-[#DCE1EC] bg-[#FAFBFD] p-3">
+              <div className="rounded-[10px] border border-dashed border-[#d6d6e0] bg-[#f5f5fa] p-3">
                 {activeProject?.clonedFromAd ? (
                   <div className="flex items-center gap-2.5">
                     {activeProject.clonedFromAd.thumbnailUrl && (
@@ -1823,7 +1988,7 @@ export function VideoStudioView({
                       <img
                         src={activeProject.clonedFromAd.thumbnailUrl}
                         alt=""
-                        className="h-10 w-8 shrink-0 rounded-lg object-cover"
+                        className="h-10 w-8 shrink-0 rounded-[6px] object-cover"
                       />
                     )}
                     <div className="min-w-0 flex-1">
@@ -1837,14 +2002,14 @@ export function VideoStudioView({
                   </div>
                 ) : brandProducts.length > 0 ? (
                   <div className="space-y-1.5">
-                    <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                      <Package className="h-3 w-3" />
+                    <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      <Package className="h-3 w-3 text-[#64748B]" />
                       Product Reference
                     </span>
                     <select
                       value={effectiveProductTitle}
                       onChange={(e) => setProductTitle(e.target.value)}
-                      className="w-full rounded-lg border border-[#E6E9F0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+                      className="w-full rounded-[8px] border border-[#d6d6e0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
                     >
                       {brandProducts.map((p, idx) => (
                         <option key={idx} value={p.title}>
@@ -1856,13 +2021,14 @@ export function VideoStudioView({
                 ) : (
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={onOpenBrandMemory}
                     className="flex w-full flex-col items-center justify-center py-2 text-center"
                   >
                     <p className="text-xs font-semibold text-[#0F172A]">
                       Add product / brand kit
                     </p>
-                    <p className="text-[10.5px] text-[#94A3B8]">
+                    <p className="text-[10.5px] text-[#64748B]">
                       Connect Brand Memory
                     </p>
                   </button>
@@ -1870,7 +2036,7 @@ export function VideoStudioView({
               </div>
 
               {/* Prompt Card */}
-              <div className="rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] p-3">
+              <div className="rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] p-3">
                 <label className="block text-[11px] font-semibold text-[#64748B]">
                   Direction / Script Prompt
                 </label>
@@ -1886,25 +2052,26 @@ export function VideoStudioView({
                     type="button"
                     data-no-glass="true"
                     onClick={() => setSpeakAudio((v) => !v)}
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10.5px] font-semibold ${
+                    className={`inline-flex items-center gap-1 rounded-[6px] border px-2 py-1 text-[10.5px] font-semibold ${
                       speakAudio
                         ? "border-[#0027eb]/30 bg-[#EEF2FF] text-[#0027eb]"
-                        : "border-[#E6E9F0] bg-white text-[#64748B]"
+                        : "border-[#ebebf3] bg-white text-[#64748B]"
                     }`}
                   >
                     {speakAudio ? (
-                      <Volume2 className="h-3 w-3" />
+                      <Volume2 className="h-3 w-3 text-[#475569]" />
                     ) : (
-                      <VolumeX className="h-3 w-3" />
+                      <VolumeX className="h-3 w-3 text-[#64748B]" />
                     )}
                     Audio {speakAudio ? "On" : "Off"}
                   </button>
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={() =>
                       setLanguage((l) => (l === "en" ? "da" : "en"))
                     }
-                    className="rounded-md border border-[#E6E9F0] bg-white px-2 py-1 font-mono-num text-[10.5px] font-semibold uppercase text-[#475569]"
+                    className="rounded-[6px] border border-[#ebebf3] bg-white px-2 py-1 font-mono-num text-[10.5px] font-semibold uppercase text-[#475569]"
                   >
                     {language}
                   </button>
@@ -1915,41 +2082,43 @@ export function VideoStudioView({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
+                  data-no-glass="true"
                   onClick={() =>
                     setDuration((d) => (d === "15s" ? "30s" : "15s"))
                   }
-                  className="flex items-center justify-between rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2 text-left hover:border-[#CBD5E1]"
+                  className="flex items-center justify-between rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-2 text-left hover:border-[#d6d6e0]"
                 >
                   <div>
-                    <p className="text-[10px] text-[#94A3B8]">Duration</p>
+                    <p className="text-[10px] text-[#64748B]">Duration</p>
                     <p className="font-mono-num text-xs font-bold text-[#0F172A]">
                       {duration}
                     </p>
                   </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
                 </button>
 
                 <button
                   type="button"
+                  data-no-glass="true"
                   onClick={() =>
                     setAspectRatio((r) =>
                       r === "9:16" ? "4:5" : r === "4:5" ? "1:1" : "9:16"
                     )
                   }
-                  className="flex items-center justify-between rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2 text-left hover:border-[#CBD5E1]"
+                  className="flex items-center justify-between rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-2 text-left hover:border-[#d6d6e0]"
                 >
                   <div>
-                    <p className="text-[10px] text-[#94A3B8]">Aspect Ratio</p>
+                    <p className="text-[10px] text-[#64748B]">Aspect Ratio</p>
                     <p className="font-mono-num text-xs font-bold text-[#0F172A]">
                       {aspectRatio}
                     </p>
                   </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
                 </button>
               </div>
 
-              <div className="rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2">
-                <p className="text-[10px] text-[#94A3B8]">Creator</p>
+              <div className="rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-2">
+                <p className="text-[10px] text-[#64748B]">Creator</p>
                 <select
                   value={creatorPersona}
                   onChange={(e) => setCreatorPersona(e.target.value)}
@@ -1966,6 +2135,7 @@ export function VideoStudioView({
 
             <button
               type="button"
+              data-no-glass="true"
               disabled={generating}
               onClick={() =>
                 void runGenerate({
@@ -1973,24 +2143,24 @@ export function VideoStudioView({
                   openStage: true,
                 })
               }
-              className="adtrack-btn-primary mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold text-white disabled:opacity-60"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#0027eb] py-3 text-xs font-bold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-60"
             >
               {generating ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin text-white" />
                   Regenerating...
                 </>
               ) : (
                 <>
                   Regenerate Cut
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <Sparkles className="h-3.5 w-3.5 text-white" />
                 </>
               )}
             </button>
           </div>
 
           {/* RIGHT MAIN VIDEO PREVIEW STAGE */}
-          <div className="flex min-w-0 flex-1 flex-col rounded-2xl border border-[#ECEFF5] bg-white p-5">
+          <div className="flex min-w-0 flex-1 flex-col rounded-[14px] border border-[#ebebf3] bg-white p-5">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="font-display text-sm font-bold text-[#0F172A]">
@@ -2005,30 +2175,33 @@ export function VideoStudioView({
                 <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={copyBriefText}
-                    className="inline-flex items-center gap-1 rounded-lg border border-[#E6E9F0] px-2.5 py-1.5 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
+                    className="inline-flex items-center gap-1 rounded-[8px] border border-[#d6d6e0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
                   >
                     {copiedBrief ? (
-                      <Check className="h-3.5 w-3.5 text-[#16A34A]" />
+                      <Check className="h-3.5 w-3.5 text-[#0F172A]" />
                     ) : (
-                      <Copy className="h-3.5 w-3.5" />
+                      <Copy className="h-3.5 w-3.5 text-[#475569]" />
                     )}
                     Copy Brief
                   </button>
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={() => onSaveToSwipeFolder(activeProject)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-[#E6E9F0] px-2.5 py-1.5 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
+                    className="inline-flex items-center gap-1 rounded-[8px] border border-[#d6d6e0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
                   >
-                    <Bookmark className="h-3.5 w-3.5" />
+                    <Bookmark className="h-3.5 w-3.5 text-[#475569]" />
                     Save to Swipe
                   </button>
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={() => onQueueForLaunch(activeProject)}
-                    className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
+                    className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#001fc2]"
                   >
-                    <Rocket className="h-3.5 w-3.5" />
+                    <Rocket className="h-3.5 w-3.5 text-white" />
                     Queue for Meta Launch
                   </button>
                 </div>
@@ -2047,14 +2220,15 @@ export function VideoStudioView({
                         type="button"
                         data-no-glass="true"
                         onClick={() => {
-                          const nextScenes = activeProject.scenes.map((sc, i) =>
-                            i === 0
-                              ? {
-                                  ...sc,
-                                  spokenLine: h.spokenHook,
-                                  onScreenCaption: h.onScreenText,
-                                }
-                              : sc
+                          const nextScenes = activeProject.scenes.map(
+                            (sc, i) =>
+                              i === 0
+                                ? {
+                                    ...sc,
+                                    spokenLine: h.spokenHook,
+                                    onScreenCaption: h.onScreenText,
+                                  }
+                                : sc
                           );
                           updateActive({
                             selectedHookId: h.id,
@@ -2062,10 +2236,10 @@ export function VideoStudioView({
                           });
                           setSceneIdx(0);
                         }}
-                        className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
+                        className={`shrink-0 rounded-[8px] px-3 py-1 text-[11.5px] font-semibold transition-all ${
                           active
                             ? "bg-[#0027eb] text-white"
-                            : "bg-[#F3F5F9] text-[#475569] hover:text-[#0F172A]"
+                            : "bg-[#f5f5fa] text-[#475569] hover:text-[#0F172A]"
                         }`}
                       >
                         Hook {idx + 1} · {h.predictedThumbstopPct}%
@@ -2076,7 +2250,7 @@ export function VideoStudioView({
 
                 {/* 9:16 Mobile Video Frame */}
                 <div
-                  className={`relative aspect-[9/16] w-full max-w-[275px] overflow-hidden rounded-[26px] border-[5px] border-[#0F172A] bg-gradient-to-b ${backdropStyle} shadow-[0_24px_54px_-14px_rgba(15,23,42,0.32)]`}
+                  className={`relative aspect-[9/16] w-full max-w-[275px] overflow-hidden rounded-[26px] border-[5px] border-[#0F172A] bg-gradient-to-b ${backdropStyle} shadow-[0_24px_54px_-14px_rgba(15,23,42,0.28)]`}
                 >
                   {previewProductImage && (
                     /* eslint-disable-next-line @next/next/no-img-element */
@@ -2123,9 +2297,9 @@ export function VideoStudioView({
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md"
                     >
                       {playing ? (
-                        <Pause className="h-3.5 w-3.5" />
+                        <Pause className="h-3.5 w-3.5 text-white" />
                       ) : (
-                        <Play className="h-3.5 w-3.5" />
+                        <Play className="h-3.5 w-3.5 text-white" />
                       )}
                     </button>
                   </div>
@@ -2161,13 +2335,13 @@ export function VideoStudioView({
                           editingSceneIdx === idx ? null : idx
                         );
                       }}
-                      className={`rounded-xl border p-2.5 text-left transition-all ${
+                      className={`rounded-[10px] border p-2.5 text-left transition-colors ${
                         idx === sceneIdx
                           ? "border-[#0027eb] bg-[#EEF2FF]/60"
-                          : "border-[#ECEFF5] bg-[#FAFBFD] hover:border-[#CBD5E1]"
+                          : "border-[#ebebf3] bg-[#f5f5fa] hover:border-[#d6d6e0]"
                       }`}
                     >
-                      <span className="font-mono-num text-[9.5px] font-bold text-[#94A3B8]">
+                      <span className="font-mono-num text-[9.5px] font-bold text-[#64748B]">
                         {sc.timeRange}
                       </span>
                       <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-[#0F172A]">
@@ -2182,7 +2356,9 @@ export function VideoStudioView({
                     <div className="grid w-full max-w-xl grid-cols-1 gap-2 sm:grid-cols-2">
                       <input
                         type="text"
-                        value={activeProject.scenes[editingSceneIdx].spokenLine}
+                        value={
+                          activeProject.scenes[editingSceneIdx].spokenLine
+                        }
                         onChange={(e) => {
                           const nextScenes = activeProject.scenes.map(
                             (item, i) =>
@@ -2193,7 +2369,7 @@ export function VideoStudioView({
                           updateActive({ scenes: nextScenes });
                         }}
                         placeholder="Voiceover line"
-                        className="rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
+                        className="rounded-[8px] border border-[#d6d6e0] bg-[#f5f5fa] px-3 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
                       />
                       <input
                         type="text"
@@ -2210,7 +2386,7 @@ export function VideoStudioView({
                           updateActive({ scenes: nextScenes });
                         }}
                         placeholder="On-screen caption"
-                        className="rounded-xl border border-[#DCE1EC] bg-[#FAFBFD] px-3 py-2 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
+                        className="rounded-[8px] border border-[#d6d6e0] bg-[#f5f5fa] px-3 py-2 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
                       />
                     </div>
                   )}
@@ -2222,8 +2398,9 @@ export function VideoStudioView({
                 </p>
                 <button
                   type="button"
+                  data-no-glass="true"
                   onClick={() => setVideoStageView("picker")}
-                  className="adtrack-btn-primary mt-3 rounded-full px-4 py-2 text-xs font-semibold text-white"
+                  className="mt-3 rounded-[8px] bg-[#0027eb] px-4 py-2 text-xs font-semibold text-white hover:bg-[#001fc2]"
                 >
                   Choose a Video Ad
                 </button>
@@ -2237,19 +2414,21 @@ export function VideoStudioView({
           SUB-TAB 2: IMAGE ADS (/workspace/image-ads + Templates Modal + Canvas)
          ===================================================================== */}
       {subTab === "static" && staticStageView === "canvas" && activeProject && (
-        <StaticCanvasStage
-          project={activeProject}
-          onUpdateProject={updateActive}
-          onQueueForLaunch={onQueueForLaunch}
-          onBack={() => setStaticStageView("home")}
-        />
+        <div className="px-4 pt-6 sm:px-6">
+          <StaticCanvasStage
+            project={activeProject}
+            onUpdateProject={updateActive}
+            onQueueForLaunch={onQueueForLaunch}
+            onBack={() => setStaticStageView("home")}
+          />
+        </div>
       )}
 
       {subTab === "static" && staticStageView === "home" && (
-        <div className="mx-auto max-w-[1160px] space-y-6">
+        <div className="mx-auto max-w-[1100px] space-y-6 px-4 pt-6 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-2">
-              <h1 className="font-geist-serif text-[32px] leading-tight text-[#0F172A]">
+            <div className="space-y-2.5">
+              <h1 className="font-sans text-[26px] font-bold leading-tight tracking-[-0.02em] text-[#0F172A]">
                 Image Ads
               </h1>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -2259,10 +2438,10 @@ export function VideoStudioView({
                     type="button"
                     data-no-glass="true"
                     onClick={() => setStaticFilterTab(tab)}
-                    className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
+                    className={`rounded-[8px] px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                       staticFilterTab === tab
-                        ? "bg-[#050811] text-white"
-                        : "border border-[#E6E9F0] bg-white text-[#64748B] hover:text-[#0F172A]"
+                        ? "bg-[#0027eb] text-white"
+                        : "border border-[#ebebf3] bg-white text-[#475569] hover:border-[#d6d6e0] hover:text-[#0F172A]"
                     }`}
                   >
                     {tab}
@@ -2273,10 +2452,11 @@ export function VideoStudioView({
 
             <button
               type="button"
+              data-no-glass="true"
               onClick={() => setTemplateModalOpen(true)}
-              className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold text-white"
+              className="inline-flex items-center gap-2 rounded-[8px] bg-[#0027eb] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 text-white" />
               Create new image
             </button>
           </div>
@@ -2286,7 +2466,7 @@ export function VideoStudioView({
             {(staticFilterTab === "All" ||
               staticFilterTab === "Clone" ||
               staticFilterTab === "Snow") && (
-              <div className="flex flex-col overflow-hidden rounded-3xl border border-[#ECEFF5] bg-white shadow-[0_4px_18px_-6px_rgba(15,23,42,0.06)]">
+              <div className="flex flex-col overflow-hidden rounded-[16px] border border-[#ebebf3] bg-white">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#050811]">
                   <video
                     src={ATRIA_PROMO_VIDEOS.adClone}
@@ -2296,28 +2476,29 @@ export function VideoStudioView({
                     playsInline
                     className="h-full w-full object-cover"
                   />
-                  <span className="absolute left-4 top-4 rounded-full bg-[#050811]/75 px-3 py-1 text-[10.5px] font-bold text-white backdrop-blur-md">
+                  <span className="absolute left-3.5 top-3.5 rounded-[6px] bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#0F172A] backdrop-blur-sm">
                     Competitor Layout Clone
                   </span>
                 </div>
-                <div className="flex flex-1 flex-col justify-between p-6">
+                <div className="flex flex-1 flex-col justify-between p-5">
                   <div>
-                    <h2 className="font-display text-xl font-bold text-[#0F172A]">
+                    <h2 className="text-[18px] font-bold text-[#0F172A]">
                       Clone ads
                     </h2>
-                    <p className="mt-1.5 text-sm leading-relaxed text-[#64748B]">
+                    <p className="mt-1 text-[13.5px] leading-relaxed text-[#64748B]">
                       Clone proven competitor layouts with your product &amp;
                       brand kit
                     </p>
                   </div>
-                  <div className="mt-5 flex items-center gap-3">
+                  <div className="mt-4 flex items-center gap-3">
                     <button
                       type="button"
+                      data-no-glass="true"
                       onClick={() => setTemplateModalOpen(true)}
-                      className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold text-white"
+                      className="inline-flex items-center gap-2 rounded-[8px] bg-[#0027eb] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
                     >
                       Start cloning
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <ArrowRight className="h-3.5 w-3.5 text-white" />
                     </button>
                   </div>
                 </div>
@@ -2327,7 +2508,7 @@ export function VideoStudioView({
             {(staticFilterTab === "All" ||
               staticFilterTab === "Iterate" ||
               staticFilterTab === "Snow") && (
-              <div className="flex flex-col overflow-hidden rounded-3xl border border-[#ECEFF5] bg-white shadow-[0_4px_18px_-6px_rgba(15,23,42,0.06)]">
+              <div className="flex flex-col overflow-hidden rounded-[16px] border border-[#ebebf3] bg-white">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#050811]">
                   <video
                     src={ATRIA_PROMO_VIDEOS.iterateAds}
@@ -2337,22 +2518,23 @@ export function VideoStudioView({
                     playsInline
                     className="h-full w-full object-cover"
                   />
-                  <span className="absolute left-4 top-4 rounded-full bg-[#0027eb]/85 px-3 py-1 text-[10.5px] font-bold text-white backdrop-blur-md">
+                  <span className="absolute left-3.5 top-3.5 rounded-[6px] bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#0F172A] backdrop-blur-sm">
                     Static Variant Engine
                   </span>
                 </div>
-                <div className="flex flex-1 flex-col justify-between p-6">
+                <div className="flex flex-1 flex-col justify-between p-5">
                   <div>
-                    <h2 className="font-display text-xl font-bold text-[#0F172A]">
+                    <h2 className="text-[18px] font-bold text-[#0F172A]">
                       Iterate ads
                     </h2>
-                    <p className="mt-1.5 text-sm leading-relaxed text-[#64748B]">
+                    <p className="mt-1 text-[13.5px] leading-relaxed text-[#64748B]">
                       Spin fresh winning variants &amp; angles in one click
                     </p>
                   </div>
-                  <div className="mt-5 flex items-center gap-3">
+                  <div className="mt-4 flex items-center gap-3">
                     <button
                       type="button"
+                      data-no-glass="true"
                       disabled={generating}
                       onClick={() =>
                         void runGenerate({
@@ -2363,12 +2545,12 @@ export function VideoStudioView({
                           openStage: true,
                         })
                       }
-                      className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold text-white disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-[8px] bg-[#0027eb] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-60"
                     >
                       {generating ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                       ) : (
-                        <Wand2 className="h-3.5 w-3.5" />
+                        <Wand2 className="h-3.5 w-3.5 text-white" />
                       )}
                       Start iterating
                     </button>
@@ -2379,13 +2561,14 @@ export function VideoStudioView({
           </div>
 
           {/* Quick Templates Strip */}
-          <div className="rounded-2xl border border-[#ECEFF5] bg-white p-5">
+          <div className="rounded-[12px] border border-[#ebebf3] bg-white p-5">
             <div className="mb-3 flex items-center justify-between">
-              <p className="font-display text-sm font-bold text-[#0F172A]">
+              <p className="text-[14px] font-bold text-[#0F172A]">
                 Top static templates for {activeBrandName}
               </p>
               <button
                 type="button"
+                data-no-glass="true"
                 onClick={() => setTemplateModalOpen(true)}
                 className="text-xs font-semibold text-[#0027eb] hover:underline"
               >
@@ -2397,13 +2580,14 @@ export function VideoStudioView({
                 <button
                   key={tpl.id}
                   type="button"
+                  data-no-glass="true"
                   onClick={() => {
                     setSelectedTemplateIds([tpl.id]);
                     setTemplateModalOpen(true);
                   }}
-                  className="group overflow-hidden rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] text-left transition-all hover:border-[#0027eb]"
+                  className="group overflow-hidden rounded-[10px] border border-[#ebebf3] bg-white text-left transition-colors hover:border-[#0027eb]"
                 >
-                  <div className="aspect-[4/5] w-full overflow-hidden bg-[#0F172A]">
+                  <div className="aspect-[4/5] w-full overflow-hidden bg-[#f5f5fa]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={tpl.thumbnailUrl}
@@ -2412,12 +2596,10 @@ export function VideoStudioView({
                     />
                   </div>
                   <div className="p-2.5">
-                    <p className="truncate text-xs font-bold text-[#0F172A]">
+                    <p className="truncate text-xs font-semibold text-[#0F172A]">
                       {tpl.title}
                     </p>
-                    <p className="text-[10.5px] text-[#64748B]">
-                      {tpl.category}
-                    </p>
+                    <p className="text-[11px] text-[#64748B]">{tpl.category}</p>
                   </div>
                 </button>
               ))}
@@ -2430,15 +2612,15 @@ export function VideoStudioView({
           SUB-TAB 3 & 4: VIDEO PROJECTS & IMAGE PROJECTS
          ===================================================================== */}
       {(subTab === "video_projects" || subTab === "image_projects") && (
-        <div className="mx-auto max-w-[1160px] space-y-5">
+        <div className="mx-auto max-w-[1100px] space-y-5 px-4 pt-6 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-geist-serif text-[30px] leading-tight text-[#0F172A]">
+              <h1 className="font-sans text-[24px] font-bold leading-tight text-[#0F172A]">
                 {subTab === "video_projects"
-                  ? "Video Projects"
-                  : "Image Projects"}
+                  ? "Video projects"
+                  : "Image projects"}
               </h1>
-              <p className="text-xs text-[#64748B]">
+              <p className="mt-0.5 text-[13px] text-[#64748B]">
                 {subTab === "video_projects"
                   ? "Saved video cuts, 5-hook scripts, and launch-ready reels."
                   : "Cloned static variants, canvas exports, and Meta feed creatives."}
@@ -2446,24 +2628,23 @@ export function VideoStudioView({
             </div>
             <button
               type="button"
+              data-no-glass="true"
               onClick={() =>
                 subTab === "video_projects"
                   ? switchSubTab("video")
                   : setTemplateModalOpen(true)
               }
-              className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white"
+              className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
             >
-              <Plus className="h-3.5 w-3.5" />
-              {subTab === "video_projects"
-                ? "New Video Ad"
-                : "New Image Ad"}
+              <Plus className="h-4 w-4 text-white" />
+              {subTab === "video_projects" ? "New Video Ad" : "New Image Ad"}
             </button>
           </div>
 
           {/* Filter Bar: Date, Brand, Product, Status */}
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#ECEFF5] bg-white p-3">
-            <span className="inline-flex items-center gap-1 px-2 text-xs font-semibold text-[#64748B]">
-              <Filter className="h-3.5 w-3.5" />
+          <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-[#ebebf3] bg-white p-3">
+            <span className="inline-flex items-center gap-1.5 px-2 text-xs font-semibold text-[#64748B]">
+              <Filter className="h-3.5 w-3.5 text-[#475569]" />
               Filters
             </span>
 
@@ -2472,7 +2653,7 @@ export function VideoStudioView({
               onChange={(e) =>
                 setProjDateFilter(e.target.value as "all" | "today" | "7d")
               }
-              className="rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+              className="rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-1.5 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
             >
               <option value="all">All dates</option>
               <option value="today">Last 24 hours</option>
@@ -2482,7 +2663,7 @@ export function VideoStudioView({
             <select
               value={projBrandFilter}
               onChange={(e) => setProjBrandFilter(e.target.value)}
-              className="rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+              className="rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-1.5 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
             >
               <option value="all">All brands</option>
               {projectFilterOptions.brands.map((b) => (
@@ -2495,7 +2676,7 @@ export function VideoStudioView({
             <select
               value={projProductFilter}
               onChange={(e) => setProjProductFilter(e.target.value)}
-              className="rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+              className="rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-1.5 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
             >
               <option value="all">All products</option>
               {projectFilterOptions.prods.map((prod) => (
@@ -2508,7 +2689,7 @@ export function VideoStudioView({
             <select
               value={projStatusFilter}
               onChange={(e) => setProjStatusFilter(e.target.value)}
-              className="rounded-lg border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+              className="rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-1.5 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
             >
               <option value="all">All statuses</option>
               <option value="draft">Draft</option>
@@ -2525,34 +2706,35 @@ export function VideoStudioView({
             );
             if (list.length === 0) {
               return (
-                <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#DCE1EC] bg-white px-6 py-16 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#0027eb]">
+                <div className="flex flex-col items-center justify-center rounded-[12px] border border-dashed border-[#d6d6e0] bg-white px-6 py-16 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-[#f5f5fa]">
                     {subTab === "video_projects" ? (
-                      <Film className="h-6 w-6" />
+                      <Film className="h-6 w-6 text-[#475569]" />
                     ) : (
-                      <ImageIcon className="h-6 w-6" />
+                      <ImageIcon className="h-6 w-6 text-[#475569]" />
                     )}
                   </div>
-                  <h2 className="mt-4 font-display text-base font-bold text-[#0F172A]">
+                  <h2 className="mt-4 text-[15px] font-bold text-[#0F172A]">
                     {subTab === "video_projects"
                       ? "No video projects yet"
                       : "No image projects yet"}
                   </h2>
-                  <p className="mt-1 max-w-md text-xs text-[#64748B]">
+                  <p className="mt-1 max-w-md text-[13px] text-[#64748B]">
                     {subTab === "video_projects"
                       ? "Clone a trending video ad or start from a script to build your first winning cut."
                       : "Pick a proven static template or iterate a winning angle to export PNGs."}
                   </p>
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={() =>
                       subTab === "video_projects"
                         ? switchSubTab("video")
                         : setTemplateModalOpen(true)
                     }
-                    className="adtrack-btn-primary mt-5 inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold text-white"
+                    className="mt-5 inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#001fc2]"
                   >
-                    <Sparkles className="h-3.5 w-3.5" />
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
                     {subTab === "video_projects"
                       ? "Create Video Ad"
                       : "Browse Templates"}
@@ -2569,7 +2751,7 @@ export function VideoStudioView({
                   return (
                     <div
                       key={p.id}
-                      className="flex flex-col overflow-hidden rounded-2xl border border-[#ECEFF5] bg-white shadow-sm transition-all hover:border-[#CBD5E1] hover:shadow-md"
+                      className="flex flex-col overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white transition-colors hover:border-[#d6d6e0]"
                     >
                       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#050811]">
                         {thumb && (
@@ -2584,18 +2766,18 @@ export function VideoStudioView({
                           />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                        <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
+                        <span className="absolute left-3 top-3 rounded-[6px] bg-white/90 px-2 py-0.5 text-[10.5px] font-semibold text-[#0F172A]">
                           {p.mode === "static_clone"
                             ? STATIC_LAYOUTS.find(
                                 (l) => l.id === p.staticLayoutId
                               )?.label || "Static"
                             : PRESET_META[p.stylePresetId].title}
                         </span>
-                        <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase text-[#0F172A]">
+                        <span className="absolute right-3 top-3 rounded-[6px] bg-black/60 px-2 py-0.5 text-[10px] font-bold uppercase text-white backdrop-blur-sm">
                           {p.status}
                         </span>
                         <div className="absolute inset-x-3 bottom-3">
-                          <p className="truncate font-display text-sm font-bold text-white">
+                          <p className="truncate text-sm font-bold text-white">
                             {p.title}
                           </p>
                           <p className="truncate text-[11px] text-white/75">
@@ -2607,6 +2789,7 @@ export function VideoStudioView({
                       <div className="flex items-center justify-between gap-2 p-3.5">
                         <button
                           type="button"
+                          data-no-glass="true"
                           onClick={() => {
                             setActiveProject(p);
                             if (p.mode === "static_clone") {
@@ -2615,7 +2798,7 @@ export function VideoStudioView({
                               switchSubTab("video", { videoStage: "stage" });
                             }
                           }}
-                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#DCE1EC] bg-white px-3 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
                         >
                           Open in Studio
                         </button>
@@ -2623,19 +2806,21 @@ export function VideoStudioView({
                         {p.mode === "static_clone" ? (
                           <button
                             type="button"
+                            data-no-glass="true"
                             onClick={() => exportStaticProjectPng(p)}
-                            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-white"
+                            className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#001fc2]"
                           >
-                            <Download className="h-3.5 w-3.5" />
+                            <Download className="h-3.5 w-3.5 text-white" />
                             Download PNG
                           </button>
                         ) : (
                           <button
                             type="button"
+                            data-no-glass="true"
                             onClick={() => onQueueForLaunch(p)}
-                            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-white"
+                            className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#001fc2]"
                           >
-                            <Rocket className="h-3.5 w-3.5" />
+                            <Rocket className="h-3.5 w-3.5 text-white" />
                             Queue Launch
                           </button>
                         )}
@@ -2653,13 +2838,13 @@ export function VideoStudioView({
           SUB-TAB 5: MEDIA (/workspace/video-ads/media + Docked Composer)
          ===================================================================== */}
       {subTab === "media" && (
-        <div className="mx-auto max-w-[1160px] space-y-6">
+        <div className="mx-auto max-w-[1100px] space-y-6 px-4 pt-6 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-geist-serif text-[32px] leading-tight text-[#0F172A]">
+              <h1 className="font-sans text-[24px] font-bold leading-tight text-[#0F172A]">
                 Media
               </h1>
-              <p className="text-xs text-[#64748B]">
+              <p className="mt-0.5 text-[13px] text-[#64748B]">
                 All generated clips, static renders, voice-overs, and brand
                 assets for {activeBrandName}.
               </p>
@@ -2672,10 +2857,10 @@ export function VideoStudioView({
                   type="button"
                   data-no-glass="true"
                   onClick={() => setMediaFilter(tab)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-[8px] px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                     mediaFilter === tab
-                      ? "bg-[#050811] text-white"
-                      : "border border-[#E6E9F0] bg-white text-[#64748B] hover:text-[#0F172A]"
+                      ? "bg-[#0027eb] text-white"
+                      : "border border-[#ebebf3] bg-white text-[#475569] hover:border-[#d6d6e0] hover:text-[#0F172A]"
                   }`}
                 >
                   {tab}
@@ -2689,7 +2874,7 @@ export function VideoStudioView({
             {filteredMediaItems.map((item) => (
               <div
                 key={item.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-[#ECEFF5] bg-white shadow-sm transition-all hover:border-[#CBD5E1] hover:shadow-md"
+                className="group flex flex-col overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white transition-colors hover:border-[#d6d6e0]"
               >
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#050811]">
                   {item.kind === "audio" ? (
@@ -2718,12 +2903,12 @@ export function VideoStudioView({
                             window.speechSynthesis.speak(u);
                           }
                         }}
-                        className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#0027eb] shadow-lg transition-transform hover:scale-105"
+                        className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#0F172A] transition-transform hover:scale-105"
                       >
                         {playingAudioId === item.id ? (
-                          <Pause className="h-5 w-5" />
+                          <Pause className="h-5 w-5 text-[#0F172A]" />
                         ) : (
-                          <Mic className="h-5 w-5" />
+                          <Mic className="h-5 w-5 text-[#0F172A]" />
                         )}
                       </button>
                       <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-white/85">
@@ -2743,7 +2928,7 @@ export function VideoStudioView({
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/25" />
                     </>
                   )}
-                  <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-0.5 text-[10px] font-bold uppercase text-white backdrop-blur-md">
+                  <span className="absolute left-3 top-3 rounded-[6px] bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase text-[#0F172A]">
                     {item.kind}
                   </span>
                   {item.project && (
@@ -2759,7 +2944,7 @@ export function VideoStudioView({
                           switchSubTab("video", { videoStage: "stage" });
                         }
                       }}
-                      className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-bold text-[#0F172A] opacity-0 transition-opacity group-hover:opacity-100"
+                      className="absolute right-3 top-3 rounded-[6px] bg-white/95 px-2.5 py-0.5 text-[10.5px] font-bold text-[#0F172A] opacity-0 transition-opacity group-hover:opacity-100"
                     >
                       Open
                     </button>
@@ -2778,10 +2963,10 @@ export function VideoStudioView({
           </div>
 
           {/* Docked Bottom Floating Multi-Modal Composer */}
-          <div className="sticky bottom-4 z-20 mx-auto max-w-[960px] rounded-3xl border border-[#DCE4FF] bg-white/95 p-3 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.22)] backdrop-blur-md">
+          <div className="sticky bottom-4 z-20 mx-auto max-w-[960px] rounded-[20px] border border-[#d6d6e0] bg-white p-3 shadow-[0_8px_28px_rgba(15,23,42,0.12)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
               {/* Vertical Mode Switcher */}
-              <div className="flex shrink-0 flex-row gap-1 rounded-2xl bg-[#F3F5F9] p-1 sm:w-[126px] sm:flex-col">
+              <div className="flex shrink-0 flex-row gap-1 rounded-[12px] bg-[#f5f5fa] p-1 sm:w-[126px] sm:flex-col">
                 {(
                   [
                     { id: "Image", icon: ImageIcon },
@@ -2806,13 +2991,17 @@ export function VideoStudioView({
                               : "Nordic Voice"
                         );
                       }}
-                      className={`flex flex-1 items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                      className={`flex flex-1 items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                         active
                           ? "bg-[#050811] text-white"
                           : "text-[#64748B] hover:text-[#0F172A]"
                       }`}
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      <Icon
+                        className={`h-3.5 w-3.5 shrink-0 ${
+                          active ? "text-white" : "text-[#475569]"
+                        }`}
+                      />
                       <span>{mode.id}</span>
                     </button>
                   );
@@ -2820,8 +3009,8 @@ export function VideoStudioView({
               </div>
 
               {/* + Reference Dashed Tile */}
-              <label className="flex shrink-0 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#CBD5E1] bg-[#FAFBFD] px-3.5 py-2 text-center hover:border-[#0027eb] sm:w-[104px]">
-                <Plus className="h-4 w-4 text-[#0027eb]" />
+              <label className="flex shrink-0 cursor-pointer flex-col items-center justify-center rounded-[12px] border border-dashed border-[#d6d6e0] bg-[#f5f5fa] px-3.5 py-2 text-center hover:border-[#0027eb] sm:w-[104px]">
+                <Plus className="h-4 w-4 text-[#475569]" />
                 <span className="mt-1 line-clamp-2 text-[10.5px] font-semibold text-[#475569]">
                   {composerRefLabel || "Reference"}
                 </span>
@@ -2842,7 +3031,7 @@ export function VideoStudioView({
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[10.5px] font-bold text-[#0027eb]">
                     {activeBrandName}
                   </span>
-                  <span className="text-[11px] text-[#94A3B8]">
+                  <span className="text-[11px] text-[#64748B]">
                     {productTitle || brandProducts[0]?.title || "Hero Product"}
                   </span>
                 </div>
@@ -2863,17 +3052,18 @@ export function VideoStudioView({
 
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="rounded-full border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">
+                    <span className="rounded-[6px] border border-[#ebebf3] bg-[#f5f5fa] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">
                       {composerModel}
                     </span>
                     <button
                       type="button"
+                      data-no-glass="true"
                       onClick={() =>
                         setComposerRatio((r) =>
                           r === "9:16" ? "4:5" : r === "4:5" ? "1:1" : "9:16"
                         )
                       }
-                      className="rounded-full border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-1 font-mono-num text-[11px] font-semibold text-[#0F172A]"
+                      className="rounded-[6px] border border-[#ebebf3] bg-[#f5f5fa] px-2.5 py-1 font-mono-num text-[11px] font-semibold text-[#0F172A]"
                     >
                       {composerRatio}
                     </button>
@@ -2881,14 +3071,15 @@ export function VideoStudioView({
 
                   <button
                     type="button"
+                    data-no-glass="true"
                     disabled={generating}
                     onClick={() => void handleComposerGenerate()}
-                    className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-60"
                   >
                     {generating ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                     ) : (
-                      <Sparkles className="h-3.5 w-3.5" />
+                      <Sparkles className="h-3.5 w-3.5 text-white" />
                     )}
                     Generate
                   </button>
@@ -2903,13 +3094,13 @@ export function VideoStudioView({
           SUB-TAB 6: AI PLAYGROUND (miner — /workspace/ai replica)
          ===================================================================== */}
       {subTab === "miner" && (
-        <div className="mx-auto max-w-[1160px] space-y-6">
+        <div className="mx-auto max-w-[1100px] space-y-6 px-4 pt-6 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-geist-serif text-[32px] leading-tight text-[#0F172A]">
+              <h1 className="font-sans text-[24px] font-bold leading-tight text-[#0F172A]">
                 AI Playground
               </h1>
-              <p className="text-xs text-[#64748B]">
+              <p className="mt-0.5 text-[13px] text-[#64748B]">
                 Turn product URLs, customer reviews, and brand memory into
                 high-converting hooks.
               </p>
@@ -2917,26 +3108,24 @@ export function VideoStudioView({
 
             <span
               data-no-glass="true"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3.5 py-1.5 font-mono-num text-xs font-bold text-[#0027eb]"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#ebebf3] bg-white px-3.5 py-1.5 font-mono-num text-xs font-semibold text-[#0F172A]"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <Sparkles className="h-3.5 w-3.5 text-[#475569]" />
               700 credits
             </span>
           </div>
 
           {/* 2-Column Top Cards */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            {/* Card 1: Cobalt-Gradient AI Ad Ideas */}
-            <div className="flex flex-col justify-between rounded-3xl bg-gradient-to-br from-[#050811] via-[#0F172A] to-[#0027eb] p-6 text-white shadow-lg">
+            {/* Card 1: Deep Obsidian + Electric Cobalt AI Ad Ideas */}
+            <div className="flex flex-col justify-between rounded-[16px] bg-gradient-to-br from-[#050811] via-[#0F172A] to-[#0027eb] p-6 text-white">
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[10.5px] font-bold uppercase tracking-wider text-white">
-                  <Sparkles className="h-3 w-3" />
+                  <Sparkles className="h-3 w-3 text-white" />
                   Snow Concept Engine
                 </span>
-                <h2 className="mt-4 font-display text-2xl font-bold">
-                  AI Ad Ideas
-                </h2>
-                <p className="mt-2 max-w-md text-xs leading-relaxed text-white/80">
+                <h2 className="mt-4 text-[22px] font-bold">AI Ad Ideas</h2>
+                <p className="mt-2 max-w-md text-[13px] leading-relaxed text-white/80">
                   Synthesize 3 scroll-stopping creative angles directly from{" "}
                   {activeBrandName}&apos;s Brand Memory, pain points, and
                   winning Meta structures.
@@ -2948,31 +3137,31 @@ export function VideoStudioView({
                   type="button"
                   data-no-glass="true"
                   onClick={generateBrandAdIdeas}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-xs font-bold text-[#0027eb] shadow-md transition-transform hover:scale-[1.02]"
+                  className="inline-flex items-center gap-2 rounded-[8px] bg-white px-4 py-2 text-[13px] font-semibold text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
                 >
-                  <Wand2 className="h-3.5 w-3.5" />
+                  <Wand2 className="h-3.5 w-3.5 text-[#0F172A]" />
                   Generate Ad Ideas
                 </button>
-                <span className="text-[11px] text-white/70">
+                <span className="text-[11.5px] text-white/70">
                   Using {activeBrandName}
                 </span>
               </div>
             </div>
 
             {/* Card 2: White AI URL & Review Mining Tool */}
-            <div className="flex flex-col justify-between rounded-3xl border border-[#ECEFF5] bg-white p-6 shadow-sm">
+            <div className="flex flex-col justify-between rounded-[16px] border border-[#ebebf3] bg-white p-6">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-display text-lg font-bold text-[#0F172A]">
+                  <h2 className="text-[17px] font-bold text-[#0F172A]">
                     AI URL &amp; Review Mining Tool
                   </h2>
-                  <span className="rounded-full bg-[#F3F5F9] px-2.5 py-0.5 text-[10.5px] font-semibold text-[#64748B]">
+                  <span className="rounded-full bg-[#f5f5fa] px-2.5 py-0.5 text-[11px] font-semibold text-[#64748B]">
                     Live Scraper
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-xl border border-[#DCE4FF] bg-[#FAFBFD] px-3 py-2">
-                  <Link2 className="h-4 w-4 shrink-0 text-[#94A3B8]" />
+                <div className="flex items-center gap-2 rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2">
+                  <Link2 className="h-4 w-4 shrink-0 text-[#64748B]" />
                   <input
                     type="url"
                     value={minerUrl}
@@ -2993,28 +3182,29 @@ export function VideoStudioView({
                   value={minerReviews}
                   onChange={(e) => setMinerReviews(e.target.value)}
                   placeholder="Optional: paste raw customer reviews or Trustpilot quotes to mine objections..."
-                  className="w-full resize-none rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] p-3 text-xs text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0027eb]"
+                  className="w-full resize-none rounded-[8px] border border-[#d6d6e0] bg-[#f5f5fa] p-3 text-xs text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0027eb] focus:bg-white"
                 />
               </div>
 
               <div className="mt-4 flex items-center justify-between gap-3">
-                <p className="text-[11px] text-[#64748B]">
+                <p className="text-[11.5px] text-[#64748B]">
                   Extracts pain points, USPs &amp; recommended presets
                 </p>
                 <button
                   type="button"
+                  data-no-glass="true"
                   disabled={mining}
                   onClick={() => void runMineUrl()}
-                  className="adtrack-btn-primary inline-flex shrink-0 items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-60"
                 >
                   {mining ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                       Mining...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-3.5 w-3.5" />
+                      <Sparkles className="h-3.5 w-3.5 text-white" />
                       Mine Insights
                     </>
                   )}
@@ -3024,14 +3214,14 @@ export function VideoStudioView({
           </div>
 
           {/* Generated Results Table */}
-          <div className="overflow-hidden rounded-2xl border border-[#ECEFF5] bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-[#F1F5F9] px-5 py-3.5">
+          <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
+            <div className="flex items-center justify-between border-b border-[#ebebf3] px-5 py-3.5">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[#0027eb]" />
-                <h3 className="font-display text-sm font-bold text-[#0F172A]">
+                <FileText className="h-4 w-4 text-[#475569]" />
+                <h3 className="text-sm font-bold text-[#0F172A]">
                   Generated Results
                 </h3>
-                <span className="rounded-full bg-[#F3F5F9] px-2 py-0.5 font-mono-num text-[10.5px] font-bold text-[#475569]">
+                <span className="rounded-full bg-[#f5f5fa] px-2 py-0.5 font-mono-num text-[11px] font-semibold text-[#475569]">
                   {playgroundResults.length}
                 </span>
               </div>
@@ -3050,7 +3240,7 @@ export function VideoStudioView({
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-[#F1F5F9] bg-[#FAFBFD] text-[10.5px] font-bold uppercase tracking-wider text-[#64748B]">
+                  <thead className="border-b border-[#ebebf3] bg-white text-[12px] font-semibold text-[#0F172A]">
                     <tr>
                       <th className="px-5 py-3">Angle &amp; Hook</th>
                       <th className="px-4 py-3">Style</th>
@@ -3059,9 +3249,9 @@ export function VideoStudioView({
                       <th className="px-5 py-3 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F1F5F9]">
+                  <tbody className="divide-y divide-[#ebebf3]">
                     {playgroundResults.map((row) => (
-                      <tr key={row.id} className="hover:bg-[#FAFBFD]">
+                      <tr key={row.id} className="hover:bg-[#f5f5fa]/60">
                         <td className="max-w-sm px-5 py-3.5">
                           <p className="font-bold text-[#0F172A]">
                             {row.title}
@@ -3071,7 +3261,7 @@ export function VideoStudioView({
                           </p>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5">
-                          <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[10.5px] font-bold text-[#0027eb]">
+                          <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-semibold text-[#0027eb]">
                             {PRESET_META[row.presetId].title}
                           </span>
                         </td>
@@ -3084,6 +3274,7 @@ export function VideoStudioView({
                         <td className="whitespace-nowrap px-5 py-3.5 text-right">
                           <button
                             type="button"
+                            data-no-glass="true"
                             disabled={generating}
                             onClick={() => {
                               setPresetId(row.presetId);
@@ -3099,10 +3290,10 @@ export function VideoStudioView({
                                 openStage: true,
                               });
                             }}
-                            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold text-white"
+                            className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 py-1.5 text-[11.5px] font-semibold text-white hover:bg-[#001fc2]"
                           >
                             Make Ad
-                            <ArrowRight className="h-3 w-3" />
+                            <ArrowRight className="h-3 w-3 text-white" />
                           </button>
                         </td>
                       </tr>
@@ -3119,40 +3310,42 @@ export function VideoStudioView({
           SUB-TAB 7: ASSETS FALLBACK (Legacy prop compatibility)
          ===================================================================== */}
       {subTab === "assets" && (
-        <div className="mx-auto max-w-[1160px] space-y-5">
+        <div className="mx-auto max-w-[1100px] space-y-5 px-4 pt-6 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-geist-serif text-[30px] leading-tight text-[#0F172A]">
+              <h1 className="font-sans text-[24px] font-bold leading-tight text-[#0F172A]">
                 All Studio Assets
               </h1>
-              <p className="text-xs text-[#64748B]">
+              <p className="mt-0.5 text-[13px] text-[#64748B]">
                 All saved video and static creative projects in one view.
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                data-no-glass="true"
                 onClick={() => switchSubTab("video")}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE1EC] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
+                className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]"
               >
-                <Layers className="h-3.5 w-3.5" />
+                <Layers className="h-3.5 w-3.5 text-[#475569]" />
                 Video Ads
               </button>
               <button
                 type="button"
+                data-no-glass="true"
                 onClick={() => setTemplateModalOpen(true)}
-                className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white"
+                className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 py-2 text-xs font-semibold text-white hover:bg-[#001fc2]"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5 text-white" />
                 Image Ads
               </button>
             </div>
           </div>
 
           {projects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#DCE1EC] bg-white py-16 text-center">
-              <FolderOpen className="h-8 w-8 text-[#0027eb]" />
-              <p className="mt-3 font-display text-sm font-bold text-[#0F172A]">
+            <div className="flex flex-col items-center justify-center rounded-[12px] border border-dashed border-[#d6d6e0] bg-white py-16 text-center">
+              <FolderOpen className="h-8 w-8 text-[#475569]" />
+              <p className="mt-3 text-sm font-bold text-[#0F172A]">
                 No saved studio assets yet
               </p>
               <p className="mt-1 text-xs text-[#64748B]">
@@ -3174,7 +3367,7 @@ export function VideoStudioView({
                         switchSubTab("video", { videoStage: "stage" });
                       }
                     }}
-                    className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#050811]"
+                    className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-[12px] border border-[#ebebf3] bg-[#050811]"
                   >
                     {img && (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -3188,11 +3381,11 @@ export function VideoStudioView({
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-                    <span className="absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
+                    <span className="absolute left-2.5 top-2.5 rounded-[6px] bg-white/90 px-2 py-0.5 text-[10px] font-bold text-[#0F172A]">
                       {PRESET_META[p.stylePresetId].title}
                     </span>
                     <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
-                      <p className="truncate font-display text-[13px] font-bold text-white">
+                      <p className="truncate text-[13px] font-bold text-white">
                         {p.title}
                       </p>
                       <button
@@ -3220,17 +3413,17 @@ export function VideoStudioView({
          ===================================================================== */}
       {templateModalOpen && (
         <div
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-[#050811]/70 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-[#050811]/60 p-3 backdrop-blur-xs sm:p-6"
           onClick={() => setTemplateModalOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex max-h-[90vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-3xl border border-[#DCE1EC] bg-white shadow-2xl"
+            className="flex max-h-[90vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-[16px] border border-[#d6d6e0] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.16)]"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-[#F1F5F9] px-6 py-4">
+            <div className="flex items-center justify-between border-b border-[#ebebf3] px-6 py-4">
               <div>
-                <h2 className="font-display text-lg font-bold text-[#0F172A]">
+                <h2 className="text-[17px] font-bold text-[#0F172A]">
                   Quick start with top templates
                 </h2>
                 <p className="text-xs text-[#64748B]">
@@ -3240,15 +3433,16 @@ export function VideoStudioView({
               </div>
               <button
                 type="button"
+                data-no-glass="true"
                 onClick={() => setTemplateModalOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
+                className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#ebebf3] bg-white text-[#475569] hover:text-[#0F172A]"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Category Pills */}
-            <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-[#F1F5F9] px-6 py-3">
+            <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-[#ebebf3] px-6 py-3">
               {IMAGE_TEMPLATE_CATEGORIES.map((cat) => {
                 const active = templateCategory === cat;
                 return (
@@ -3257,10 +3451,10 @@ export function VideoStudioView({
                     type="button"
                     data-no-glass="true"
                     onClick={() => setTemplateCategory(cat)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    className={`shrink-0 rounded-[8px] px-3 py-1 text-xs font-semibold transition-colors ${
                       active
-                        ? "bg-[#050811] text-white"
-                        : "border border-[#E6E9F0] bg-white text-[#475569] hover:text-[#0F172A]"
+                        ? "bg-[#0027eb] text-white"
+                        : "border border-[#ebebf3] bg-white text-[#475569] hover:text-[#0F172A]"
                     }`}
                   >
                     {cat}
@@ -3280,10 +3474,10 @@ export function VideoStudioView({
                       type="button"
                       data-no-glass="true"
                       onClick={() => toggleTemplateSelection(tpl.id)}
-                      className={`group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-all ${
+                      className={`group relative flex flex-col overflow-hidden rounded-[12px] border text-left transition-colors ${
                         isSelected
                           ? "border-[#0027eb] ring-2 ring-[#0027eb]/20"
-                          : "border-[#ECEFF5] hover:border-[#CBD5E1]"
+                          : "border-[#ebebf3] hover:border-[#d6d6e0]"
                       }`}
                     >
                       <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#0F172A]">
@@ -3319,10 +3513,10 @@ export function VideoStudioView({
             </div>
 
             {/* Sticky Bottom Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E6E9F0] bg-[#FAFBFD] px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#ebebf3] bg-[#f5f5fa] px-6 py-4">
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A]">
-                  <Clock className="h-3.5 w-3.5 text-[#0027eb]" />
+                <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A]">
+                  <Clock className="h-3.5 w-3.5 text-[#475569]" />
                   {activeBrandName}
                 </span>
 
@@ -3330,7 +3524,7 @@ export function VideoStudioView({
                   <select
                     value={effectiveModalProductTitle}
                     onChange={(e) => setModalProductTitle(e.target.value)}
-                    className="rounded-full border border-[#E6E9F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
+                    className="rounded-[8px] border border-[#ebebf3] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] outline-none focus:border-[#0027eb]"
                   >
                     {brandProducts.map((p, idx) => (
                       <option key={idx} value={p.title}>
@@ -3340,14 +3534,14 @@ export function VideoStudioView({
                   </select>
                 )}
 
-                <div className="flex items-center gap-1 rounded-full border border-[#E6E9F0] bg-white p-0.5">
+                <div className="flex items-center gap-1 rounded-[8px] border border-[#ebebf3] bg-white p-0.5">
                   {(["4:5", "9:16", "1:1"] as const).map((ratio) => (
                     <button
                       key={ratio}
                       type="button"
                       data-no-glass="true"
                       onClick={() => setModalAspectRatio(ratio)}
-                      className={`rounded-full px-2.5 py-1 font-mono-num text-[11px] font-bold transition-colors ${
+                      className={`rounded-[6px] px-2.5 py-1 font-mono-num text-[11px] font-bold transition-colors ${
                         modalAspectRatio === ratio
                           ? "bg-[#050811] text-white"
                           : "text-[#64748B] hover:text-[#0F172A]"
@@ -3366,6 +3560,7 @@ export function VideoStudioView({
                 {selectedTemplateIds.length > 0 && (
                   <button
                     type="button"
+                    data-no-glass="true"
                     onClick={() => setSelectedTemplateIds([])}
                     className="text-xs font-semibold text-[#64748B] hover:text-[#0F172A]"
                   >
@@ -3374,14 +3569,15 @@ export function VideoStudioView({
                 )}
                 <button
                   type="button"
+                  data-no-glass="true"
                   disabled={generating}
                   onClick={() => void handleGenerateFromTemplates()}
-                  className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-[8px] bg-[#0027eb] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-60"
                 >
                   {generating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                   ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
                   )}
                   Generate variants
                 </button>

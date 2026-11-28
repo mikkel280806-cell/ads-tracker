@@ -7,7 +7,6 @@ import {
   ArrowRight,
   ArrowUp,
   Bot,
-  Calendar,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -16,6 +15,7 @@ import {
   Cpu,
   ExternalLink,
   Film,
+  FlaskConical,
   Globe,
   Image as ImageIcon,
   Layers,
@@ -23,16 +23,18 @@ import {
   Loader2,
   MessageSquare,
   Package,
+  Paperclip,
   Play,
   Plug,
-  Plus,
   RefreshCw,
   RotateCcw,
   Search,
   ShoppingBag,
   Sparkles,
+  Store,
   Target,
   TrendingUp,
+  Video,
   Wand2,
   X,
   Zap,
@@ -52,7 +54,7 @@ import { buildClonedSourceFromAd } from "@/lib/studio-types";
 import { getPresetById } from "@/lib/snow-engine";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
 import {
-  ATRIA_TRENDING_VIDEOS,
+  ATRIA_PROMO_VIDEOS,
   type SnowSubView,
   type StudioSubTab,
 } from "@/lib/atria-placeholders";
@@ -108,13 +110,15 @@ const TASK_CATEGORIES: Array<{
     prompts: [
       {
         title: "Spot key issues",
-        subtitle: "Surface sudden drops in thumbstop, hold rate, and CPA across active ads",
+        subtitle:
+          "Surface sudden drops in thumbstop, hold rate, and CPA across active ads",
         prompt:
           "Audit my active ads, spot the key creative bottlenecks hurting CPA right now, and recommend 3 immediate fixes.",
       },
       {
         title: "Conversion blockers",
-        subtitle: "Pinpoint why high-CTR creatives fail to convert after the click",
+        subtitle:
+          "Pinpoint why high-CTR creatives fail to convert after the click",
         prompt:
           "Identify conversion blockers between my top-CTR ads and landing page expectations, and suggest message-match fixes.",
       },
@@ -126,7 +130,8 @@ const TASK_CATEGORIES: Array<{
       },
       {
         title: "Kill / scale / hold",
-        subtitle: "Clear spend allocation decisions backed by 3-second & hold signals",
+        subtitle:
+          "Clear spend allocation decisions backed by 3-second & hold signals",
         prompt:
           "Classify my current creatives into Kill, Scale, and Hold buckets and outline 4 Double-Down iterations for the top winner.",
       },
@@ -138,13 +143,15 @@ const TASK_CATEGORIES: Array<{
     prompts: [
       {
         title: "Winning hook DNA",
-        subtitle: "Extract the opening 3-second patterns driving your highest thumbstop",
+        subtitle:
+          "Extract the opening 3-second patterns driving your highest thumbstop",
         prompt:
           "Analyze my top-performing ads and break down the exact visual and spoken hook DNA behind their thumbstop rate.",
       },
       {
         title: "Format winner matrix",
-        subtitle: "Compare UGC, Claymation MOA, Mini-Drama, and Static Callouts",
+        subtitle:
+          "Compare UGC, Claymation MOA, Mini-Drama, and Static Callouts",
         prompt:
           "Compare performance across creative formats in my account and recommend which style preset to test next.",
       },
@@ -156,7 +163,8 @@ const TASK_CATEGORIES: Array<{
       },
       {
         title: "Offer framing test",
-        subtitle: "Compare bundle anchoring, trial framing, and risk-reversal CTAs",
+        subtitle:
+          "Compare bundle anchoring, trial framing, and risk-reversal CTAs",
         prompt:
           "Suggest 4 high-converting offer and CTA framings tailored to my brand memory and price point.",
       },
@@ -168,13 +176,15 @@ const TASK_CATEGORIES: Array<{
     prompts: [
       {
         title: "Core pain-point angles",
-        subtitle: "Turn real customer objections into scroll-stopping first lines",
+        subtitle:
+          "Turn real customer objections into scroll-stopping first lines",
         prompt:
           "Use my brand memory and customer objections to craft 5 high-intent ad angles for cold Meta traffic.",
       },
       {
         title: "Persona script split",
-        subtitle: "Adapt one winning product benefit across 3 distinct buyer personas",
+        subtitle:
+          "Adapt one winning product benefit across 3 distinct buyer personas",
         prompt:
           "Split my strongest product value prop into 3 distinct buyer personas with tailored spoken hooks for each.",
       },
@@ -204,7 +214,8 @@ const TASK_CATEGORIES: Array<{
       },
       {
         title: "Whitespace gap scan",
-        subtitle: "Spot visual styles competitors aren't using in your category",
+        subtitle:
+          "Spot visual styles competitors aren't using in your category",
         prompt:
           "Scan competitor ads in my swipe file and highlight underused creative angles and visual formats we can own.",
       },
@@ -228,7 +239,8 @@ const TASK_CATEGORIES: Array<{
     prompts: [
       {
         title: "Write 5 hooks in chat",
-        subtitle: "Generate 5 distinct 3-second openers ready for Creator or AI UGC",
+        subtitle:
+          "Generate 5 distinct 3-second openers ready for Creator or AI UGC",
         prompt:
           "Write 5 high-thumbstop 3-second video hooks for my hero product across curiosity, contrarian, and demo frameworks.",
       },
@@ -240,13 +252,15 @@ const TASK_CATEGORIES: Array<{
       },
       {
         title: "Static callout blueprint",
-        subtitle: "Design a crisp pointer-style static ad with 3 benefit callouts",
+        subtitle:
+          "Design a crisp pointer-style static ad with 3 benefit callouts",
         prompt:
           "Write copy, headline, and 3 crisp feature pointer callouts for a high-converting static hero ad.",
       },
       {
         title: "Founder authority script",
-        subtitle: "Craft a trust-building 'why we built this' talking-head brief",
+        subtitle:
+          "Craft a trust-building 'why we built this' talking-head brief",
         prompt:
           "Write a 25-second Founder Authority script covering the origin story, key proof point, and risk-free guarantee.",
       },
@@ -276,7 +290,8 @@ const TASK_CATEGORIES: Array<{
       },
       {
         title: "Cross-category swipe",
-        subtitle: "Borrow proven visual hooks from top-performing wellness & apparel brands",
+        subtitle:
+          "Borrow proven visual hooks from top-performing wellness & apparel brands",
         prompt:
           "Pull cross-category creative inspiration from my swipe file and adapt the best hook structure to my brand.",
       },
@@ -284,35 +299,35 @@ const TASK_CATEGORIES: Array<{
   },
 ];
 
-const SCHEDULE_WEEKS = ["Last week", "This week", "Next week"] as const;
+const SCHEDULE_WEEKS = [
+  { label: "Last week, 16 Nov - 22 Nov", short: "last week" },
+  { label: "This week, 23 Nov - 29 Nov", short: "this week" },
+  { label: "Next week, 30 Nov - 6 Dec", short: "next week" },
+] as const;
 
 const SCHEDULE_EXAMPLES = [
   {
     title: "Weekly Performance Analysis",
-    cadence: "Every Monday · 08:00",
-    description:
-      "Summarize winning hooks, fatigued creatives, and ROAS shifts across your active Meta campaigns.",
+    description: "Review last week's ad performance and key actions.",
     prompt:
       "Run my Weekly Performance Analysis: highlight scaling winners, fatigued ads, and top 3 creative actions for this week.",
-    icon: Activity,
+    icon: Sparkles,
   },
   {
     title: "Weekly Competitor Insights",
-    cadence: "Every Wednesday · 09:00",
     description:
-      "Track newly launched competitor ads, active-day longevity leaders, and emerging messaging angles.",
+      "Track newly launched competitor ads and emerging creative angles.",
     prompt:
       "Generate my Weekly Competitor Insights brief from the swipe file with top winning angles to adapt.",
     icon: Layers,
   },
   {
     title: "Daily Market Inspirations",
-    cadence: "Weekdays · 08:30",
     description:
-      "Morning digest of 3 high-velocity creative concepts and fresh UGC hooks ready to clone in Studio.",
+      "Morning digest of 3 high-velocity concepts and fresh UGC hooks.",
     prompt:
       "Give me today's Daily Market Inspirations: 3 proven swipe picks and ready-to-test hook variations for my brand.",
-    icon: Sparkles,
+    icon: Activity,
   },
 ];
 
@@ -498,12 +513,40 @@ const STRATEGIST_SKILLS: SkillItem[] = [
   },
 ];
 
+function SlackBrandIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M6 15a2 2 0 1 1-2-2h2v2zm1 0a2 2 0 1 1 4 0v5a2 2 0 1 1-4 0v-5z"
+        fill="#E01E5A"
+      />
+      <path
+        d="M9 6a2 2 0 1 1 2-2v2H9zm0 1a2 2 0 1 1 0 4H4a2 2 0 1 1 0-4h5z"
+        fill="#36C5F0"
+      />
+      <path
+        d="M18 9a2 2 0 1 1 2 2h-2V9zm-1 0a2 2 0 1 1-4 0V4a2 2 0 1 1 4 0v5z"
+        fill="#2EB67D"
+      />
+      <path
+        d="M15 18a2 2 0 1 1-2 2v-2h2zm0-1a2 2 0 1 1 0-4h5a2 2 0 1 1 0 4h-5z"
+        fill="#ECB22E"
+      />
+    </svg>
+  );
+}
+
 function SnowCircleBadge({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   if (size === "lg") {
     return (
       <div className="relative flex items-center justify-center">
-        <div className="pointer-events-none absolute h-20 w-20 rounded-full bg-gradient-to-tr from-[#0027eb]/22 via-[#38BDF8]/18 to-[#93C5FD]/22 blur-xl" />
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#DCE4FF] bg-white shadow-[0_8px_28px_-6px_rgba(0,39,235,0.24),0_2px_8px_rgba(15,23,42,0.06)]">
+        <div className="pointer-events-none absolute h-20 w-20 rounded-full bg-gradient-to-tr from-[#0027eb]/18 via-[#3B66FF]/14 to-[#93C5FD]/18 blur-xl" />
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#DCE4FF] bg-white shadow-[0_6px_22px_-8px_rgba(0,39,235,0.22)]">
           <SnowMark className="h-8 w-8 text-[#0027eb]" />
         </div>
       </div>
@@ -511,13 +554,13 @@ function SnowCircleBadge({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   }
   if (size === "sm") {
     return (
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DCE4FF] bg-white shadow-2xs">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DCE4FF] bg-white">
         <SnowMark className="h-3.5 w-3.5 text-[#0027eb]" />
       </span>
     );
   }
   return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#DCE4FF] bg-white shadow-xs">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#DCE4FF] bg-white">
       <SnowMark className="h-4 w-4 text-[#0027eb]" />
     </span>
   );
@@ -551,7 +594,7 @@ function ActionCardsRenderer({
                   return (
                     <div
                       key={pick.adId}
-                      className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[#ECEFF5] bg-[#0F172A]"
+                      className="group relative aspect-[4/5] overflow-hidden rounded-[12px] border border-[#ebebf3] bg-[#0F172A]"
                     >
                       {pick.thumbnailUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
@@ -585,6 +628,7 @@ function ActionCardsRenderer({
                           </span>
                           <button
                             type="button"
+                            data-no-glass="true"
                             onClick={() =>
                               fullAd
                                 ? onCloneAdToStudio(fullAd, "iphone_ugc")
@@ -593,7 +637,7 @@ function ActionCardsRenderer({
                                     stylePresetId: "iphone_ugc",
                                   })
                             }
-                            className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-bold text-[#0F172A] shadow-sm transition-colors hover:bg-[#0027eb] hover:text-white"
+                            className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-bold text-[#0F172A] transition-colors hover:bg-[#0027eb] hover:text-white"
                           >
                             <Sparkles className="h-3 w-3" />
                             Clone
@@ -613,12 +657,12 @@ function ActionCardsRenderer({
           return (
             <div
               key={`cb-${cIdx}`}
-              className="overflow-hidden rounded-2xl border border-[#DCE4FF] bg-white shadow-[0_6px_24px_-12px_rgba(0,39,235,0.18)]"
+              className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white"
             >
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="rounded-full bg-[#0027eb]/[0.08] px-2 py-0.5 text-[10px] font-bold text-[#0027eb]">
+                    <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-bold text-[#0027eb]">
                       {preset.name}
                     </span>
                     <span className="truncate text-[11px] text-[#64748B]">
@@ -631,6 +675,7 @@ function ActionCardsRenderer({
                 </div>
                 <button
                   type="button"
+                  data-no-glass="true"
                   onClick={() =>
                     onOpenBriefInStudio({
                       title: card.title,
@@ -640,18 +685,18 @@ function ActionCardsRenderer({
                       clonedFromAd: card.clonedFromAd,
                     })
                   }
-                  className="adtrack-btn-primary inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11.5px] font-semibold text-white"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
                 >
-                  <Film className="h-3.5 w-3.5" />
+                  <Film className="h-3.5 w-3.5 text-white" />
                   Open in Studio
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 border-t border-[#F1F5F9] bg-[#FAFBFD] p-2.5 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-1.5 border-t border-[#ebebf3] bg-[#f5f5fa] p-2.5 sm:grid-cols-4">
                 {card.scenes.slice(0, 4).map((sc) => (
                   <div
                     key={sc.id}
-                    className="flex min-h-[100px] flex-col justify-between rounded-xl bg-[#0F172A] p-2.5 text-white"
+                    className="flex min-h-[100px] flex-col justify-between rounded-[10px] bg-[#0F172A] p-2.5 text-white"
                   >
                     <span className="font-mono-num text-[9px] font-bold uppercase tracking-wider text-white/55">
                       0{sc.sceneNumber} · {sc.timeRange}
@@ -671,7 +716,7 @@ function ActionCardsRenderer({
           return (
             <div
               key={`mu-${cIdx}`}
-              className="space-y-2.5 rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-3.5"
+              className="space-y-2.5 rounded-[12px] border border-[#ebebf3] bg-[#f5f5fa] p-3.5"
             >
               <p className="truncate font-display text-[13px] font-bold text-[#0F172A]">
                 {ins.title}
@@ -702,7 +747,7 @@ function ActionCardsRenderer({
           return (
             <div
               key={`ws-${cIdx}`}
-              className="space-y-2.5 rounded-2xl border border-[#ECEFF5] bg-white p-3.5"
+              className="space-y-2.5 rounded-[12px] border border-[#ebebf3] bg-white p-3.5"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-display text-[13px] font-bold text-[#0F172A]">
@@ -717,6 +762,7 @@ function ActionCardsRenderer({
                   <button
                     key={idx}
                     type="button"
+                    data-no-glass="true"
                     onClick={() =>
                       onOpenBriefInStudio({
                         title: it.label,
@@ -724,17 +770,17 @@ function ActionCardsRenderer({
                         stylePresetId: it.stylePresetId,
                       })
                     }
-                    className="group flex items-center justify-between gap-2 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] px-3 py-2.5 text-left transition-all hover:border-[#0027eb] hover:bg-white"
+                    className="group flex items-center justify-between gap-2 rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] px-3 py-2.5 text-left transition-colors hover:border-[#0027eb] hover:bg-white"
                   >
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-[#0F172A]">
+                      <p className="text-[11.5px] font-bold text-[#0F172A]">
                         {it.label}
                       </p>
                       <p className="mt-0.5 truncate text-[11px] text-[#64748B]">
                         &ldquo;{it.hook}&rdquo;
                       </p>
                     </div>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#94A3B8] transition-transform group-hover:translate-x-0.5 group-hover:text-[#0027eb]" />
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#64748B] transition-transform group-hover:translate-x-0.5 group-hover:text-[#0F172A]" />
                   </button>
                 ))}
               </div>
@@ -789,9 +835,10 @@ export function SnowAssistantView({
   const [urlToMine, setUrlToMine] = useState("");
 
   // Sub-view interactive state
-  const [scheduleWeekIdx, setScheduleWeekIdx] = useState(1); // "This week"
+  const [scheduleWeekIdx, setScheduleWeekIdx] = useState(1); // "This week, 23 Nov - 29 Nov"
   const [activeTaskCategory, setActiveTaskCategory] =
     useState<TaskCategoryId>("diagnostics");
+  const [showAllExplore, setShowAllExplore] = useState(false);
   const [connectedMap, setConnectedMap] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       CONNECTOR_ITEMS.map((c) => [c.id, c.defaultConnected])
@@ -935,43 +982,44 @@ export function SnowAssistantView({
     TASK_CATEGORIES.find((c) => c.id === activeTaskCategory) ??
     TASK_CATEGORIES[0];
 
+  const hasComposerDraft = Boolean(
+    input.trim() || attachedAd || attachedProduct || urlToMine.trim()
+  );
+
+  const showStickyHomeComposer =
+    messages.length === 0 && activeSubView === "home";
+
   return (
     <div
-      className="relative flex h-full w-full flex-col overflow-hidden rounded-2xl"
+      className="relative flex h-full w-full flex-col overflow-hidden"
       style={{
-        backgroundColor: "#F7F8FB",
+        backgroundColor: "#f8f9fd",
         backgroundImage:
-          "radial-gradient(ellipse 78% 42% at 50% 0%, rgba(0,39,235,0.065) 0%, rgba(56,189,248,0.045) 48%, transparent 78%), radial-gradient(rgba(15,23,42,0.055) 1px, transparent 1px)",
-        backgroundSize: "100% 100%, 22px 22px",
+          "radial-gradient(ellipse 46% 36% at 6% 2%, rgba(0, 39, 235, 0.08), transparent 72%), radial-gradient(ellipse 44% 34% at 94% 4%, rgba(59, 102, 255, 0.08), transparent 72%), linear-gradient(to right, rgba(15, 23, 42, 0.032) 1px, transparent 1px), linear-gradient(to bottom, rgba(15, 23, 42, 0.032) 1px, transparent 1px)",
+        backgroundSize: "100% 100%, 100% 100%, 28px 28px, 28px 28px",
       }}
     >
-      <div className="mx-auto flex h-full w-full max-w-[840px] flex-col px-3 pt-3 pb-4 sm:px-6 sm:pt-4">
-        {/* TOP UTILITY STRIP */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          {/* Brand context selector pill + dropdown */}
+      <div className="relative mx-auto flex h-full w-full max-w-[812px] flex-col px-4 pt-6">
+        {/* TOP UTILITY STRIP — Atria clean inline brand selector */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <div className="relative">
             <button
               type="button"
+              data-no-glass="true"
               onClick={() => setBrandMenuOpen((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] font-medium text-[#0F172A] shadow-2xs transition-colors hover:border-[#0027eb]/40"
+              className="inline-flex items-center gap-2 rounded-[8px] px-1.5 py-1 text-[13.5px] font-medium text-[#475569] transition-colors hover:bg-black/[0.03] hover:text-[#0F172A]"
             >
               {brandMemory?.logoUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={brandMemory.logoUrl}
                   alt={brandMemory.brandName}
-                  className="h-4 w-4 rounded-full border border-[#E2E8F0] object-cover"
+                  className="h-4.5 w-4.5 rounded-[5px] border border-[#ebebf3] object-cover"
                 />
               ) : (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EEF2FF] text-[9.5px] font-bold text-[#0027eb]">
-                  {brandMemory ? (
-                    brandMemory.brandName.slice(0, 1).toUpperCase()
-                  ) : (
-                    <Globe className="h-2.5 w-2.5" />
-                  )}
-                </span>
+                <Store className="h-4 w-4 text-[#64748B]" />
               )}
-              <span className="max-w-[180px] truncate">
+              <span className="max-w-[220px] truncate">
                 {brandMemory
                   ? brandMemory.brandName
                   : "Select a brand to work with"}
@@ -984,11 +1032,11 @@ export function SnowAssistantView({
             </button>
 
             {brandMenuOpen && (
-              <div className="absolute left-0 top-10 z-30 w-64 rounded-2xl border border-[#E2E8F0] bg-white p-2 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.18)]">
+              <div className="absolute left-0 top-9 z-30 w-64 rounded-[12px] border border-[#d6d6e0] bg-white p-2 shadow-[0_8px_28px_rgba(15,23,42,0.12)]">
                 {brandMemory ? (
-                  <div className="mb-1.5 rounded-xl bg-[#F7F8FB] p-2.5">
+                  <div className="mb-1.5 rounded-[8px] bg-[#f5f5fa] p-2.5">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-[12px] font-bold text-[#0F172A]">
+                      <p className="truncate text-[12.5px] font-bold text-[#0F172A]">
                         {brandMemory.brandName}
                       </p>
                       <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-semibold text-[#0027eb]">
@@ -998,43 +1046,47 @@ export function SnowAssistantView({
                     <p className="mt-0.5 truncate text-[11px] text-[#64748B]">
                       {brandMemory.domain} · {brandMemory.category}
                     </p>
-                    <p className="mt-1.5 text-[10.5px] text-[#64748B]">
+                    <p className="mt-1 text-[10.5px] text-[#64748B]">
                       {brandMemory.products.length} products ·{" "}
                       {brandMemory.usps.length} USPs synced
                     </p>
                   </div>
                 ) : (
-                  <div className="mb-1.5 rounded-xl bg-[#F7F8FB] p-2.5">
-                    <p className="text-[11.5px] font-semibold text-[#0F172A]">
+                  <div className="mb-1.5 rounded-[8px] bg-[#f5f5fa] p-2.5">
+                    <p className="text-[12px] font-semibold text-[#0F172A]">
                       No brand profile selected
                     </p>
-                    <p className="mt-0.5 text-[10.5px] text-[#64748B]">
-                      Pick or scan a storefront so Snow tailors every brief and hook.
+                    <p className="mt-0.5 text-[11px] text-[#64748B]">
+                      Pick or scan a storefront so Snow tailors every brief and
+                      hook.
                     </p>
                   </div>
                 )}
 
                 <button
                   type="button"
+                  data-no-glass="true"
                   onClick={() => {
                     setBrandMenuOpen(false);
                     onOpenBrandMemory();
                   }}
-                  className="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[12px] font-semibold text-[#0F172A] transition-colors hover:bg-[#EEF2FF] hover:text-[#0027eb]"
+                  className="flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-semibold text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <RefreshCw className="h-3.5 w-3.5 text-[#0027eb]" />
-                    {brandMemory ? "Inspect or switch brand" : "Choose brand profile"}
+                    <RefreshCw className="h-3.5 w-3.5 text-[#475569]" />
+                    {brandMemory
+                      ? "Inspect or switch brand"
+                      : "Choose brand profile"}
                   </span>
-                  <ArrowRight className="h-3.5 w-3.5 opacity-60" />
+                  <ArrowRight className="h-3.5 w-3.5 text-[#64748B]" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* Right side: Sub-view switcher pills + New task reset when chatting */}
+          {/* Mobile / Drawer sub-view pills (hidden on lg where sidebar controls subView) */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <div className="flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-white/90 p-1 shadow-2xs">
+            <div className="flex items-center gap-0.5 rounded-[8px] border border-[#ebebf3] bg-white p-0.5 lg:hidden">
               {SUB_VIEW_TABS.map((tab) => {
                 const isActive =
                   messages.length === 0 && activeSubView === tab.id;
@@ -1047,10 +1099,10 @@ export function SnowAssistantView({
                       if (messages.length > 0) onMessagesChange([]);
                       setActiveSubView(tab.id);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                    className={`rounded-[6px] px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
                       isActive
                         ? "bg-[#0F172A] text-white"
-                        : "text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                        : "text-[#64748B] hover:bg-black/[0.04] hover:text-[#0F172A]"
                     }`}
                   >
                     {tab.label}
@@ -1062,12 +1114,13 @@ export function SnowAssistantView({
             {messages.length > 0 && (
               <button
                 type="button"
+                data-no-glass="true"
                 onClick={handleResetToNewTask}
                 title="New task"
-                className="inline-flex items-center gap-1 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3 py-1.5 text-[11px] font-semibold text-[#0027eb] transition-colors hover:bg-[#0027eb] hover:text-white"
+                className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb]"
               >
-                <RotateCcw className="h-3 w-3" />
-                + New task
+                <RotateCcw className="h-3.5 w-3.5 text-[#475569]" />
+                New task
               </button>
             )}
           </div>
@@ -1075,7 +1128,11 @@ export function SnowAssistantView({
 
         {/* MAIN CONTENT: SUB-VIEWS WHEN NO MESSAGES, OR ACTIVE CHAT THREAD */}
         {messages.length === 0 ? (
-          <div className="workspace-scroll min-h-0 flex-1 overflow-y-auto pr-0.5">
+          <div
+            className={`workspace-scroll min-h-0 flex-1 overflow-y-auto pr-0.5 ${
+              showStickyHomeComposer ? "pb-48" : "pb-10"
+            }`}
+          >
             {activeSubView === "home" && renderHomeView()}
             {activeSubView === "new_task" && renderNewTaskView()}
             {activeSubView === "connectors" && renderConnectorsView()}
@@ -1098,10 +1155,10 @@ export function SnowAssistantView({
                     </div>
                   )}
                   <div
-                    className={`max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[85%] ${
+                    className={`max-w-[90%] rounded-[14px] px-4 py-3 sm:max-w-[85%] ${
                       msg.role === "user"
                         ? "bg-[#0F172A] text-white"
-                        : "border border-[#ECEFF5] bg-white text-[#0F172A] shadow-2xs"
+                        : "border border-[#ebebf3] bg-white text-[#0F172A]"
                     }`}
                   >
                     {msg.attachments && msg.attachments.length > 0 && (
@@ -1117,7 +1174,7 @@ export function SnowAssistantView({
                       </div>
                     )}
 
-                    <div className="whitespace-pre-wrap text-[13px] leading-relaxed">
+                    <div className="whitespace-pre-wrap text-[13.5px] leading-relaxed">
                       {msg.content}
                     </div>
 
@@ -1137,8 +1194,8 @@ export function SnowAssistantView({
               {sending && (
                 <div className="flex items-center gap-2.5">
                   <SnowCircleBadge size="md" />
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#ECEFF5] bg-white px-3.5 py-1.5 text-xs font-medium text-[#64748B]">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0027eb]" />
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#ebebf3] bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-[#64748B]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#475569]" />
                     Snow is thinking...
                   </div>
                 </div>
@@ -1146,142 +1203,222 @@ export function SnowAssistantView({
               <div ref={endRef} />
             </div>
 
-            <div className="mx-auto w-full max-w-[700px]">{renderComposer()}</div>
+            <div className="pb-4">{renderComposer(false)}</div>
           </>
+        )}
+
+        {/* BOTTOM STICKY COMPOSER ON HOME (matches live Atria Slack-bar + Composer) */}
+        {showStickyHomeComposer && (
+          <div className="pointer-events-none absolute inset-x-4 bottom-4 z-20">
+            <div className="pointer-events-auto">{renderComposer(true)}</div>
+          </div>
         )}
       </div>
     </div>
   );
 
-  function renderHomeView() {
-    const trendingPreview = ATRIA_TRENDING_VIDEOS.slice(0, 4);
-    const activeCount = analyticsRows.length;
+  function renderExploreSection(compactHeading = true) {
+    const promptsToShow = showAllExplore
+      ? TASK_CATEGORIES.flatMap((cat) => cat.prompts)
+      : currentTaskCategory.prompts;
 
     return (
-      <div className="space-y-5 pb-6">
-        {/* 1. MOST RECOMMENDED HERO CARD */}
-        <section className="overflow-hidden rounded-[18px] border border-white/10 bg-[#070B16] p-5 text-white shadow-[0_20px_50px_-20px_rgba(5,8,17,0.65)]">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <div className="space-y-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-[#B8FF3B] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#050811]">
-                  NEW
-                </span>
-                <span className="text-[11px] font-medium text-white/60">
-                  Most recommended
-                </span>
-              </div>
-
-              <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">
-                Generate video ads
-              </h2>
-
-              <div className="flex flex-wrap items-center gap-1.5">
-                {["Realistic UGC", "Live action", "3D & Claymation"].map(
-                  (tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-white/80"
-                    >
-                      {tag}
-                    </span>
-                  )
-                )}
-              </div>
-            </div>
-
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3
+            className={
+              compactHeading
+                ? "text-[15px] font-bold text-[#0F172A]"
+                : "text-[13px] font-semibold text-[#64748B]"
+            }
+          >
+            Explore what Snow can do
+          </h3>
+          {showAllExplore && (
             <button
               type="button"
-              onClick={() => navigateStudio("video")}
-              className="adtrack-btn-primary inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold text-white"
+              data-no-glass="true"
+              onClick={() => setShowAllExplore(false)}
+              className="text-[12px] font-medium text-[#64748B] hover:text-[#0F172A]"
             >
-              <Film className="h-4 w-4" />
-              Try video ads
+              Show less
             </button>
-          </div>
+          )}
+        </div>
 
-          {/* 4-column edge-to-edge video preview strip */}
-          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {trendingPreview.map((tv) => (
+        {/* 6 Category Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {TASK_CATEGORIES.map((cat) => {
+            const active = !showAllExplore && cat.id === currentTaskCategory.id;
+            return (
               <button
-                key={tv.id}
+                key={cat.id}
                 type="button"
                 data-no-glass="true"
-                onClick={() =>
-                  onOpenBriefInStudio({
-                    title: `Clone: ${tv.brandName}`,
-                    angle: tv.hookLine,
-                    stylePresetId: tv.presetId,
-                    productTitle: brandMemory?.products?.[0]?.title,
-                    clonedFromAd: {
-                      id: tv.id,
-                      brandName: tv.brandName,
-                      headline: tv.styleTag,
-                      primaryText: tv.hookLine,
-                      mediaUrl: tv.thumbnailUrl,
-                      thumbnailUrl: tv.thumbnailUrl,
-                      activeDays: tv.activeDays,
-                    },
-                  })
-                }
-                className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-white/10 bg-[#0F172A] text-left transition-transform hover:-translate-y-0.5"
+                onClick={() => {
+                  setShowAllExplore(false);
+                  setActiveTaskCategory(cat.id);
+                }}
+                className={`h-8 rounded-[8px] px-3 text-[12.5px] font-medium transition-colors ${
+                  active
+                    ? "bg-[#0027eb] text-white"
+                    : "border border-[#ebebf3] bg-white text-[#475569] hover:border-[#d6d6e0] hover:text-[#0F172A]"
+                }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={tv.thumbnailUrl}
-                  alt={tv.brandName}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050811]/90 via-[#050811]/20 to-black/35" />
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
 
-                <div className="absolute inset-x-2 top-2 flex items-center justify-between gap-1">
-                  <span className="truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-                    {tv.brandName}
-                  </span>
-                  <span className="shrink-0 rounded-full bg-[#0027eb]/90 px-1.5 py-0.5 font-mono-num text-[9.5px] font-semibold text-white">
-                    {tv.durationLabel}
-                  </span>
-                </div>
-
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#0027eb] shadow-md">
-                    <Play className="ml-0.5 h-4 w-4 fill-current" />
-                  </span>
-                </div>
-
-                <div className="absolute inset-x-2.5 bottom-2.5 space-y-1">
-                  <span className="inline-block rounded-full bg-white/15 px-2 py-0.5 text-[9.5px] font-semibold text-white backdrop-blur-sm">
-                    {tv.styleTag}
-                  </span>
-                  <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/90">
-                    {tv.hookLine}
+        {/* Prompt Rows */}
+        <div className="space-y-2">
+          {promptsToShow.map((item) => (
+            <button
+              key={`${item.title}-${item.subtitle.slice(0, 12)}`}
+              type="button"
+              data-no-glass="true"
+              onClick={() => void sendMessage(item.prompt)}
+              className="group flex w-full items-center justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white px-4 py-3 text-left transition-colors hover:border-[#0027eb]"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <Sparkles className="h-4 w-4 shrink-0 text-[#475569]" />
+                <div className="min-w-0">
+                  <p className="truncate text-[13.5px] font-semibold text-[#0F172A]">
+                    {item.title}
+                  </p>
+                  <p className="mt-0.5 truncate text-[12.5px] text-[#64748B]">
+                    {item.subtitle}
                   </p>
                 </div>
+              </div>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#64748B] transition-colors group-hover:bg-[#f5f5fa] group-hover:text-[#0F172A]">
+                <ArrowUp className="h-4 w-4" />
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {!showAllExplore && (
+          <div className="pt-1 text-center">
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setShowAllExplore(true)}
+              className="rounded-[8px] border border-[#ebebf3] bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-[#475569] transition-colors hover:border-[#d6d6e0] hover:text-[#0F172A]"
+            >
+              View more
+            </button>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  function renderHomeView() {
+    const heroClips = [
+      ATRIA_PROMO_VIDEOS.rayaHeroClip1,
+      ATRIA_PROMO_VIDEOS.rayaHeroClip2,
+      ATRIA_PROMO_VIDEOS.rayaHeroClip3,
+      ATRIA_PROMO_VIDEOS.rayaHeroClip4,
+    ];
+    const activeWeek = SCHEDULE_WEEKS[scheduleWeekIdx];
+
+    return (
+      <div className="space-y-7">
+        {/* 1. MOST RECOMMENDED DARK VIDEO HERO CARD */}
+        <section>
+          <h2 className="mb-3 text-[15px] font-bold text-[#0F172A]">
+            Most recommended
+          </h2>
+
+          <div className="relative min-h-[248px] overflow-hidden rounded-[18px] border border-white/10 bg-[#050811]">
+            {/* Right 4-column live muted autoPlay looping video strip */}
+            <div className="absolute inset-y-0 right-0 grid w-[68%] grid-cols-4 gap-[2px] bg-[#050811]">
+              {heroClips.map((src, idx) => (
+                <div
+                  key={src}
+                  className="relative h-full w-full overflow-hidden bg-[#0F172A]"
+                >
+                  <video
+                    src={src}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="h-full w-full object-cover"
+                    aria-label={`Snow video ad example ${idx + 1}`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Left-to-right gradient mask + subtle Electric Cobalt bottom-left ambient glow */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(90deg, #050811 0%, #050811 32%, rgba(5,8,17,0.86) 52%, rgba(5,8,17,0.22) 76%, rgba(5,8,17,0.08) 100%)",
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(circle at 14% 88%, rgba(0, 39, 235, 0.28), transparent 52%)",
+              }}
+            />
+
+            {/* Left Overlay Content */}
+            <div className="relative z-10 flex max-w-[390px] flex-col items-start gap-3 p-7">
+              <span className="rounded-full bg-[#B8FF3B] px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-[#050811]">
+                NEW
+              </span>
+
+              <h3 className="font-sans text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-white">
+                Generate <span className="text-[#6B8CFF]">video ads</span>
+              </h3>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {["MiniMax H3 Max", "Live action", "3D cartoon"].map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[12px] font-medium text-white/90 backdrop-blur-md"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => navigateStudio("video")}
+                className="mt-1 inline-flex h-10 items-center gap-2 rounded-full bg-[#0027eb] px-5 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
+              >
+                <Video className="h-4 w-4 text-white" />
+                Try video ads
               </button>
-            ))}
+            </div>
           </div>
         </section>
 
-        {/* 2. RECENT TEST ANALYSIS BANNER */}
-        <section className="flex flex-col justify-between gap-4 rounded-[18px] border border-[#DCE4FF] bg-[#F4F7FF] p-5 sm:flex-row sm:items-center">
-          <div className="flex items-start gap-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DCE4FF] bg-white text-[#0027eb] shadow-2xs">
-              <Sparkles className="h-4.5 w-4.5" />
+        {/* 2. RECENT TEST ANALYSIS BANNER CARD */}
+        <section className="flex flex-col justify-between gap-4 rounded-[16px] border border-[#C7D2FE] bg-[#EEF2FF] px-5 py-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#DCE4FF]">
+              <FlaskConical className="h-4.5 w-4.5 text-[#0F172A]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-display text-[15px] font-bold text-[#0F172A]">
-                  Recent Test Analysis
-                </h3>
-                {activeCount > 0 && (
-                  <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 font-mono-num text-[10px] font-semibold text-[#0027eb]">
-                    {activeCount} creatives tracked
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 max-w-xl text-[12.5px] leading-relaxed text-[#475569]">
-                Let Snow inspect your latest creative tests, diagnose thumbstop or
-                hold-rate drop-offs, and surface the next winning iteration to scale.
+              <h3 className="text-[14px] font-bold text-[#0F172A]">
+                Recent Test Analysis
+              </h3>
+              <p className="mt-0.5 text-[13px] leading-snug text-[#475569]">
+                Snow detects early signals from recent ad tests, turns them into
+                actionable insights, and delivers a summary in Slack.
               </p>
             </div>
           </div>
@@ -1294,35 +1431,32 @@ export function SnowAssistantView({
                 "Run a Recent Test Analysis on my active creatives: pinpoint winners to scale, spot early fatigue, and propose 3 next test iterations."
               )
             }
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0F172A] px-4 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#0027eb]"
+            className="shrink-0 rounded-full bg-[#0F172A] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#1E293B]"
           >
             Set up now
-            <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </section>
 
         {/* 3. SNOW'S SCHEDULE */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-[#0027eb]" />
-              <h3 className="font-display text-[15px] font-bold text-[#0F172A]">
-                Snow&apos;s schedule
-              </h3>
-            </div>
+        <section className="space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-0.5">
+            <h3 className="text-[15px] font-bold text-[#0F172A]">
+              Snow&apos;s schedule
+            </h3>
 
-            <div className="inline-flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-white px-2 py-1 text-[11.5px] font-semibold text-[#0F172A]">
+            <div className="inline-flex items-center gap-2 text-[13px] font-medium text-[#0F172A]">
               <button
                 type="button"
                 data-no-glass="true"
                 onClick={() => setScheduleWeekIdx((i) => Math.max(0, i - 1))}
+                disabled={scheduleWeekIdx === 0}
                 aria-label="Previous week"
-                className="rounded-full p-0.5 text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                className="flex h-6 w-6 items-center justify-center rounded-[6px] text-[#64748B] transition-colors hover:bg-black/[0.04] hover:text-[#0F172A] disabled:opacity-35"
               >
-                <ChevronLeft className="h-3.5 w-3.5" />
+                <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="min-w-[74px] text-center">
-                {SCHEDULE_WEEKS[scheduleWeekIdx]}
+              <span className="min-w-[172px] text-center font-mono-num text-[12.5px] font-medium text-[#0F172A]">
+                {activeWeek.label}
               </span>
               <button
                 type="button"
@@ -1332,150 +1466,87 @@ export function SnowAssistantView({
                     Math.min(SCHEDULE_WEEKS.length - 1, i + 1)
                   )
                 }
+                disabled={scheduleWeekIdx === SCHEDULE_WEEKS.length - 1}
                 aria-label="Next week"
-                className="rounded-full p-0.5 text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                className="flex h-6 w-6 items-center justify-center rounded-[6px] text-[#64748B] transition-colors hover:bg-black/[0.04] hover:text-[#0F172A] disabled:opacity-35"
               >
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-dashed border-[#DCE4FF] bg-white/85 px-4 py-5 text-center">
-            <p className="text-[12.5px] font-medium text-[#64748B]">
-              Nothing scheduled for {SCHEDULE_WEEKS[scheduleWeekIdx].toLowerCase()}{" "}
-              yet. Try the examples below.
-            </p>
+          <div className="rounded-[12px] border border-[#ebebf3] bg-white px-4 py-3.5 text-center text-[13px] text-[#64748B]">
+            Nothing scheduled for {activeWeek.short} yet. Try the examples
+            below.
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="space-y-2.5">
             {SCHEDULE_EXAMPLES.map((item) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.title}
                   type="button"
+                  data-no-glass="true"
                   onClick={() => void sendMessage(item.prompt)}
-                  className="group flex flex-col justify-between rounded-2xl border border-[#E2E8F0] bg-white p-4 text-left transition-all hover:border-[#0027eb]/50 hover:shadow-[0_10px_28px_-14px_rgba(0,39,235,0.22)]"
+                  className="group flex w-full items-center justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white px-4 py-3.5 text-left transition-colors hover:border-[#0027eb]"
                 >
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#0027eb]">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="font-mono-num text-[10px] font-medium text-[#64748B]">
-                        {item.cadence}
-                      </span>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Icon className="h-4 w-4 shrink-0 text-[#475569]" />
+                    <div className="min-w-0">
+                      <p className="truncate text-[13.5px] font-semibold text-[#0F172A]">
+                        {item.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-[12.5px] text-[#64748B]">
+                        {item.description}
+                      </p>
                     </div>
-                    <h4 className="mt-3 font-display text-[13.5px] font-bold text-[#0F172A] group-hover:text-[#0027eb]">
-                      {item.title}
-                    </h4>
-                    <p className="mt-1 text-[11.5px] leading-relaxed text-[#64748B]">
-                      {item.description}
-                    </p>
                   </div>
-
-                  <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-[#0027eb]">
-                    Run briefing
-                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                  </div>
+                  <ArrowUp className="h-4 w-4 shrink-0 text-[#64748B] transition-colors group-hover:text-[#0F172A]" />
                 </button>
               );
             })}
           </div>
         </section>
 
-        {/* Bottom quick composer on Home */}
-        <div className="pt-1">{renderComposer()}</div>
+        {/* 4. EXPLORE WHAT SNOW CAN DO */}
+        {renderExploreSection(true)}
       </div>
     );
   }
 
   function renderNewTaskView() {
     return (
-      <div className="flex flex-col items-center pb-8 pt-4">
+      <div className="flex flex-col items-center pb-8 pt-6">
         <SnowCircleBadge size="lg" />
 
-        <h1 className="mt-4 font-geist-serif text-[36px] font-normal leading-tight tracking-[-0.02em] text-[#0F172A]">
+        <h1 className="mt-4 font-display text-[34px] font-bold leading-tight tracking-[-0.02em] text-[#0F172A]">
           Ask Snow
         </h1>
 
-        <p className="mt-1.5 text-center text-[13px] italic text-[#64748B]">
+        <p className="mt-1.5 text-center text-[13px] text-[#64748B]">
           Trained on live Meta creative signals &amp; winning DTC patterns
         </p>
 
         {/* Brand context badge */}
         <button
           type="button"
+          data-no-glass="true"
           onClick={onOpenBrandMemory}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#DCE4FF] bg-[#EEF2FF]/70 px-3 py-1 text-[11.5px] font-semibold text-[#0027eb] transition-colors hover:bg-[#EEF2FF]"
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#d6d6e0] bg-white px-3.5 py-1 text-[12px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
         >
-          <Sparkles className="h-3 w-3" />
+          <Sparkles className="h-3.5 w-3.5 text-[#475569]" />
           {brandMemory
             ? `Context: ${brandMemory.brandName}`
             : "Select a brand context"}
         </button>
 
         {/* Inline Floating Composer */}
-        <div className="mt-5 w-full max-w-[680px]">{renderComposer()}</div>
+        <div className="mt-5 w-full max-w-[700px]">{renderComposer(false)}</div>
 
         {/* Explore what Snow can do */}
-        <div className="mt-8 w-full max-w-[740px] space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-[13px] font-bold uppercase tracking-wider text-[#64748B]">
-              Explore what Snow can do
-            </h2>
-          </div>
-
-          {/* 6 Category Tabs */}
-          <div className="flex flex-wrap gap-1.5">
-            {TASK_CATEGORIES.map((cat) => {
-              const active = cat.id === currentTaskCategory.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  data-no-glass="true"
-                  onClick={() => setActiveTaskCategory(cat.id)}
-                  className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
-                    active
-                      ? "bg-[#0027eb] text-white shadow-xs"
-                      : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#0027eb]/40 hover:text-[#0F172A]"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* 4 Clickable Prompt Cards/Rows per Tab */}
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {currentTaskCategory.prompts.map((item) => (
-              <button
-                key={item.title}
-                type="button"
-                onClick={() => void sendMessage(item.prompt)}
-                className="group flex items-start justify-between gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3.5 text-left transition-all hover:border-[#0027eb]/55 hover:shadow-[0_8px_24px_-12px_rgba(0,39,235,0.22)]"
-              >
-                <div className="flex min-w-0 items-start gap-2.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] text-[#0027eb]">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-[#0F172A] group-hover:text-[#0027eb]">
-                      {item.title}
-                    </p>
-                    <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-snug text-[#64748B]">
-                      {item.subtitle}
-                    </p>
-                  </div>
-                </div>
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F1F5F9] text-[#64748B] transition-colors group-hover:bg-[#0027eb] group-hover:text-white">
-                  <ArrowUp className="h-3.5 w-3.5" />
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className="mt-8 w-full max-w-[740px]">
+          {renderExploreSection(true)}
         </div>
       </div>
     );
@@ -1489,12 +1560,13 @@ export function SnowAssistantView({
             <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-[#0F172A]">
               Connectors
             </h2>
-            <p className="mt-0.5 text-[12.5px] text-[#64748B]">
-              Plug live ad accounts, commerce catalogs, and team channels into Snow.
+            <p className="mt-0.5 text-[13px] text-[#64748B]">
+              Plug live ad accounts, commerce catalogs, and team channels into
+              Snow.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-3 py-1 text-[11px] font-semibold text-[#0027eb]">
-            <Plug className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ebebf3] bg-white px-3 py-1 text-[11.5px] font-semibold text-[#475569]">
+            <Plug className="h-3.5 w-3.5 text-[#475569]" />
             {Object.values(connectedMap).filter(Boolean).length} of{" "}
             {CONNECTOR_ITEMS.length} connected
           </span>
@@ -1507,42 +1579,48 @@ export function SnowAssistantView({
             return (
               <div
                 key={conn.id}
-                className="flex flex-col justify-between rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-2xs"
+                className="flex flex-col justify-between rounded-[12px] border border-[#ebebf3] bg-white p-4"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DCE4FF] bg-[#EEF2FF] text-[#0027eb]">
-                        <Icon className="h-4.5 w-4.5" />
+                      <span className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa]">
+                        {conn.id === "slack_snow" ? (
+                          <SlackBrandIcon className="h-4.5 w-4.5" />
+                        ) : (
+                          <Icon className="h-4.5 w-4.5 text-[#475569]" />
+                        )}
                       </span>
                       <div>
                         <h3 className="font-display text-[14px] font-bold text-[#0F172A]">
                           {conn.name}
                         </h3>
-                        <p className="text-[11px] font-medium text-[#64748B]">
+                        <p className="text-[11.5px] font-medium text-[#64748B]">
                           {conn.category}
                         </p>
                       </div>
                     </div>
 
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                         isConnected
                           ? "bg-[#ECFDF3] text-[#15803D]"
-                          : "bg-[#F1F5F9] text-[#64748B]"
+                          : "bg-[#f5f5fa] text-[#64748B]"
                       }`}
                     >
-                      {isConnected && <Check className="h-3 w-3" />}
+                      {isConnected && (
+                        <Check className="h-3 w-3 text-[#475569]" />
+                      )}
                       {isConnected ? "Connected" : "Not connected"}
                     </span>
                   </div>
 
-                  <p className="mt-3 text-[12px] leading-relaxed text-[#475569]">
+                  <p className="mt-3 text-[12.5px] leading-relaxed text-[#475569]">
                     {conn.description}
                   </p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-[#F1F5F9] pt-3">
+                <div className="mt-4 flex items-center justify-between border-t border-[#ebebf3] pt-3">
                   <button
                     type="button"
                     data-no-glass="true"
@@ -1552,10 +1630,10 @@ export function SnowAssistantView({
                         [conn.id]: !prev[conn.id],
                       }))
                     }
-                    className={`rounded-full px-3.5 py-1.5 text-[11.5px] font-semibold transition-colors ${
+                    className={`rounded-[8px] px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
                       isConnected
-                        ? "border border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]"
-                        : "bg-[#0027eb] text-white hover:bg-[#0021cc]"
+                        ? "border border-[#d6d6e0] bg-white text-[#475569] hover:bg-[#f5f5fa]"
+                        : "bg-[#0027eb] text-white hover:bg-[#001fc2]"
                     }`}
                   >
                     {isConnected ? "Disconnect" : "Connect"}
@@ -1564,15 +1642,16 @@ export function SnowAssistantView({
                   {isConnected && (
                     <button
                       type="button"
+                      data-no-glass="true"
                       onClick={() =>
                         void sendMessage(
                           `Check my ${conn.name} data and summarize the latest actionable signals for my creatives.`
                         )
                       }
-                      className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#0027eb] hover:underline"
+                      className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#0027eb] hover:underline"
                     >
                       Ask Snow
-                      <ArrowRight className="h-3 w-3" />
+                      <ArrowRight className="h-3.5 w-3.5 text-[#475569]" />
                     </button>
                   )}
                 </div>
@@ -1592,13 +1671,15 @@ export function SnowAssistantView({
             <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-[#0F172A]">
               Automations
             </h2>
-            <p className="mt-0.5 text-[12.5px] text-[#64748B]">
-              Scheduled creative intelligence briefings and fatigue watchdogs powered by Snow.
+            <p className="mt-0.5 text-[13px] text-[#64748B]">
+              Scheduled creative intelligence briefings and fatigue watchdogs
+              powered by Snow.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-3 py-1 text-[11px] font-semibold text-[#0027eb]">
-            <Clock className="h-3.5 w-3.5" />
-            {Object.values(automationEnabledMap).filter(Boolean).length} active schedules
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ebebf3] bg-white px-3 py-1 text-[11.5px] font-semibold text-[#475569]">
+            <Clock className="h-3.5 w-3.5 text-[#475569]" />
+            {Object.values(automationEnabledMap).filter(Boolean).length} active
+            schedules
           </span>
         </div>
 
@@ -1608,24 +1689,24 @@ export function SnowAssistantView({
             return (
               <div
                 key={auto.id}
-                className="flex flex-col justify-between gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-2xs sm:flex-row sm:items-center"
+                className="flex flex-col justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white p-4 sm:flex-row sm:items-center"
               >
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EEF2FF] text-[#0027eb]">
-                      <Bot className="h-4 w-4" />
+                    <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#f5f5fa]">
+                      <Bot className="h-4 w-4 text-[#475569]" />
                     </span>
                     <h3 className="font-display text-[14.5px] font-bold text-[#0F172A]">
                       {auto.title}
                     </h3>
-                    <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[10.5px] font-semibold text-[#475569]">
+                    <span className="rounded-full bg-[#f5f5fa] px-2.5 py-0.5 text-[11px] font-semibold text-[#475569]">
                       {auto.schedule}
                     </span>
-                    <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10.5px] font-semibold text-[#0027eb]">
+                    <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-semibold text-[#0027eb]">
                       {auto.channel}
                     </span>
                   </div>
-                  <p className="max-w-xl text-[12px] leading-relaxed text-[#64748B]">
+                  <p className="max-w-xl text-[12.5px] leading-relaxed text-[#64748B]">
                     {auto.description}
                   </p>
                 </div>
@@ -1648,7 +1729,7 @@ export function SnowAssistantView({
                     }`}
                   >
                     <span
-                      className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow-xs transition-transform ${
+                      className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white transition-transform ${
                         enabled ? "translate-x-5.5" : "translate-x-1"
                       }`}
                     />
@@ -1658,9 +1739,9 @@ export function SnowAssistantView({
                     type="button"
                     data-no-glass="true"
                     onClick={() => void sendMessage(auto.prompt)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#0F172A] px-3.5 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#0027eb]"
+                    className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#0F172A] px-3.5 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#0027eb]"
                   >
-                    <Play className="h-3 w-3 fill-current" />
+                    <Play className="h-3 w-3 fill-current text-white" />
                     Run now
                   </button>
                 </div>
@@ -1680,12 +1761,13 @@ export function SnowAssistantView({
             <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-[#0F172A]">
               Creative Strategist Skills
             </h2>
-            <p className="mt-0.5 text-[12.5px] text-[#64748B]">
-              One-click workflows combining your brand memory, swipe vault, and Studio presets.
+            <p className="mt-0.5 text-[13px] text-[#64748B]">
+              One-click workflows combining your brand memory, swipe vault, and
+              Studio presets.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-3 py-1 text-[11px] font-semibold text-[#0027eb]">
-            <Cpu className="h-3.5 w-3.5" />6 specialized skills
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ebebf3] bg-white px-3 py-1 text-[11.5px] font-semibold text-[#475569]">
+            <Cpu className="h-3.5 w-3.5 text-[#475569]" />6 specialized skills
           </span>
         </div>
 
@@ -1696,6 +1778,7 @@ export function SnowAssistantView({
               <button
                 key={skill.id}
                 type="button"
+                data-no-glass="true"
                 onClick={() => {
                   if (skill.mode === "studio_miner") {
                     navigateStudio("miner");
@@ -1714,14 +1797,14 @@ export function SnowAssistantView({
                   }
                   void sendMessage(skill.prompt);
                 }}
-                className="group flex flex-col justify-between rounded-2xl border border-[#E2E8F0] bg-white p-4 text-left transition-all hover:border-[#0027eb]/55 hover:shadow-[0_12px_30px_-14px_rgba(0,39,235,0.22)]"
+                className="group flex flex-col justify-between rounded-[12px] border border-[#ebebf3] bg-white p-4 text-left transition-colors hover:border-[#0027eb]"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#0027eb]">
-                      <Icon className="h-4 w-4" />
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#f5f5fa]">
+                      <Icon className="h-4 w-4 text-[#475569]" />
                     </span>
-                    <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-0.5 text-[10px] font-semibold text-[#475569]">
+                    <span className="rounded-full border border-[#ebebf3] bg-[#f5f5fa] px-2.5 py-0.5 text-[10.5px] font-semibold text-[#475569]">
                       {skill.tag}
                     </span>
                   </div>
@@ -1729,17 +1812,17 @@ export function SnowAssistantView({
                   <h3 className="mt-3 font-display text-[14px] font-bold text-[#0F172A] group-hover:text-[#0027eb]">
                     {skill.title}
                   </h3>
-                  <p className="mt-1 text-[11.5px] leading-relaxed text-[#64748B]">
+                  <p className="mt-1 text-[12px] leading-relaxed text-[#64748B]">
                     {skill.description}
                   </p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-[#F1F5F9] pt-2.5 text-[11.5px] font-semibold text-[#0027eb]">
+                <div className="mt-4 flex items-center justify-between border-t border-[#ebebf3] pt-2.5 text-[12px] font-semibold text-[#0F172A] group-hover:text-[#0027eb]">
                   <span>{skill.actionLabel}</span>
                   {skill.mode === "chat" ? (
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight className="h-3.5 w-3.5 text-[#64748B] transition-transform group-hover:translate-x-0.5" />
                   ) : (
-                    <ExternalLink className="h-3.5 w-3.5" />
+                    <ExternalLink className="h-3.5 w-3.5 text-[#64748B]" />
                   )}
                 </div>
               </button>
@@ -1750,328 +1833,373 @@ export function SnowAssistantView({
     );
   }
 
-  function renderComposer() {
+  function renderComposer(showSlackBar: boolean) {
     return (
-      <div className="relative rounded-[20px] border border-[#E2E8F0] bg-white p-4 pb-3 shadow-[0_12px_36px_-12px_rgba(0,39,235,0.14)]">
-        {/* Selected Attachment Pills */}
-        {(attachedAd || attachedProduct || urlToMine) && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {attachedAd && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0027eb]/[0.08] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
-                Swipe: {attachedAd.brand_name}
-                <button
-                  type="button"
-                  onClick={() => setAttachedAd(null)}
-                  aria-label="Remove attached ad"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            )}
-            {attachedProduct && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#0F172A]">
-                Product: {attachedProduct.title}
-                <button
-                  type="button"
-                  onClick={() => setAttachedProduct(null)}
-                  aria-label="Remove attached product"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            )}
-            {urlToMine && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-2.5 py-0.5 font-mono-num text-[11px] text-[#0F172A]">
-                {urlToMine}
-                <button
-                  type="button"
-                  onClick={() => setUrlToMine("")}
-                  aria-label="Remove attached URL"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Popover Picker */}
-        {pickerMode && (
-          <div className="mb-3 rounded-xl border border-[#ECEFF5] bg-[#FAFBFD] p-2.5">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-[11px] font-semibold text-[#64748B]">
-                {pickerMode === "ad"
-                  ? "Attach Swipe-Ad"
-                  : pickerMode === "product"
-                    ? "Attach Product"
-                    : "Attach Brand / Product URL"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPickerMode(null)}
-                aria-label="Close picker"
-                className="text-[#94A3B8] hover:text-[#0F172A]"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {pickerMode === "url" ? (
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={urlToMine}
-                  onChange={(e) => setUrlToMine(e.target.value)}
-                  placeholder="https://yourstore.com/products/..."
-                  className="flex-1 rounded-xl border border-[#DCE1EC] bg-white px-3 py-1.5 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] sm:text-xs"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPickerMode(null)}
-                  className="rounded-xl bg-[#0F172A] px-3 py-1.5 text-xs font-semibold text-white"
-                >
-                  Done
-                </button>
-              </div>
-            ) : pickerMode === "product" ? (
-              brandMemory && brandMemory.products.length > 0 ? (
-                <div className="grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
-                  {brandMemory.products.map((p, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setAttachedProduct(p);
-                        setPickerMode(null);
-                      }}
-                      className="flex items-center gap-2 rounded-xl border border-[#ECEFF5] bg-white p-1.5 text-left text-[11px] hover:border-[#0027eb]"
-                    >
-                      {p.image_url && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={p.image_url}
-                          alt=""
-                          className="h-7 w-7 shrink-0 rounded-lg object-cover"
-                        />
-                      )}
-                      <span className="truncate font-semibold text-[#0F172A]">
-                        {p.title}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onOpenBrandMemory}
-                  className="text-xs font-semibold text-[#0027eb]"
-                >
-                  Add a brand profile under Brands →
-                </button>
-              )
-            ) : (
-              <div className="space-y-2">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#94A3B8]" />
-                  <input
-                    type="text"
-                    value={pickerSearch}
-                    onChange={(e) => setPickerSearch(e.target.value)}
-                    placeholder="Search swipe ads by brand or hook..."
-                    className="w-full rounded-xl border border-[#DCE1EC] bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-[#0027eb]"
-                  />
-                </div>
-                <div className="grid max-h-40 grid-cols-3 gap-1.5 overflow-y-auto sm:grid-cols-4">
-                  {searchableAds.map((a) => (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => {
-                        setAttachedAd(a);
-                        setPickerMode(null);
-                      }}
-                      className="relative aspect-[4/5] overflow-hidden rounded-xl border border-[#ECEFF5] bg-[#0F172A]"
-                    >
-                      {(a.fallback_image_url || a.thumbnail_url) && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={a.fallback_image_url || a.thumbnail_url}
-                          alt={a.brand_name}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1">
-                        <p className="truncate text-[10px] font-bold text-white">
-                          {a.brand_name}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Textarea */}
-        <textarea
-          rows={2}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void sendMessage();
-            }
-          }}
-          placeholder="Ask Snow anything..."
-          className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-[13.5px]"
-        />
-
-        {/* Composer Action Row */}
-        <div className="mt-2 flex items-center justify-between gap-2 pt-1">
-          <div className="flex items-center gap-2">
-            {/* + Attach Context dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setPlusOpen((v) => !v);
-                  setCreateMenuOpen(false);
-                }}
-                aria-label="Attach context"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#475569] transition-colors hover:border-[#0027eb]/40 hover:text-[#0F172A]"
-              >
-                <Plus
-                  className={`h-4 w-4 transition-transform ${
-                    plusOpen ? "rotate-45" : ""
-                  }`}
-                />
-              </button>
-              {plusOpen && (
-                <div className="absolute bottom-10 left-0 z-30 w-48 rounded-2xl border border-[#E2E8F0] bg-white p-1.5 shadow-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPickerMode("ad");
-                      setPlusOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F5F7FA]"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-[#0027eb]" />
-                    Swipe-Ad
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPickerMode("product");
-                      setPlusOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F5F7FA]"
-                  >
-                    <Package className="h-3.5 w-3.5 text-[#0027eb]" />
-                    Product
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPickerMode("url");
-                      setPlusOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F5F7FA]"
-                  >
-                    <Link2 className="h-3.5 w-3.5 text-[#0027eb]" />
-                    Brand URL
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Create dashed pill dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={() => {
-                  setCreateMenuOpen((v) => !v);
-                  setPlusOpen(false);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[#CBD5E1] bg-[#FAFBFD] px-3 py-1 text-[12px] font-semibold text-[#334155] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF]/60 hover:text-[#0027eb]"
-              >
-                <Wand2 className="h-3.5 w-3.5" />
-                Create
-                <ChevronDown
-                  className={`h-3 w-3 transition-transform ${
-                    createMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {createMenuOpen && (
-                <div className="absolute bottom-10 left-0 z-30 w-60 rounded-2xl border border-[#E2E8F0] bg-white p-1.5 shadow-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCreateMenuOpen(false);
-                      navigateStudio("video");
-                    }}
-                    className="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-[#0F172A] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Film className="h-3.5 w-3.5 text-[#0027eb]" />
-                      Video ad → Ad Maker
-                    </span>
-                    <ArrowRight className="h-3 w-3 opacity-60" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCreateMenuOpen(false);
-                      navigateStudio("static");
-                    }}
-                    className="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-[#0F172A] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <ImageIcon className="h-3.5 w-3.5 text-[#0027eb]" />
-                      Image ad → Static templates
-                    </span>
-                    <ArrowRight className="h-3 w-3 opacity-60" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCreateMenuOpen(false);
-                      void sendMessage(
-                        "Write 5 scroll-stopping hooks for my hero product in chat with visual cues and predicted thumbstop angles."
-                      );
-                    }}
-                    className="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-[#0F172A] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Sparkles className="h-3.5 w-3.5 text-[#0027eb]" />
-                      Write 5 hooks in chat
-                    </span>
-                    <ArrowUp className="h-3 w-3 opacity-60" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
+      <div className="relative">
+        {/* Top Attached Slack Strip (matches live Atria Raya home composer) */}
+        {showSlackBar && (
           <button
             type="button"
-            disabled={sending}
             data-no-glass="true"
-            onClick={() => void sendMessage()}
-            aria-label="Send to Snow"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0027eb] text-white shadow-xs transition-colors hover:bg-[#0021cc] disabled:opacity-50"
+            onClick={() => setActiveSubView("connectors")}
+            className="flex w-full items-center justify-between gap-3 rounded-t-[18px] border border-b-0 border-[#e2e6ef] bg-[#F4F5F8] px-4 pt-2.5 pb-4 text-left text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-[#ECEFF5]"
           >
-            {sending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <ArrowUp className="h-3.5 w-3.5" />
-            )}
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-2xs">
+                <SlackBrandIcon className="h-3.5 w-3.5" />
+              </span>
+              <span className="truncate">
+                Set up Snow in Slack now and simply @Snow anytime
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-[#64748B]" />
           </button>
+        )}
+
+        {/* Main Rounded Composer Box */}
+        <div
+          className={`relative rounded-[20px] border border-[#d6d6e0] bg-white p-4 pb-3 shadow-[0_6px_24px_rgba(15,23,42,0.08)] ${
+            showSlackBar ? "-mt-2" : ""
+          }`}
+        >
+          {/* Selected Attachment Pills */}
+          {(attachedAd || attachedProduct || urlToMine) && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {attachedAd && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
+                  Swipe: {attachedAd.brand_name}
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setAttachedAd(null)}
+                    aria-label="Remove attached ad"
+                    className="text-[#475569] hover:text-[#0F172A]"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {attachedProduct && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f5fa] px-2.5 py-0.5 text-[11px] font-semibold text-[#0F172A]">
+                  Product: {attachedProduct.title}
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setAttachedProduct(null)}
+                    aria-label="Remove attached product"
+                    className="text-[#475569] hover:text-[#0F172A]"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {urlToMine && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f5fa] px-2.5 py-0.5 font-mono-num text-[11px] text-[#0F172A]">
+                  {urlToMine}
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setUrlToMine("")}
+                    aria-label="Remove attached URL"
+                    className="text-[#475569] hover:text-[#0F172A]"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Popover Picker */}
+          {pickerMode && (
+            <div className="mb-3 rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] p-2.5">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <span className="text-[11.5px] font-semibold text-[#64748B]">
+                  {pickerMode === "ad"
+                    ? "Attach Swipe-Ad"
+                    : pickerMode === "product"
+                      ? "Attach Product"
+                      : "Attach Brand / Product URL"}
+                </span>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setPickerMode(null)}
+                  aria-label="Close picker"
+                  className="text-[#64748B] hover:text-[#0F172A]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {pickerMode === "url" ? (
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={urlToMine}
+                    onChange={(e) => setUrlToMine(e.target.value)}
+                    placeholder="https://yourstore.com/products/..."
+                    className="flex-1 rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-1.5 text-[16px] text-[#0F172A] outline-none focus:border-[#0027eb] sm:text-xs"
+                  />
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setPickerMode(null)}
+                    className="rounded-[8px] bg-[#0F172A] px-3 py-1.5 text-xs font-semibold text-white"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : pickerMode === "product" ? (
+                brandMemory && brandMemory.products.length > 0 ? (
+                  <div className="grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
+                    {brandMemory.products.map((p, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => {
+                          setAttachedProduct(p);
+                          setPickerMode(null);
+                        }}
+                        className="flex items-center gap-2 rounded-[8px] border border-[#ebebf3] bg-white p-1.5 text-left text-[11.5px] hover:border-[#0027eb]"
+                      >
+                        {p.image_url && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={p.image_url}
+                            alt=""
+                            className="h-7 w-7 shrink-0 rounded-[6px] object-cover"
+                          />
+                        )}
+                        <span className="truncate font-semibold text-[#0F172A]">
+                          {p.title}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={onOpenBrandMemory}
+                    className="text-xs font-semibold text-[#0027eb]"
+                  >
+                    Add a brand profile under Brands →
+                  </button>
+                )
+              ) : (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748B]" />
+                    <input
+                      type="text"
+                      value={pickerSearch}
+                      onChange={(e) => setPickerSearch(e.target.value)}
+                      placeholder="Search swipe ads by brand or hook..."
+                      className="w-full rounded-[8px] border border-[#d6d6e0] bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-[#0027eb]"
+                    />
+                  </div>
+                  <div className="grid max-h-40 grid-cols-3 gap-1.5 overflow-y-auto sm:grid-cols-4">
+                    {searchableAds.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => {
+                          setAttachedAd(a);
+                          setPickerMode(null);
+                        }}
+                        className="relative aspect-[4/5] overflow-hidden rounded-[8px] border border-[#ebebf3] bg-[#0F172A]"
+                      >
+                        {(a.fallback_image_url || a.thumbnail_url) && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={a.fallback_image_url || a.thumbnail_url}
+                            alt={a.brand_name}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1">
+                          <p className="truncate text-[10px] font-bold text-white">
+                            {a.brand_name}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Textarea */}
+          <textarea
+            rows={2}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void sendMessage();
+              }
+            }}
+            placeholder="Ask me anything..."
+            className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-[14px]"
+          />
+
+          {/* Composer Action Row */}
+          <div className="mt-2 flex items-center justify-between gap-2 pt-1">
+            <div className="flex items-center gap-2">
+              {/* Create dashed pill dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setCreateMenuOpen((v) => !v);
+                    setPlusOpen(false);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-[8px] border border-dashed border-[#d6d6e0] bg-white px-3 py-1.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-[#475569]" />
+                  Create
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-[#64748B] transition-transform ${
+                      createMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {createMenuOpen && (
+                  <div className="absolute bottom-11 left-0 z-30 w-60 rounded-[12px] border border-[#d6d6e0] bg-white p-1.5 shadow-[0_8px_28px_rgba(15,23,42,0.12)]">
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setCreateMenuOpen(false);
+                        navigateStudio("video");
+                      }}
+                      className="flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Film className="h-3.5 w-3.5 text-[#475569]" />
+                        Video ad → Ad Maker
+                      </span>
+                      <ArrowRight className="h-3.5 w-3.5 text-[#64748B]" />
+                    </button>
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setCreateMenuOpen(false);
+                        navigateStudio("static");
+                      }}
+                      className="flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <ImageIcon className="h-3.5 w-3.5 text-[#475569]" />
+                        Image ad → Static templates
+                      </span>
+                      <ArrowRight className="h-3.5 w-3.5 text-[#64748B]" />
+                    </button>
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setCreateMenuOpen(false);
+                        void sendMessage(
+                          "Write 5 scroll-stopping hooks for my hero product in chat with visual cues and predicted thumbstop angles."
+                        );
+                      }}
+                      className="flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-[#475569]" />
+                        Write 5 hooks in chat
+                      </span>
+                      <ArrowUp className="h-3.5 w-3.5 text-[#64748B]" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Paperclip Attach Context dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setPlusOpen((v) => !v);
+                    setCreateMenuOpen(false);
+                  }}
+                  aria-label="Attach context"
+                  className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#475569] transition-colors hover:bg-black/[0.04] hover:text-[#0F172A]"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+                {plusOpen && (
+                  <div className="absolute bottom-11 left-0 z-30 w-48 rounded-[12px] border border-[#d6d6e0] bg-white p-1.5 shadow-[0_8px_28px_rgba(15,23,42,0.12)]">
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setPickerMode("ad");
+                        setPlusOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-[12.5px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-[#475569]" />
+                      Swipe-Ad
+                    </button>
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setPickerMode("product");
+                        setPlusOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-[12.5px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
+                    >
+                      <Package className="h-3.5 w-3.5 text-[#475569]" />
+                      Product
+                    </button>
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setPickerMode("url");
+                        setPlusOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-[12.5px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
+                    >
+                      <Link2 className="h-3.5 w-3.5 text-[#475569]" />
+                      Brand URL
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={sending}
+              data-no-glass="true"
+              onClick={() => void sendMessage()}
+              aria-label="Send to Snow"
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+                hasComposerDraft
+                  ? "bg-[#0027eb] text-white hover:bg-[#001fc2]"
+                  : "bg-[#ECEFF4] text-[#94A3B8] hover:bg-[#E2E8F0] hover:text-[#475569]"
+              }`}
+            >
+              {sending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -2091,7 +2219,7 @@ export function SnowQuickDrawer({
       onClick={onClose}
     >
       <div
-        className="flex h-full w-full max-w-2xl flex-col bg-[#F7F8FB] p-4 shadow-2xl sm:p-5"
+        className="flex h-full w-full max-w-2xl flex-col bg-[#f8f9fd] p-4 shadow-2xl sm:p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-center justify-between">
@@ -2101,9 +2229,10 @@ export function SnowQuickDrawer({
           </span>
           <button
             type="button"
+            data-no-glass="true"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#64748B] shadow-xs hover:text-[#0F172A]"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#ebebf3] bg-white text-[#475569] hover:text-[#0F172A]"
           >
             <X className="h-4 w-4" />
           </button>
