@@ -2972,7 +2972,7 @@ export function AtriaDiscoveryBar({
   };
 
   return (
-    <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3 sm:-mx-6 sm:px-6 lg:-mx-7 lg:-mt-6">
+    <div className="border-b border-[#ebebf3] bg-white px-4 pb-3 pt-3 sm:px-6">
       {/* ====================================================================
           ROW 1: VIEW TABS + AI SEARCH + "Can't find an advertiser?" (SINGLE ROW)
          ==================================================================== */}
@@ -3345,11 +3345,11 @@ export function AtriaDiscoveryBar({
           ROW 4: EXPANDED 3-LINE COMPACT FILTER PANEL (ALL 22 FILTERS)
          ==================================================================== */}
       {filtersExpanded && (
-        <div className="space-y-2 rounded-[10px] bg-[#f5f5fa] px-4 py-3">
+        <div className="space-y-1.5 rounded-[10px] bg-[#f5f5fa] px-3 py-2.5">
           {/* LINE 1: LIFECYCLE (3) + TARGETING (3) SIDE-BY-SIDE */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="w-[74px] shrink-0 text-[12.5px] font-medium text-[#64748B]">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="w-[66px] shrink-0 text-[11.5px] font-medium text-[#64748B]">
                 Lifecycle
               </span>
 
@@ -3392,8 +3392,8 @@ export function AtriaDiscoveryBar({
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-[11.5px] font-medium text-[#64748B]">
                 Targeting
               </span>
 
@@ -3444,12 +3444,12 @@ export function AtriaDiscoveryBar({
             </div>
           </div>
 
-          {/* LINE 2: CREATIVE (11) WITH SUBTLE HAIRLINE DIVIDERS */}
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-0">
-            <span className="w-[80px] shrink-0 text-[12.5px] font-medium text-[#64748B] sm:pt-1">
+          {/* LINE 2: CREATIVE (11) ON ONE SINGLE HORIZONTAL LINE AT 1440px */}
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-0">
+            <span className="w-[66px] shrink-0 text-[11.5px] font-medium text-[#64748B]">
               Creative
             </span>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1">
               {/* 7. Format */}
               <FormatFilter
                 open={openPopover === "format"}
@@ -3616,11 +3616,11 @@ export function AtriaDiscoveryBar({
           </div>
 
           {/* LINE 3: PERFORMANCE (5) */}
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-0">
-            <span className="w-[80px] shrink-0 text-[12.5px] font-medium text-[#64748B]">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-0">
+            <span className="w-[66px] shrink-0 text-[11.5px] font-medium text-[#64748B]">
               Performance
             </span>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1">
               {/* 18. Impression rank */}
               <ImpressionRankFilter
                 open={openPopover === "impression_rank"}

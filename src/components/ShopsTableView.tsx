@@ -506,11 +506,103 @@ function getHomepageScreenshotUrl(
   return `https://image.thum.io/get/width/600/crop/380/noanimate/${clean}`;
 }
 
-function hasPositivePrice(price?: string): boolean {
-  if (!price) return false;
+function hasPositivePrice(price?: string | number | null): boolean {
+  if (typeof price === "number") return Number.isFinite(price) && price > 0;
+  if (typeof price !== "string" || !price.trim()) return false;
   const normalized = price.replace(/[^0-9.,]/g, "").replace(",", ".");
   const num = parseFloat(normalized);
   return Number.isFinite(num) && num > 0;
+}
+
+function extractBareDomain(websiteUrl?: unknown, fallbackHandle?: unknown): string {
+  const raw = typeof websiteUrl === "string" ? websiteUrl.trim() : "";
+  if (raw) {
+    return raw
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .replace(/\/.*$/, "");
+  }
+  const h =
+    typeof fallbackHandle === "string"
+      ? fallbackHandle.replace(/^@/, "").trim()
+      : "";
+  return h ? `${h}.com` : "";
+}
+
+function SafeBrandLogo({
+  brand,
+  domain,
+  className = "h-10 w-10 rounded-[8px]",
+}: {
+  brand: Brand;
+  domain: string;
+  className?: string;
+}) {
+  const [stage, setStage] = useState(0);
+  const candidates: string[] = [];
+  if (typeof brand.logo_url === "string" && brand.logo_url.trim()) {
+    candidates.push(brand.logo_url.trim());
+  }
+  if (domain && domain.includes(".")) {
+    candidates.push(
+      `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
+    );
+  }
+  const activeSrc = stage < candidates.length ? candidates[stage] : "";
+
+  if (!activeSrc) {
+    return (
+      <span
+        className={`flex shrink-0 items-center justify-center font-display text-[12px] font-bold text-white ${className}`}
+        style={{ backgroundColor: brand.avatar_color || "#0F172A" }}
+      >
+        {brand.avatar_initials || brand.name.slice(0, 2).toUpperCase()}
+      </span>
+    );
+  }
+
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center overflow-hidden border border-[#ebebf3] bg-[#f5f5fa] ${className}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={activeSrc}
+        alt={brand.name}
+        loading="lazy"
+        decoding="async"
+        onError={() => setStage((s) => s + 1)}
+        className="h-full w-full object-contain p-1"
+      />
+    </div>
+  );
+}
+
+function SafeProductImg({
+  src,
+  alt,
+}: {
+  src?: string;
+  alt: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
+        <Package className="h-4 w-4 text-[#94A3B8]" />
+      </div>
+    );
+  }
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-full w-full object-cover"
+    />
+  );
 }
 
 function AreaSparkline({
@@ -1166,11 +1258,11 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           : "🇺🇸";
 
   return (
-    <div className="animate-view-in space-y-4">
+    <div className="animate-view-in">
       {/* =====================================================================
-          WHITE ATRIA STICKY HEADER: ROW 1 TABS · ROW 2 SEARCH · ROW 3 TOOLBAR · ROW 4 FILTER DRAWER
+          WHITE ATRIA STICKY HEADER: ROW 1 TABS + SEARCH · ROW 2 TOOLBAR · ROW 3 FILTER DRAWER
          ===================================================================== */}
-      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3 sm:-mx-6 sm:px-6 lg:-mx-7 lg:-mt-6">
+      <div className="border-b border-[#ebebf3] bg-white px-4 pb-3 pt-3 sm:px-6">
         {/* ROW 1: VIEW TABS + SEARCH BAR + "Can't find a brand?" (SINGLE ROW) */}
         <div className="flex flex-wrap items-center gap-2 border-b border-[#ebebf3] pb-3">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -2098,13 +2190,10 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           MOBILE / IPHONE NATIVE APP CARDS (< xl) — only mounted below xl
          ===================================================================== */}
       {!isDesktopTable && (
-      <div className="space-y-3 xl:hidden">
+      <div className="space-y-3 px-4 py-4 sm:px-6 xl:hidden">
         {filteredBrands.map((brand) => {
           const brandAds = adsByBrand.get(brand.id) || [];
-          const domain = brand.website_url
-            .replace(/^https?:\/\//, "")
-            .replace(/^www\./, "")
-            .replace(/\/.*$/, "");
+          const domain = extractBareDomain(brand.website_url, brand.handle);
           const products = (brand.top_products || []).filter((p) =>
             hasPositivePrice(p.price)
           );
@@ -2302,7 +2391,8 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           DESKTOP ATRIA 8-COLUMN BRANDS TABLE (xl+) — ALL REAL SUPABASE BRANDS
          ===================================================================== */}
       {isDesktopTable && (
-      <div className="hidden overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white xl:block">
+      <div className="hidden px-4 py-4 sm:px-6 lg:py-5 xl:block">
+      <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
         <div className="grid grid-cols-[2.1fr_1.15fr_1.55fr_1.35fr_0.85fr_1fr_0.75fr_0.75fr] items-center gap-3 border-b border-[#ebebf3] bg-white px-5 py-3 text-[13px] font-semibold text-[#0F172A]">
           <span>Brand</span>
           <span>Industry</span>
@@ -2321,10 +2411,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           {filteredBrands.map((brand) => {
             const brandAds = adsByBrand.get(brand.id) || [];
             const metrics = brandMetrics.get(brand.id);
-            const domain = brand.website_url
-              .replace(/^https?:\/\//, "")
-              .replace(/^www\./, "")
-              .replace(/\/.*$/, "");
+            const domain = extractBareDomain(brand.website_url, brand.handle);
             const products = (brand.top_products || []).filter((p) =>
               hasPositivePrice(p.price)
             );
@@ -2332,13 +2419,6 @@ export const ShopsTableView = React.memo(function ShopsTableView({
             const remainingProducts = Math.max(0, totalProductCount - 2);
             const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
             const marketFlag = getFlag(brand);
-            const brandThumb =
-              brand.logo_url ||
-              getHomepageScreenshotUrl(
-                brand.website_url,
-                brand.storefront_image_url
-              ) ||
-              brand.storefront_image_url;
 
             const visitSeries =
               brand.traffic_history && brand.traffic_history.length >= 2
@@ -2374,36 +2454,9 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                 }}
                 className="cv-shop-row group relative grid cursor-pointer grid-cols-[2.1fr_1.15fr_1.55fr_1.35fr_0.85fr_1fr_0.75fr_0.75fr] items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#f5f5fa]/65"
               >
-                {/* 1. BRAND (40x40 rounded-[8px] logo + Bold Name + Shopify Bag + Domain + +N badge) */}
+                {/* 1. BRAND (40x40 rounded-[8px] logo with error fallback + Bold Name + Shopify Bag + Domain + +N badge) */}
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa]">
-                    {brandThumb ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={brandThumb}
-                        alt={brand.name}
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          const img = e.currentTarget;
-                          if (
-                            brand.storefront_image_url &&
-                            img.src !== brand.storefront_image_url
-                          ) {
-                            img.src = brand.storefront_image_url;
-                          }
-                        }}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span
-                        className="flex h-full w-full items-center justify-center font-display text-[12px] font-bold text-white"
-                        style={{ backgroundColor: brand.avatar_color || "#0F172A" }}
-                      >
-                        {brand.avatar_initials}
-                      </span>
-                    )}
-                  </div>
+                  <SafeBrandLogo brand={brand} domain={domain} />
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
@@ -2448,19 +2501,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                           title={prod.title}
                           className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa]"
                         >
-                          {prod.image_url ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={prod.image_url}
-                              alt={prod.title}
-                              loading="lazy"
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
-                              <Package className="h-4 w-4 text-[#94A3B8]" />
-                            </div>
-                          )}
+                          <SafeProductImg src={prod.image_url} alt={prod.title} />
                           {showMoreOverlay && (
                             <div className="absolute inset-0 flex items-center justify-center bg-[#050811]/60 font-mono-num text-[11.5px] font-bold text-white">
                               +{formatCompactCount(remainingProducts)}
@@ -2564,6 +2605,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
             </div>
           )}
         </div>
+      </div>
       </div>
       )}
     </div>

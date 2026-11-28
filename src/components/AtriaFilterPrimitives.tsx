@@ -340,7 +340,7 @@ export function AtriaFilterPill({
       type="button"
       data-no-glass="true"
       onClick={onToggle}
-      className={`inline-flex h-7 select-none items-center gap-1.5 rounded-[6px] border px-2.5 text-[12.5px] transition-colors ${
+      className={`inline-flex h-[27px] shrink-0 select-none items-center gap-1 whitespace-nowrap rounded-[6px] border px-2 text-[11.5px] transition-colors ${
         active
           ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb] hover:bg-[#E0E7FF]"
           : open
@@ -348,7 +348,7 @@ export function AtriaFilterPill({
             : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
       }`}
     >
-      <span className="max-w-[195px] truncate">
+      <span className="max-w-[180px] truncate">
         {activeLabel ? (
           <>
             <span className="font-normal opacity-75">{label}: </span>
@@ -361,7 +361,7 @@ export function AtriaFilterPill({
       <svg
         viewBox="0 0 8 5"
         aria-hidden="true"
-        className={`h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+        className={`h-[4.5px] w-[6.5px] shrink-0 text-[#475569] transition-transform duration-150 ${
           open ? "rotate-180" : ""
         }`}
         fill="currentColor"

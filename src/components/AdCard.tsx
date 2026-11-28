@@ -132,7 +132,9 @@ export const AdCard = React.memo(function AdCard({
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [copyExpanded, setCopyExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [imgFailed, setImgFailed] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [imgStage, setImgStage] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
   const [nearViewport, setNearViewport] = useState(false);
@@ -162,21 +164,32 @@ export const AdCard = React.memo(function AdCard({
       activeMediaUrl.includes("video") &&
       activeMediaUrl.includes("fbcdn"));
 
-  const primaryImg = imgFailed
-    ? ad.fallback_image_url || ""
-    : activeSlide
-      ? activeSlide.thumbnail_url ||
-        (!isVideoFile ? activeSlide.media_url : "") ||
-        ad.thumbnail_url ||
-        ""
-      : ad.thumbnail_url ||
-        ad.fallback_image_url ||
-        (!isVideoFile ? ad.media_url : "") ||
-        "";
+  const rawImgCandidates = activeSlide
+    ? [
+        activeSlide.thumbnail_url,
+        !isVideoFile ? activeSlide.media_url : "",
+        ad.thumbnail_url,
+        ad.fallback_image_url,
+      ]
+    : [
+        ad.thumbnail_url,
+        ad.fallback_image_url,
+        !isVideoFile ? ad.media_url : "",
+      ];
+
+  const imgCandidates: string[] = [];
+  for (const url of rawImgCandidates) {
+    if (typeof url === "string" && url.trim() && !imgCandidates.includes(url)) {
+      imgCandidates.push(url);
+    }
+  }
+  const primaryImg = imgStage < imgCandidates.length ? imgCandidates[imgStage] : "";
 
   const stepSlide = (delta: number) => {
     if (!carouselSlides) return;
-    setImgFailed(false);
+    setImgStage(0);
+    setVideoFailed(false);
+    setImgLoaded(false);
     setSlideIdx(
       (prev) => (prev + delta + carouselSlides.length) % carouselSlides.length
     );
@@ -275,11 +288,12 @@ export const AdCard = React.memo(function AdCard({
             }
             className="relative shrink-0"
           >
-            {ad.brand_logo_url ? (
+            {ad.brand_logo_url && !avatarFailed ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={ad.brand_logo_url}
                 alt={ad.brand_name}
+                onError={() => setAvatarFailed(true)}
                 className="h-10 w-10 rounded-full border border-[#ebebf3] bg-black/[0.04] object-contain p-0.5"
               />
             ) : (
@@ -654,7 +668,7 @@ export const AdCard = React.memo(function AdCard({
           }}
           className="relative w-full cursor-pointer overflow-hidden bg-[#f5f5fa]"
         >
-          {isVideoFile && (isHovered || !primaryImg) && !imgFailed ? (
+          {isVideoFile && (isHovered || !primaryImg) && !videoFailed ? (
             <video
               key={activeMediaUrl}
               src={activeMediaUrl}
@@ -670,7 +684,7 @@ export const AdCard = React.memo(function AdCard({
                   setNaturalRatio(v.videoWidth / v.videoHeight);
                 }
               }}
-              onError={() => setImgFailed(true)}
+              onError={() => setVideoFailed(true)}
               className="h-full w-full bg-black object-contain"
             />
           ) : primaryImg ? (
@@ -695,8 +709,8 @@ export const AdCard = React.memo(function AdCard({
                   setImgLoaded(true);
                 }}
                 onError={() => {
-                  setImgLoaded(true);
-                  if (!imgFailed) setImgFailed(true);
+                  setImgLoaded(false);
+                  setImgStage((prev) => prev + 1);
                 }}
                 className={`h-full w-full object-contain transition-all duration-300 ease-out group-hover:scale-[1.015] ${
                   imgLoaded ? "opacity-100" : "opacity-0"
@@ -779,7 +793,9 @@ export const AdCard = React.memo(function AdCard({
                     data-no-glass="true"
                     aria-label={`Slide ${idx + 1}`}
                     onClick={() => {
-                      setImgFailed(false);
+                      setImgStage(0);
+                      setVideoFailed(false);
+                      setImgLoaded(false);
                       setSlideIdx(idx);
                     }}
                     className={`h-1.5 rounded-full transition-all ${

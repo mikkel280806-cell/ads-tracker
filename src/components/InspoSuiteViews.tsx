@@ -91,6 +91,41 @@ function MicroCaret({ open = false }: { open?: boolean }) {
   );
 }
 
+function SafeAdvertiserAvatar({
+  src,
+  name,
+  initials,
+  color,
+  sizeClass = "h-10 w-10",
+}: {
+  src?: string;
+  name: string;
+  initials: string;
+  color: string;
+  sizeClass?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={src}
+        alt={name}
+        onError={() => setFailed(true)}
+        className={`${sizeClass} shrink-0 rounded-full border border-[#ebebf3] bg-white object-cover`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-white`}
+      style={{ backgroundColor: color || "#0F172A" }}
+    >
+      {initials || name.slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
+
 /* ============================================================================
    1. LEGACY / ALTERNATE DISCOVERY HEADER (KEPT CLEAN)
    ============================================================================ */
@@ -625,13 +660,16 @@ export function AdvertisersView({
           ? Math.max(8, Math.round((newAds30d / Math.max(1, totalAds)) * 100))
           : 12;
 
-      let domain = b.website_url || "";
+      let domain = typeof b.website_url === "string" ? b.website_url : "";
       try {
         domain = new URL(
           domain.startsWith("http") ? domain : `https://${domain}`
         ).hostname.replace(/^www\./i, "");
       } catch {
-        domain = b.handle.replace(/^@/, "") + ".com";
+        domain =
+          String(b.handle ?? "")
+            .replace(/^@/, "")
+            .trim() + ".com";
       }
 
       const sortedBrandAds = [...brandAds].sort(
@@ -749,9 +787,9 @@ export function AdvertisersView({
     }`;
 
   return (
-    <div className="animate-view-in space-y-4">
+    <div className="animate-view-in">
       {/* WHITE TOP HEADER (SINGLE-ROW TOP BAR + TOOLBAR + 2-ROW FILTER BOX — step_36.png) */}
-      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3 sm:-mx-6 sm:px-6 lg:-mx-7 lg:-mt-6">
+      <div className="border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3 sm:px-6">
         {/* Row 1: All advertisers + New view + Gear + Search + Can't find an advertiser? */}
         <div className="flex flex-wrap items-center gap-2 border-b border-[#ebebf3] pb-3">
           <button
@@ -1160,6 +1198,7 @@ export function AdvertisersView({
       </div>
 
       {/* 6-COLUMN ATRIA ADVERTISERS TABLE (BLACK HEADERS) */}
+      <div className="px-4 py-4 sm:px-6 lg:py-5">
       <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[780px] border-collapse text-left">
@@ -1249,21 +1288,12 @@ export function AdvertisersView({
                             }`}
                           >
                             <div className="relative h-10 w-10 shrink-0">
-                              {row.avatarUrl ? (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img
-                                  src={row.avatarUrl}
-                                  alt={row.name}
-                                  className="h-10 w-10 rounded-full border border-[#ebebf3] bg-white object-cover"
-                                />
-                              ) : (
-                                <span
-                                  className="flex h-10 w-10 items-center justify-center rounded-full font-display text-xs font-bold text-white"
-                                  style={{ backgroundColor: row.avatarColor }}
-                                >
-                                  {row.initials}
-                                </span>
-                              )}
+                              <SafeAdvertiserAvatar
+                                src={row.avatarUrl}
+                                name={row.name}
+                                initials={row.initials}
+                                color={row.avatarColor}
+                              />
                               <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-[#ebebf3] bg-white shadow-2xs">
                                 <MetaInfinityIcon className="h-2.5 w-2.5" />
                               </span>
@@ -1368,6 +1398,7 @@ export function AdvertisersView({
           </table>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -1392,7 +1423,7 @@ export function TopPicksView({
   return (
     <div className="animate-view-in">
       {/* WHITE STICKY HEADER WITH 3-STEP HORIZONTAL FLOW (step_38.png) */}
-      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-6 py-5 sm:-mx-6 lg:-mx-7 lg:-mt-6">
+      <div className="border-b border-[#ebebf3] bg-white px-4 py-5 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="font-sans text-[22px] font-bold tracking-tight text-[#0F172A]">
@@ -1453,7 +1484,7 @@ export function TopPicksView({
       </div>
 
       {/* HORIZONTAL FULL-WIDTH COLLECTION CARDS ON #f5f5fa CANVAS */}
-      <div className="mt-5 space-y-3.5">
+      <div className="space-y-3.5 px-4 py-5 sm:px-6">
         {ATRIA_TOP_PICKS_COLLECTIONS.map((col) => {
           const thumbSrc = resolveCollectionThumb(col);
           const cleanTitle = sanitizeCollectionTitle(col);
@@ -1726,7 +1757,7 @@ export function FollowingView({
   return (
     <div className="animate-view-in">
       {/* WHITE TOP BAR + SUB-TOOLBAR (step_40.png 1:1) */}
-      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white sm:-mx-6 lg:-mx-7 lg:-mt-6">
+      <div className="border-b border-[#ebebf3] bg-white">
         {/* Row 1: Following + Search + Quota Widget */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#ebebf3] px-6 py-3.5">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-5">
@@ -1851,21 +1882,23 @@ export function FollowingView({
           </button>
         </div>
       ) : followedItems.length === 0 ? (
-        <div className="mt-5 rounded-[12px] border border-[#ebebf3] bg-white px-6 py-12 text-center">
-          <p className="font-sans text-sm font-semibold text-[#0F172A]">
-            No followed brands match &ldquo;{search}&rdquo;
-          </p>
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => setSearch("")}
-            className="mt-3 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A] hover:bg-[#f5f5fa]"
-          >
-            Clear search
-          </button>
+        <div className="px-4 py-5 sm:px-6">
+          <div className="rounded-[12px] border border-[#ebebf3] bg-white px-6 py-12 text-center">
+            <p className="font-sans text-sm font-semibold text-[#0F172A]">
+              No followed brands match &ldquo;{search}&rdquo;
+            </p>
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setSearch("")}
+              className="mt-3 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A] hover:bg-[#f5f5fa]"
+            >
+              Clear search
+            </button>
+          </div>
         </div>
       ) : viewMode === "card" ? (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 px-4 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-3">
           {followedItems.map((item) => (
             <article
               key={item.id}
@@ -1882,21 +1915,12 @@ export function FollowingView({
                     item.isTracked ? "cursor-pointer" : "cursor-default"
                   }`}
                 >
-                  {item.avatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={item.avatarUrl}
-                      alt={item.name}
-                      className="h-10 w-10 shrink-0 rounded-full border border-[#ebebf3] bg-white object-cover"
-                    />
-                  ) : (
-                    <span
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-white"
-                      style={{ backgroundColor: item.avatarColor }}
-                    >
-                      {item.initials}
-                    </span>
-                  )}
+                  <SafeAdvertiserAvatar
+                    src={item.avatarUrl}
+                    name={item.name}
+                    initials={item.initials}
+                    color={item.avatarColor}
+                  />
                   <div className="min-w-0">
                     <h3 className="truncate font-sans text-[14px] font-bold text-[#0F172A]">
                       {item.name}
@@ -1947,7 +1971,8 @@ export function FollowingView({
           ))}
         </div>
       ) : (
-        <div className="mt-5 overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
+        <div className="px-4 py-5 sm:px-6">
+        <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px] border-collapse text-left">
               <thead>
@@ -1971,21 +1996,13 @@ export function FollowingView({
                         }}
                         className="flex items-center gap-2.5 text-left"
                       >
-                        {item.avatarUrl ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={item.avatarUrl}
-                            alt={item.name}
-                            className="h-8 w-8 rounded-full border border-[#ebebf3] object-cover"
-                          />
-                        ) : (
-                          <span
-                            className="flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-bold text-white"
-                            style={{ backgroundColor: item.avatarColor }}
-                          >
-                            {item.initials}
-                          </span>
-                        )}
+                        <SafeAdvertiserAvatar
+                          src={item.avatarUrl}
+                          name={item.name}
+                          initials={item.initials}
+                          color={item.avatarColor}
+                          sizeClass="h-8 w-8"
+                        />
                         <div>
                           <div className="font-sans text-[13px] font-semibold text-[#0F172A]">
                             {item.name}
@@ -2021,6 +2038,7 @@ export function FollowingView({
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       )}
     </div>
@@ -2113,7 +2131,7 @@ export function SavedAdsSubView({
   return (
     <div className="animate-view-in">
       {/* WHITE TOP HEADER + TOOLBAR + #f5f5fa FILTER BAR */}
-      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-6 pb-3.5 pt-3.5 sm:-mx-6 lg:-mx-7 lg:-mt-6">
+      <div className="border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3.5 sm:px-6">
         {/* Row 1: Saved Ads + Search + Upload */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ebebf3] pb-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4">
@@ -2307,13 +2325,15 @@ export function SavedAdsSubView({
           </div>
         </div>
       ) : filteredAds.length === 0 ? (
-        <div className="mt-5 rounded-[12px] border border-[#ebebf3] bg-white px-6 py-12 text-center">
-          <p className="font-sans text-sm font-semibold text-[#0F172A]">
-            No saved ads match your current filters
-          </p>
+        <div className="px-4 py-5 sm:px-6">
+          <div className="rounded-[12px] border border-[#ebebf3] bg-white px-6 py-12 text-center">
+            <p className="font-sans text-sm font-semibold text-[#0F172A]">
+              No saved ads match your current filters
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="mt-5 grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 items-start gap-3.5 px-4 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4">
           {filteredAds.map((ad) => (
             <AdCard
               key={ad.id}
