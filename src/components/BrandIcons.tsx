@@ -112,6 +112,178 @@ export function TrustpilotStarIcon({ className = "h-4 w-4" }: { className?: stri
   );
 }
 
+export function ChromeColorIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 2C8.32 2 5.11 3.99 3.38 6.96L7.68 14.4C7.25 13.68 7 12.87 7 12C7 9.24 9.24 7 12 7H20.66C19.01 4.02 15.75 2 12 2Z"
+        fill="#EA4335"
+      />
+      <path
+        d="M12 22C17.52 22 22 17.52 22 12C22 10.17 21.5 8.46 20.66 7H12C14.76 7 17 9.24 17 12C17 12.92 16.75 13.78 16.32 14.52L12.01 22H12Z"
+        fill="#FBBC04"
+      />
+      <path
+        d="M3.38 6.96C2.5 8.44 2 10.16 2 12C2 17.52 6.48 22 12 22L16.32 14.52C15.44 16.01 13.84 17 12 17C10.15 17 8.55 15.99 7.68 14.4L3.38 6.96Z"
+        fill="#34A853"
+      />
+      <circle cx="12" cy="12" r="4.6" fill="#FFFFFF" />
+      <circle cx="12" cy="12" r="3.5" fill="#1A73E8" />
+    </svg>
+  );
+}
+
+export function InstagramMonoIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="5"
+        stroke="currentColor"
+        strokeWidth="1.9"
+      />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.9" />
+      <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function GoogleDriveColorIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M8.6 3.5h6.8l6.6 11.4h-6.8L8.6 3.5z" fill="#FBBC04" />
+      <path d="M2 14.9L8.6 3.5l3.4 5.9L5.4 20.8 2 14.9z" fill="#0F9D58" />
+      <path d="M5.4 20.8l3.4-5.9H22l-3.4 5.9H5.4z" fill="#4285F4" />
+    </svg>
+  );
+}
+
+export function SlackColorIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M6.2 14.7a2 2 0 1 1-2-2h2v2zm1 0a2 2 0 1 1 4 0v5a2 2 0 1 1-4 0v-5z"
+        fill="#E01E5A"
+      />
+      <path
+        d="M9.2 6.2a2 2 0 1 1 2-2v2h-2zm0 1a2 2 0 1 1 0 4h-5a2 2 0 1 1 0-4h5z"
+        fill="#36C5F0"
+      />
+      <path
+        d="M17.8 9.2a2 2 0 1 1 2 2h-2v-2zm-1 0a2 2 0 1 1-4 0v-5a2 2 0 1 1 4 0v5z"
+        fill="#2EB67D"
+      />
+      <path
+        d="M14.8 17.8a2 2 0 1 1-2 2v-2h2zm0-1a2 2 0 1 1 0-4h5a2 2 0 1 1 0 4h-5z"
+        fill="#ECB22E"
+      />
+    </svg>
+  );
+}
+
+export function ClaudeBrandIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="#F4EDE4" />
+      <path
+        d="M12 5.2v13.6M5.2 12h13.6M7.2 7.2l9.6 9.6M16.8 7.2l-9.6 9.6"
+        stroke="#D97757"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function ChatGptBrandIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="#10A37F" />
+      <path
+        d="M12 6.5a3 3 0 0 1 2.8 1.9 3 3 0 0 1 2 4.4 3 3 0 0 1-1.9 4.5 3 3 0 0 1-5.8 0 3 3 0 0 1-1.9-4.5 3 3 0 0 1 2-4.4A3 3 0 0 1 12 6.5z"
+        stroke="#FFFFFF"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="1.7" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
+export function CursorBrandIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="#0F172A" />
+      <path
+        d="M12 5.4L17.8 8.8v6.4L12 18.6l-5.8-3.4V8.8L12 5.4z"
+        stroke="#FFFFFF"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M12 5.4l5.8 3.4L12 12 6.2 8.8 12 5.4z" fill="#FFFFFF" fillOpacity="0.9" />
+      <path d="M12 12v6.6" stroke="#FFFFFF" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+export function AtriaInspoCompassIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M10.65 5.68673C10.7221 5.47676 10.5211 5.27573 10.3111 5.34788L4.60337 7.30912C4.37747 7.38674 4.35971 7.69938 4.57538 7.80207L6.94248 8.92924C6.99775 8.95556 7.04228 9.00009 7.0686 9.05536L8.19577 11.4225C8.29846 11.6381 8.6111 11.6204 8.68873 11.3945L10.65 5.68673Z" />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M3.05006 3.05006C5.78347 0.316648 10.2161 0.316648 12.9496 3.05006C15.683 5.78347 15.683 10.2161 12.9496 12.9496C10.2161 15.683 5.78347 15.683 3.05006 12.9496C0.316648 10.2161 0.316648 5.78347 3.05006 3.05006ZM3.88975 3.88975C1.62038 6.15912 1.62038 9.84049 3.88975 12.1099C6.15912 14.3792 9.84049 14.3792 12.1099 12.1099C14.3792 9.84049 14.3792 6.15912 12.1099 3.88975C9.84049 1.62038 6.15912 1.62038 3.88975 3.88975Z"
+      />
+    </svg>
+  );
+}
+
+export function AtriaAdMakerSparkleIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="-1.5 1 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12.2 6H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3v-5.3" />
+      <path d="M9.4 11v4l3.4-2z" fill="currentColor" stroke="none" />
+      <path
+        d="M18.6 1.5c.6 2.25 1.65 3.3 3.9 3.9-2.25.6-3.3 1.65-3.9 3.9-.6-2.25-1.65-3.3-3.9-3.9 2.25-.6 3.3-1.65 3.9-3.9z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
+export function AtriaBoardGridIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.35"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="2" y="2" width="12" height="12" rx="2" />
+      <line x1="8" y1="2" x2="8" y2="14" />
+      <line x1="2" y1="8" x2="14" y2="8" />
+    </svg>
+  );
+}
+
 /**
  * Renders crisp vector icons for core Ad Pixels and fetches real official logos
  * via /api/tech-logo (7-day CDN cached) for all Shopify Apps & additional Pixels,

@@ -11,37 +11,48 @@ import React, {
 } from "react";
 import {
   BarChart3,
+  BookOpen,
   Bookmark,
   Bot,
   Check,
   ChevronDown,
-  Clapperboard,
-  Compass,
+  ChevronRight,
+  Clock,
+  ExternalLink,
   FileBarChart2,
+  FileText,
   Film,
   Folder,
-  FolderOpen,
   Gift,
   Heart,
   Home,
   Image as ImageIcon,
   Layers,
+  LayoutGrid,
   Megaphone,
+  MessageCircle,
+  MoreHorizontal,
   Package,
   PanelLeft,
-  PlugZap,
+  PlaySquare,
+  Plug,
   Plus,
   Radar,
-  Server,
-  Sparkles,
+  SquarePen,
   Store,
+  Sun,
   Trophy,
   UserPlus,
   Users,
   Video,
-  Wand2,
-  Zap,
 } from "lucide-react";
+import {
+  AtriaAdMakerSparkleIcon,
+  AtriaBoardGridIcon,
+  AtriaInspoCompassIcon,
+  ChromeColorIcon,
+  InstagramMonoIcon,
+} from "./BrandIcons";
 import type { Ad, Board, Brand, ConnectorStatus } from "@/lib/types";
 import type {
   BrandMemory,
@@ -101,7 +112,6 @@ import { AdDetailSheet } from "./AdDetailSheet";
 import { CollectionsView } from "./CollectionsView";
 import { ShopsTableView } from "./ShopsTableView";
 import { ShopAnalyticsView } from "./ShopAnalyticsView";
-import { SidebarPixelWave } from "./SidebarPixelWave";
 import {
   ExploreSkeleton,
   FoldersSkeleton,
@@ -168,10 +178,12 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   // Sub-navigation states across Inspo, Snow, Studio, Brands & MCP
   const [discoveryViewTab, setDiscoveryViewTab] = useState<string>("all");
   const [snowSubView, setSnowSubView] = useState<SnowSubView>("home");
-  const [brandsSubView, setBrandsSubView] = useState<BrandsSubView>("overview");
+  const [brandsSubView, setBrandsSubView] = useState<BrandsSubView>("list");
   const [mcpSubView, setMcpSubView] = useState<McpSubView>("overview");
   const [followedBrandIds, setFollowedBrandIds] = useState<string[]>([]);
   const [creditsCount, setCreditsCount] = useState<number>(700);
+  const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>({});
+  const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
 
   // Flake v2 Studio, Snow AI, Brand Memory & Analytics State
   const [brandMemory, setBrandMemory] = useState<BrandMemory | null>(null);
@@ -229,7 +241,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   const [activeAdId, setActiveAdId] = useState<string | null>(null);
   const [subNavOpen, setSubNavOpen] = useState<boolean>(true);
   const [analyticsReport, setAnalyticsReport] =
-    useState<AnalyticsReportId>("overview");
+    useState<AnalyticsReportId>("connect");
   const [studioInitialTab, setStudioInitialTab] =
     useState<StudioSubTab>("video");
 
@@ -1236,7 +1248,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
   return (
     <>
     {/* COMPACT FIXED SOLID WHITE MOBILE TOP BAR (root-level fixed at top: 0 for WebKit edge sampling, Antigravity-tight height) */}
-    <header className="mobile-pwa-header fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-[#E6E9F0] bg-white px-4 pb-2.5 text-[#0F172A] lg:hidden">
+    <header className="mobile-pwa-header fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-[#ebebf3] bg-white px-4 pb-2.5 text-[#0F172A] lg:hidden">
       <button
         type="button"
         data-no-glass="true"
@@ -1260,6 +1272,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       <div className="flex items-center gap-1.5">
         <button
           type="button"
+          data-no-glass="true"
           onClick={() =>
             navigateWithSkeleton(() => {
               setView("folders");
@@ -1267,19 +1280,19 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             })
           }
           aria-label="Folders"
-          className={`flex h-7 w-7 items-center justify-center rounded-lg border ${
+          className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${
             view === "folders"
-              ? "border-[#0027eb] bg-[#0027eb]/10 text-[#0027eb]"
-              : "border-[#E6E9F0] bg-white text-[#475569]"
+              ? "border-[#0027eb] bg-[#0027eb] text-white"
+              : "border-[#d6d6e0] bg-white text-[#475569] hover:border-[#0027eb]"
           }`}
         >
           <Folder className="h-3.5 w-3.5" />
         </button>
       </div>
     </header>
-    <div className="flake-app-shell flex w-full overflow-hidden bg-[#F7F8FB] lg:bg-[#050811]">
+    <div className="flake-app-shell flex w-full overflow-hidden bg-[#f5f5fa] lg:bg-[#050811]">
       {/* =====================================================================
-          FLAKE COMMAND RAIL + FULL 7-SECTION CONTEXTUAL OBSIDIAN DOCK
+          FLAKE COMMAND RAIL (64px) + CONTEXTUAL SUB-SIDEBAR (264px -> 328px)
          ===================================================================== */}
       {(() => {
         const isInspoView =
@@ -1295,14 +1308,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           : view === "snow"
             ? "Snow"
             : view === "analytics"
-              ? "Analytics"
+              ? "Analytics & Launch"
               : view === "studio"
                 ? "Ad Maker"
                 : view === "assets"
                   ? "Assets"
                   : view === "brands"
                     ? "Brands"
-                    : "Flake MCP";
+                    : "MCP";
 
         const hasSubDrawer = subNavOpen;
 
@@ -1328,11 +1341,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
         const railItems: Array<{
           id: string;
           targetView: ActiveView;
-          label: string;
+          label: React.ReactNode;
           active: boolean;
-          accent: boolean;
           badge: string | null;
-          dot: boolean;
           icon: React.ReactNode;
         }> = [
           {
@@ -1340,92 +1351,90 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
             targetView: "explore",
             label: "Inspo",
             active: isInspoView,
-            accent: false,
             badge: null,
-            dot: false,
-            icon: <Compass className="h-[18px] w-[18px]" />,
+            icon: <AtriaInspoCompassIcon className="h-[20px] w-[20px]" />,
           },
           {
             id: "snow",
             targetView: "snow",
             label: "Snow",
             active: view === "snow",
-            accent: true,
             badge: null,
-            dot: false,
-            icon: <SnowMark className="h-[18px] w-[18px]" />,
+            icon: <SnowMark className="h-[20px] w-[20px]" />,
           },
           {
             id: "analytics",
             targetView: "analytics",
-            label: "Analytics",
+            label: (
+              <>
+                Analytics
+                <br />
+                &amp; Launch
+              </>
+            ),
             active: view === "analytics",
-            accent: false,
             badge: null,
-            dot: false,
-            icon: <BarChart3 className="h-[18px] w-[18px]" />,
+            icon: <BarChart3 className="h-[19px] w-[19px]" strokeWidth={1.75} />,
           },
           {
             id: "studio",
             targetView: "studio",
             label: "Ad Maker",
             active: view === "studio",
-            accent: false,
             badge: "HOT",
-            dot: false,
-            icon: <Wand2 className="h-[18px] w-[18px]" />,
+            icon: <AtriaAdMakerSparkleIcon className="h-[21px] w-[21px]" />,
           },
           {
             id: "assets",
             targetView: "assets",
             label: "Assets",
             active: view === "assets",
-            accent: false,
             badge: null,
-            dot: false,
-            icon: <Clapperboard className="h-[18px] w-[18px]" />,
+            icon: <Video className="h-[19px] w-[19px]" strokeWidth={1.75} />,
           },
           {
             id: "brands",
             targetView: "brands",
             label: "Brands",
             active: view === "brands",
-            accent: false,
             badge: null,
-            dot: Boolean(brandMemory),
-            icon: <Store className="h-[18px] w-[18px]" />,
+            icon: <Store className="h-[19px] w-[19px]" strokeWidth={1.75} />,
           },
           {
             id: "mcp",
             targetView: "mcp",
             label: "MCP",
             active: view === "mcp",
-            accent: false,
             badge: null,
-            dot: false,
-            icon: <Server className="h-[18px] w-[18px]" />,
+            icon: <Plug className="h-[19px] w-[19px]" strokeWidth={1.75} />,
           },
         ];
 
         const drawerRowClass = (active: boolean) =>
-          `group flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium transition-all ${
+          `group flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-[13.5px] transition-colors ${
             active
-              ? "bg-white/[0.11] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-              : "text-white/60 hover:bg-white/[0.05] hover:text-white/90"
+              ? "bg-white/15 font-semibold text-white"
+              : "font-medium text-white/70 hover:bg-white/10 hover:text-white"
           }`;
 
+        const toggleBoardExpand = (boardId: string) => {
+          setExpandedBoards((prev) => ({
+            ...prev,
+            [boardId]: !prev[boardId],
+          }));
+        };
+
+        const sidebarBoardsList: Array<{ id: string; name: string; isVirtual?: boolean }> =
+          boards.length > 0
+            ? boards.map((b) => ({ id: b.id, name: b.name }))
+            : [{ id: "default-board", name: "Default Board", isVirtual: true }];
+
         return (
-          <aside className="relative hidden h-full shrink-0 text-white lg:flex">
-            {/* 1. SLIM COMMAND RAIL (70px — real Flake asterisk emblem + 7 sections + utility stack) */}
-            <div
-              className={`relative z-20 flex h-full flex-col items-center justify-between bg-[#050811] py-3.5 ${
-                hasSubDrawer
-                  ? "w-[70px] border-r border-white/[0.07]"
-                  : "w-[94px] pr-[24px]"
-              }`}
-            >
+          <aside className="flake-dark-shell relative hidden h-full shrink-0 text-white lg:flex">
+            {/* 1. LEFT COMMAND RAIL (64px fixed ALWAYS) */}
+            <div className="relative z-20 flex h-full w-[64px] shrink-0 flex-col items-center justify-between border-r border-white/15 bg-transparent pb-3 pt-4">
               <div className="no-scrollbar flex w-full flex-col items-center overflow-y-auto">
-                {/* Real Flake Asterisk Emblem */}
+                {/* Top 36x36 rounded-[6px] Flake Cobalt Workspace Squircle */}
                 <button
                   type="button"
                   data-no-glass="true"
@@ -1437,19 +1446,19 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       setSubNavOpen(true);
                     });
                   }}
-                  title="Flake"
-                  className="group mb-4 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[12px] ring-1 ring-white/20 shadow-[0_8px_22px_-6px_rgba(0,39,235,0.85)] transition-all duration-300 hover:scale-105 hover:ring-white/35"
+                  title="Flake Workspace"
+                  className="group mb-3 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-white/20 bg-[#0027eb] transition-opacity hover:opacity-95"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/icons/icon-192.png"
                     alt="Flake"
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:rotate-12"
+                    className="h-full w-full object-cover"
                   />
                 </button>
 
-                {/* 7 Atria Core Sections */}
-                <div className="flex w-full flex-col items-center gap-1">
+                {/* 7 Core Workspace Sections */}
+                <div className="flex w-full flex-col items-center gap-1.5 px-1">
                   {railItems.map((item) => (
                     <button
                       key={item.id}
@@ -1464,37 +1473,27 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           switchSection(item.targetView);
                         }
                       }}
-                      className="group relative flex w-full flex-col items-center justify-center gap-1 py-1 text-center transition-all"
+                      className="group relative flex w-full flex-col items-center justify-center gap-1 py-0.5 text-center transition-colors"
                     >
                       <span
-                        className={`absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-[#3B66FF] shadow-[0_0_12px_rgba(0,39,235,0.95)] transition-all duration-200 ${
-                          item.active ? "h-5 w-[3px] opacity-100" : "h-0 w-[3px] opacity-0"
-                        }`}
-                      />
-                      <span
-                        className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200 ${
-                          item.active && item.accent
-                            ? "bg-[#0027eb] text-white shadow-[0_6px_18px_-4px_rgba(0,39,235,0.85)] ring-1 ring-white/25"
-                            : item.active
-                              ? "bg-white/[0.12] text-white ring-1 ring-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
-                              : "text-white/55 group-hover:bg-white/[0.07] group-hover:text-white"
+                        className={`relative flex h-9 w-9 items-center justify-center rounded-[6px] transition-colors ${
+                          item.active
+                            ? "bg-white/20 text-white"
+                            : "text-white/65 group-hover:bg-white/15 group-hover:text-white"
                         }`}
                       >
                         {item.icon}
                         {item.badge && (
-                          <span className="absolute -right-2 -top-1 rounded-full bg-[#0027eb] px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-white ring-2 ring-[#050811]">
+                          <span className="absolute -right-2 -top-1 inline-flex h-[14px] items-center justify-center rounded-full bg-[#0027eb] px-1 text-[8px] font-bold leading-none tracking-wider text-white">
                             {item.badge}
                           </span>
                         )}
-                        {item.dot && (
-                          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#22C55E] ring-2 ring-[#050811]" />
-                        )}
                       </span>
                       <span
-                        className={`text-[10px] font-medium leading-none tracking-tight transition-colors ${
+                        className={`text-[10.5px] leading-[1.15] tracking-tight transition-colors ${
                           item.active
-                            ? "text-white"
-                            : "text-white/45 group-hover:text-white/80"
+                            ? "font-semibold text-white"
+                            : "font-medium text-white/65 group-hover:text-white/90"
                         }`}
                       >
                         {item.label}
@@ -1504,53 +1503,65 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 </div>
               </div>
 
-              {/* Bottom Utility Stack (Affiliate · News · Invite · Credits · Panel Toggle) */}
-              <div className="mt-2 flex w-full flex-col items-center gap-1.5 border-t border-white/[0.06] pt-2.5">
+              {/* Bottom Vertical Utility Stack + Unbordered Credits Footer */}
+              <div className="mt-2 flex w-full flex-col items-center gap-0.5">
                 {!hasSubDrawer && (
                   <button
                     type="button"
                     data-no-glass="true"
                     onClick={() => setSubNavOpen(true)}
                     title="Expand sidebar"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-[6px] text-white/65 transition-colors hover:bg-white/10 hover:text-white"
                   >
-                    <PanelLeft className="h-3.5 w-3.5" />
+                    <PanelLeft className="h-[17px] w-[17px]" strokeWidth={1.75} />
                   </button>
                 )}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => showToast("Affiliate program — 25% recurring commission")}
-                    title="Affiliate program"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white"
-                  >
-                    <Gift className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => showToast("What's new: Ad Maker v2 + Snow AI")}
-                    title="News Center"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white"
-                  >
-                    <Megaphone className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => {
-                      if (navigator.clipboard) {
-                        void navigator.clipboard.writeText(window.location.origin);
-                      }
-                      showToast("Invite link copied");
-                    }}
-                    title="Invite team"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white"
-                  >
-                    <UserPlus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => showToast("Affiliate program — 25% recurring commission")}
+                  title="Affiliate program"
+                  className="flex h-9 w-9 items-center justify-center rounded-[6px] text-white/65 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Gift className="h-[17px] w-[17px]" strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => showToast("What's new: Ad Maker v2 + Snow AI")}
+                  title="News Center"
+                  className="relative flex h-9 w-9 items-center justify-center rounded-[6px] text-white/65 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Megaphone className="h-[17px] w-[17px]" strokeWidth={1.75} />
+                  <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#0027eb] px-1 font-mono-num text-[9px] font-bold leading-none text-white">
+                    1
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    if (navigator.clipboard) {
+                      void navigator.clipboard.writeText(window.location.origin);
+                    }
+                    showToast("Invite link copied");
+                  }}
+                  title="Invite team"
+                  className="flex h-9 w-9 items-center justify-center rounded-[6px] text-white/65 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <UserPlus className="h-[17px] w-[17px]" strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => showToast("Theme: Flake Light workspace")}
+                  title="Theme"
+                  className="flex h-9 w-9 items-center justify-center rounded-[6px] text-white/65 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Sun className="h-[17px] w-[17px]" strokeWidth={1.75} />
+                </button>
+
+                <div className="my-1.5 h-px w-8 bg-white/15" />
 
                 <button
                   type="button"
@@ -1558,46 +1569,47 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   onClick={() => {
                     navigateWithSkeleton(() => {
                       setView("brands");
-                      setBrandsSubView("overview");
+                      setBrandsSubView("list");
                       setSubNavOpen(true);
                     });
                   }}
                   title="Workspace credits"
-                  className="inline-flex items-center gap-1 rounded-full border border-white/[0.12] bg-white/[0.07] px-2.5 py-1 font-mono-num text-[10.5px] font-semibold text-white/90 transition-colors hover:border-[#3B66FF] hover:bg-[#0027eb]/30"
+                  className="flex w-full flex-col items-center justify-center py-0.5 text-center transition-opacity hover:opacity-90"
                 >
-                  <Sparkles className="h-3 w-3 text-[#60A5FA]" />
-                  {creditsCount}
+                  <span className="inline-flex items-center gap-1 font-mono-num text-[12.5px] font-semibold leading-tight text-white">
+                    <svg
+                      viewBox="0 0 12 12"
+                      fill="currentColor"
+                      className="h-2.5 w-2.5 text-white"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 0.5C6.75 3.4 8.6 5.25 11.5 6C8.6 6.75 6.75 8.6 6 11.5C5.25 8.6 3.4 6.75 0.5 6C3.4 5.25 5.25 3.4 6 0.5Z" />
+                    </svg>
+                    {creditsCount}
+                  </span>
+                  <span className="text-[11px] font-semibold leading-tight text-[#6B8CFF]">
+                    Free
+                  </span>
                 </button>
               </div>
             </div>
 
-            {/* 2. CONTEXTUAL SECONDARY DOCK (Rendered cleanly for all 7 sections) */}
+            {/* 2. CONTEXTUAL SUB-SIDEBAR (264px -> 328px total expanded) */}
             {hasSubDrawer && (
-              <div className="adtrack-sidebar relative flex h-full w-[244px] flex-col bg-[#080C18] py-4 pl-3.5 pr-[36px] text-white">
-                <SidebarPixelWave />
-
-                {/* Top Section Title + Collapse Toggle */}
-                <div className="mb-4 flex items-center justify-between px-1.5">
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/icons/flake-wordmark-white.png"
-                      alt="Flake"
-                      className="h-[14px] w-auto select-none opacity-90"
-                    />
-                    <span className="text-white/20">/</span>
-                    <span className="text-[12.5px] font-semibold text-white/85">
-                      {sectionTitle}
-                    </span>
-                  </div>
+              <div className="relative flex h-full w-[264px] shrink-0 flex-col border-r border-white/15 bg-transparent px-3 py-3.5 text-white">
+                {/* Clean Title-Only Header + Collapse Toggle */}
+                <div className="mb-3.5 flex items-center justify-between px-1.5">
+                  <h2 className="text-[15px] font-semibold tracking-tight text-white">
+                    {sectionTitle}
+                  </h2>
                   <button
                     type="button"
                     data-no-glass="true"
                     onClick={() => setSubNavOpen(false)}
                     title="Collapse sidebar"
-                    className="flex h-6 w-6 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+                    className="flex h-7 w-7 items-center justify-center rounded-[6px] text-white/55 transition-colors hover:bg-white/10 hover:text-white"
                   >
-                    <PanelLeft className="h-3.5 w-3.5" />
+                    <PanelLeft className="h-4 w-4" strokeWidth={1.75} />
                   </button>
                 </div>
 
@@ -1610,46 +1622,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           id: "explore" as ActiveView,
                           label: "Ads",
                           active: view === "explore",
-                          icon: <Radar className="h-[15px] w-[15px]" />,
-                          badge: null as string | null,
+                          icon: <AtriaInspoCompassIcon className="h-4 w-4" />,
                         },
                         {
                           id: "shops" as ActiveView,
                           label: "Brands",
                           active: view === "shops",
-                          icon: <Store className="h-[15px] w-[15px]" />,
-                          badge: null as string | null,
+                          icon: <Store className="h-4 w-4" strokeWidth={1.75} />,
                         },
                         {
                           id: "advertisers" as ActiveView,
                           label: "Advertisers",
                           active: view === "advertisers",
-                          icon: <Users className="h-[15px] w-[15px]" />,
-                          badge: "NEW",
+                          icon: <Users className="h-4 w-4" strokeWidth={1.75} />,
                         },
                         {
                           id: "top_picks" as ActiveView,
                           label: "Top picks",
                           active: view === "top_picks",
-                          icon: <Trophy className="h-[15px] w-[15px]" />,
-                          badge: null as string | null,
-                        },
-                        {
-                          id: "following" as ActiveView,
-                          label: "Following",
-                          active: view === "following",
-                          icon: <Heart className="h-[15px] w-[15px]" />,
-                          badge:
-                            followedBrandIds.length > 0
-                              ? String(followedBrandIds.length)
-                              : null,
-                        },
-                        {
-                          id: "folders" as ActiveView,
-                          label: "Saved ads",
-                          active: view === "folders" && !selectedFolderId,
-                          icon: <Bookmark className="h-[15px] w-[15px]" />,
-                          badge: null as string | null,
+                          icon: <Trophy className="h-4 w-4" strokeWidth={1.75} />,
                         },
                       ].map((row) => (
                         <button
@@ -1669,27 +1660,80 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             <span
                               className={
                                 row.active
-                                  ? "text-[#7AA2FF]"
-                                  : "text-white/45 group-hover:text-white/75"
+                                  ? "text-white"
+                                  : "text-white/60 group-hover:text-white/90"
                               }
                             >
                               {row.icon}
                             </span>
                             {row.label}
                           </span>
-                          {row.badge && (
-                            <span className="rounded-full bg-[#0027eb] px-1.5 py-0.5 text-[9px] font-bold text-white">
-                              {row.badge}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="my-2 border-t border-white/10" />
+
+                    <div className="space-y-0.5">
+                      {[
+                        {
+                          id: "following" as ActiveView,
+                          label: "Following",
+                          active: view === "following",
+                          icon: <Heart className="h-4 w-4" strokeWidth={1.75} />,
+                          count:
+                            followedBrandIds.length > 0
+                              ? followedBrandIds.length
+                              : null,
+                        },
+                        {
+                          id: "folders" as ActiveView,
+                          label: "Saved ads",
+                          active: view === "folders" && !selectedFolderId,
+                          icon: <Bookmark className="h-4 w-4" strokeWidth={1.75} />,
+                          count: null,
+                        },
+                      ].map((row) => (
+                        <button
+                          key={row.id}
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() =>
+                            navigateWithSkeleton(() => {
+                              setView(row.id);
+                              setSelectedShopId(null);
+                              setSelectedFolderId(null);
+                            })
+                          }
+                          className={drawerRowClass(row.active)}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <span
+                              className={
+                                row.active
+                                  ? "text-white"
+                                  : "text-white/60 group-hover:text-white/90"
+                              }
+                            >
+                              {row.icon}
+                            </span>
+                            {row.label}
+                          </span>
+                          {row.count !== null && (
+                            <span className="font-mono-num text-[11px] font-medium text-white/55">
+                              {row.count}
                             </span>
                           )}
                         </button>
                       ))}
                     </div>
 
+                    <div className="my-2 border-t border-white/10" />
+
                     {/* Boards Tree */}
-                    <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-white/[0.07] pt-3.5">
-                      <div className="mb-2 flex items-center justify-between px-2">
-                        <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
+                    <div className="flex min-h-0 flex-1 flex-col pt-1">
+                      <div className="mb-1.5 flex items-center justify-between px-2">
+                        <span className="text-[12.5px] font-semibold text-white/50">
                           Boards
                         </span>
                         <button
@@ -1697,9 +1741,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           data-no-glass="true"
                           onClick={() => setQuickFolderOpen((v) => !v)}
                           title="New board"
-                          className="flex h-5 w-5 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                          className="flex h-6 w-6 items-center justify-center rounded text-white/60 transition-colors hover:bg-white/10 hover:text-white"
                         >
-                          <Plus className="h-3.5 w-3.5" />
+                          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
                         </button>
                       </div>
 
@@ -1720,69 +1764,131 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                             value={quickFolderName}
                             onChange={(e) => setQuickFolderName(e.target.value)}
                             placeholder="Board name + Enter"
-                            className="w-full rounded-lg border border-white/15 bg-white/[0.08] px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/40 focus:border-[#4D6BFF]"
+                            className="w-full rounded-lg border border-white/15 bg-white/[0.08] px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/40 focus:border-[#3B66FF]"
                           />
                         </form>
                       )}
 
-                      <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
-                        {boards.map((board) => {
-                          const count = ads.filter((a) =>
-                            a.board_ids.includes(board.id)
-                          ).length;
+                      <div className="no-scrollbar min-h-0 flex-1 space-y-0.5 overflow-y-auto">
+                        {sidebarBoardsList.map((board) => {
+                          const isExpanded = Boolean(expandedBoards[board.id]);
                           const active =
-                            view === "folders" && selectedFolderId === board.id;
+                            view === "folders" &&
+                            ((!board.isVirtual && selectedFolderId === board.id) ||
+                              (Boolean(board.isVirtual) && !selectedFolderId));
                           return (
-                            <button
-                              key={board.id}
-                              type="button"
-                              data-no-glass="true"
-                              onClick={() => {
-                                navigateWithSkeleton(() => {
-                                  setSelectedFolderId(board.id);
-                                  setSelectedShopId(null);
-                                  setView("folders");
-                                });
-                              }}
-                              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${
-                                active
-                                  ? "bg-white/[0.1] font-semibold text-white"
-                                  : "text-white/55 hover:bg-white/[0.05] hover:text-white/90"
-                              }`}
-                            >
-                              <span className="flex min-w-0 items-center gap-2.5">
-                                <span
-                                  className="h-2 w-2 shrink-0 rounded-full ring-2 ring-white/10"
-                                  style={{ backgroundColor: board.accent_color }}
-                                />
-                                <span className="truncate">{board.name}</span>
-                              </span>
-                              <span className="font-mono-num text-[10.5px] text-white/35">
-                                {count}
-                              </span>
-                            </button>
+                            <div key={board.id}>
+                              <div
+                                className={`group flex h-8 w-full items-center justify-between gap-1 rounded-lg px-1.5 text-[13px] transition-colors ${
+                                  active
+                                    ? "bg-white/15 font-semibold text-white"
+                                    : "font-medium text-white/70 hover:bg-white/10 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex min-w-0 flex-1 items-center gap-1">
+                                  <button
+                                    type="button"
+                                    data-no-glass="true"
+                                    onClick={() => toggleBoardExpand(board.id)}
+                                    aria-label={isExpanded ? "Collapse board" : "Expand board"}
+                                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-white/50 hover:text-white"
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronDown className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    data-no-glass="true"
+                                    onClick={() => {
+                                      navigateWithSkeleton(() => {
+                                        setSelectedFolderId(board.isVirtual ? null : board.id);
+                                        setSelectedShopId(null);
+                                        setView("folders");
+                                      });
+                                    }}
+                                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                  >
+                                    <AtriaBoardGridIcon
+                                      className={`h-4 w-4 shrink-0 ${
+                                        active
+                                          ? "text-white"
+                                          : "text-white/60 group-hover:text-white/90"
+                                      }`}
+                                    />
+                                    <span className="truncate">{board.name}</span>
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <button
+                                    type="button"
+                                    data-no-glass="true"
+                                    onClick={() => {
+                                      navigateWithSkeleton(() => {
+                                        setSelectedFolderId(board.isVirtual ? null : board.id);
+                                        setView("folders");
+                                      });
+                                    }}
+                                    title="Board options"
+                                    className="flex h-5 w-5 items-center justify-center rounded text-white/55 hover:bg-white/15 hover:text-white"
+                                  >
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    data-no-glass="true"
+                                    onClick={() => setQuickFolderOpen(true)}
+                                    title="Add sub-board"
+                                    className="flex h-5 w-5 items-center justify-center rounded text-white/55 hover:bg-white/15 hover:text-white"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isExpanded && (
+                                <button
+                                  type="button"
+                                  data-no-glass="true"
+                                  onClick={() => {
+                                    navigateWithSkeleton(() => {
+                                      setSelectedFolderId(board.isVirtual ? null : board.id);
+                                      setSelectedShopId(null);
+                                      setView("folders");
+                                    });
+                                  }}
+                                  className="mt-0.5 flex h-8 w-full items-center gap-2 rounded-lg pl-8 pr-2 text-left text-[12.5px] font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                                >
+                                  <AtriaBoardGridIcon className="h-3.5 w-3.5 shrink-0 text-white/50" />
+                                  <span className="truncate">Default Sub-board</span>
+                                </button>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Save ads from Extension | IG (mobile) card */}
-                    <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-2.5">
-                      <p className="mb-1.5 text-[10px] font-medium text-white/45">
+                    {/* Save ads from Extension | IG (mobile) — Flat Atria 2-col bar */}
+                    <div className="mx-0.5 mt-3 rounded-lg bg-white/15 p-3">
+                      <p className="mb-2 text-center text-[12.5px] font-semibold text-white">
                         Save ads from
                       </p>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="flex items-center">
                         <button
                           type="button"
                           data-no-glass="true"
                           onClick={() =>
                             showToast("Chrome Extension ready for Meta & TikTok Ad Library")
                           }
-                          className="flex items-center justify-center gap-1.5 rounded-lg bg-white/[0.06] py-1.5 text-[11px] font-medium text-white/80 hover:bg-white/[0.12]"
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1 text-[12px] font-medium text-white/90 transition-colors hover:bg-white/10 hover:text-white"
                         >
-                          <Compass className="h-3 w-3 text-[#7AA2FF]" />
-                          Extension
+                          <ChromeColorIcon className="h-3.5 w-3.5 shrink-0" />
+                          <span>Extension</span>
                         </button>
+                        <span className="h-4 w-px shrink-0 bg-white/15" />
                         <button
                           type="button"
                           data-no-glass="true"
@@ -1792,10 +1898,10 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                               setSelectedFolderId(null);
                             })
                           }
-                          className="flex items-center justify-center gap-1.5 rounded-lg bg-white/[0.06] py-1.5 text-[11px] font-medium text-white/80 hover:bg-white/[0.12]"
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1 text-[12px] font-medium text-white/90 transition-colors hover:bg-white/10 hover:text-white"
                         >
-                          <Film className="h-3 w-3 text-[#7AA2FF]" />
-                          IG (mobile)
+                          <InstagramMonoIcon className="h-3.5 w-3.5 shrink-0 text-white" />
+                          <span>IG (mobile)</span>
                         </button>
                       </div>
                     </div>
@@ -1805,25 +1911,45 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 {/* SECTION 2: SNOW DRAWER */}
                 {view === "snow" && (
                   <div className="flex flex-1 flex-col justify-between">
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <button
                         type="button"
                         data-no-glass="true"
                         onClick={() => setBrandMemoryModalOpen(true)}
-                        className="mb-3 flex w-full items-center justify-between rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-left text-[12px] font-medium text-white/85 hover:bg-white/[0.09]"
+                        className="mb-3 flex h-9 w-full items-center justify-between rounded-lg border border-white/15 bg-white/[0.04] px-3 text-left text-[13px] font-medium text-white transition-colors hover:bg-white/[0.08]"
                       >
                         <span className="truncate">
                           {brandMemory ? brandMemory.brandName : "All brands"}
                         </span>
-                        <ChevronDown className="h-3.5 w-3.5 text-white/45" />
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/60" />
                       </button>
 
                       {[
-                        { id: "home" as SnowSubView, label: "Home", icon: <Home className="h-[15px] w-[15px]" /> },
-                        { id: "new_task" as SnowSubView, label: "New task", icon: <Plus className="h-[15px] w-[15px]" /> },
-                        { id: "connectors" as SnowSubView, label: "Connectors", icon: <PlugZap className="h-[15px] w-[15px]" /> },
-                        { id: "automations" as SnowSubView, label: "Automations", icon: <Zap className="h-[15px] w-[15px]" /> },
-                        { id: "skills" as SnowSubView, label: "Skills", icon: <Sparkles className="h-[15px] w-[15px]" /> },
+                        {
+                          id: "home" as SnowSubView,
+                          label: "Home",
+                          icon: <Home className="h-4 w-4" strokeWidth={1.75} />,
+                        },
+                        {
+                          id: "new_task" as SnowSubView,
+                          label: "New task",
+                          icon: <SquarePen className="h-4 w-4" strokeWidth={1.75} />,
+                        },
+                        {
+                          id: "connectors" as SnowSubView,
+                          label: "Connectors",
+                          icon: <Plug className="h-4 w-4" strokeWidth={1.75} />,
+                        },
+                        {
+                          id: "automations" as SnowSubView,
+                          label: "Automations",
+                          icon: <Clock className="h-4 w-4" strokeWidth={1.75} />,
+                        },
+                        {
+                          id: "skills" as SnowSubView,
+                          label: "Skills",
+                          icon: <FileText className="h-4 w-4" strokeWidth={1.75} />,
+                        },
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1840,7 +1966,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           <span className="flex items-center gap-2.5">
                             <span
                               className={
-                                snowSubView === item.id ? "text-[#7AA2FF]" : "text-white/45"
+                                snowSubView === item.id
+                                  ? "text-white"
+                                  : "text-white/60 group-hover:text-white/90"
                               }
                             >
                               {item.icon}
@@ -1849,18 +1977,32 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                           </span>
                         </button>
                       ))}
+
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => showToast("Feedback noted — thank you for helping improve Snow")}
+                        className={drawerRowClass(false)}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="text-white/60 group-hover:text-white/90">
+                            <MessageCircle className="h-4 w-4" strokeWidth={1.75} />
+                          </span>
+                          Leave feedback
+                        </span>
+                      </button>
                     </div>
 
                     {snowMessages.length > 0 && (
-                      <div className="border-t border-white/[0.08] pt-3">
-                        <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                      <div className="border-t border-white/10 pt-3">
+                        <p className="mb-1.5 px-2 text-[11px] font-semibold text-white/45">
                           Recent threads
                         </p>
                         <button
                           type="button"
                           data-no-glass="true"
                           onClick={() => setSnowSubView("home")}
-                          className="w-full truncate rounded-lg bg-white/[0.07] px-2.5 py-1.5 text-left text-[11.5px] text-white/80"
+                          className="w-full truncate rounded-lg bg-white/10 px-2.5 py-1.5 text-left text-[12px] text-white/85 hover:bg-white/15"
                         >
                           {snowMessages[0]?.content.slice(0, 32)}...
                         </button>
@@ -1869,93 +2011,110 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                   </div>
                 )}
 
-                {/* SECTION 3: ANALYTICS DRAWER */}
+                {/* SECTION 3: ANALYTICS & LAUNCH DRAWER */}
                 {view === "analytics" && (
                   <div className="flex flex-1 flex-col justify-between">
                     <div>
-                      <div className="mb-3 flex items-center justify-between px-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
-                          Ad accounts
+                      <div className="mb-2 flex items-center justify-between px-1.5">
+                        <span className="text-[13px] font-semibold text-white/60">
+                          Ad accounts ({importedCsvRows.length > 0 ? 1 : 0})
                         </span>
                         <button
                           type="button"
                           data-no-glass="true"
                           onClick={() => setAnalyticsReport("connect")}
                           title="Connect ad account"
-                          className="flex h-5 w-5 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
+                          className="flex h-6 w-6 items-center justify-center rounded text-white/60 transition-colors hover:bg-white/10 hover:text-white"
                         >
-                          <Plus className="h-3.5 w-3.5" />
+                          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
                         </button>
                       </div>
 
-                      <div className="mb-4 flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.05] px-2.5 py-2">
-                        <span className="flex min-w-0 items-center gap-2 text-[12.5px] font-semibold text-white">
-                          <span className="h-2 w-2 shrink-0 rounded-full bg-[#38BDF8]" />
-                          <span className="truncate">
-                            {brandMemory ? brandMemory.brandName : "Flake Demo"}
-                          </span>
-                        </span>
-                        <button
-                          type="button"
-                          data-no-glass="true"
-                          onClick={() => setAnalyticsReport("connect")}
-                          className="text-[10.5px] font-medium text-white/45 hover:text-white"
-                        >
-                          Connect
-                        </button>
-                      </div>
+                      {importedCsvRows.length === 0 && analyticsReport === "connect" ? (
+                        <p className="px-1.5 text-[12.5px] leading-relaxed text-white/55">
+                          Click the &quot;+&quot; above to add a data source and analyze your ad performance.
+                        </p>
+                      ) : (
+                        <>
+                          <div className="mb-3 flex items-center justify-between rounded-lg border border-white/15 bg-white/[0.05] px-2.5 py-2">
+                            <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-white">
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-[#22C55E]" />
+                              <span className="truncate">
+                                {brandMemory ? brandMemory.brandName : "Flake Demo"}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              data-no-glass="true"
+                              onClick={() => setAnalyticsReport("connect")}
+                              className="text-[11px] font-medium text-white/55 hover:text-white"
+                            >
+                              Connect
+                            </button>
+                          </div>
 
-                      <p className="px-2 pb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/35">
-                        System reports
-                      </p>
-                      <div className="ml-2 space-y-0.5 border-l border-white/[0.09] pl-2.5">
-                        {(
-                          [
-                            { id: "overview", label: "Key metrics overview" },
-                            { id: "top_spend", label: "Top spend ads" },
-                            { id: "top_performing", label: "Top performing ads" },
-                            { id: "top_videos", label: "Top performing videos" },
-                            { id: "top_images", label: "Top performing images" },
-                            { id: "top_hooks", label: "Top hooks & retention" },
-                            { id: "connect", label: "Connect ad account" },
-                          ] as Array<{ id: AnalyticsReportId; label: string }>
-                        ).map((rep) => (
-                          <button
-                            key={rep.id}
-                            type="button"
-                            data-no-glass="true"
-                            onClick={() => setAnalyticsReport(rep.id)}
-                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors ${
-                              analyticsReport === rep.id
-                                ? "bg-white/[0.11] font-semibold text-white"
-                                : "text-white/55 hover:bg-white/[0.05] hover:text-white/90"
-                            }`}
-                          >
-                            <FileBarChart2
-                              className={`h-3.5 w-3.5 shrink-0 ${
-                                analyticsReport === rep.id
-                                  ? "text-[#7AA2FF]"
-                                  : "opacity-55"
-                              }`}
-                            />
-                            <span className="truncate">{rep.label}</span>
-                          </button>
-                        ))}
-                      </div>
+                          <p className="px-2 pb-1.5 text-[11.5px] font-semibold text-white/45">
+                            System reports
+                          </p>
+                          <div className="space-y-0.5">
+                            {(
+                              [
+                                { id: "overview", label: "Key metrics overview" },
+                                { id: "top_spend", label: "Top spend ads" },
+                                { id: "top_performing", label: "Top performing ads" },
+                                { id: "top_videos", label: "Top performing videos" },
+                                { id: "top_images", label: "Top performing images" },
+                                { id: "top_hooks", label: "Top hooks & retention" },
+                              ] as Array<{ id: AnalyticsReportId; label: string }>
+                            ).map((rep) => (
+                              <button
+                                key={rep.id}
+                                type="button"
+                                data-no-glass="true"
+                                onClick={() => setAnalyticsReport(rep.id)}
+                                className={drawerRowClass(analyticsReport === rep.id)}
+                              >
+                                <span className="flex min-w-0 items-center gap-2.5">
+                                  <FileBarChart2
+                                    className={`h-4 w-4 shrink-0 ${
+                                      analyticsReport === rep.id
+                                        ? "text-white"
+                                        : "text-white/60 group-hover:text-white/90"
+                                    }`}
+                                    strokeWidth={1.75}
+                                  />
+                                  <span className="truncate">{rep.label}</span>
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[11px] text-white/60">
-                      <div className="flex items-center justify-between">
-                        <span>Ad spend tracked</span>
-                        <span className="font-mono-num text-white/90">Live</span>
-                      </div>
-                    </div>
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() =>
+                        setAnalyticsReport((prev) =>
+                          prev === "connect" ? "overview" : "connect"
+                        )
+                      }
+                      className="mt-3 flex w-full items-center justify-between rounded-lg bg-white/15 px-3 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-white/20"
+                    >
+                      <span>Ad spend usage</span>
+                      <span className="inline-flex items-center gap-0.5 font-mono-num text-[12.5px]">
+                        <span className="font-semibold text-white">0</span>
+                        <span className="text-white/55">/10K</span>
+                        <ChevronRight className="h-3.5 w-3.5 text-white/60" />
+                      </span>
+                    </button>
                   </div>
                 )}
 
                 {/* SECTION 4: AD MAKER DRAWER */}
                 {view === "studio" && (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <button
                       type="button"
                       data-no-glass="true"
@@ -1963,21 +2122,38 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       className={drawerRowClass(studioInitialTab === "video")}
                     >
                       <span className="flex items-center gap-2.5">
-                        <Video className="h-[15px] w-[15px] text-[#7AA2FF]" />
-                        Video Ads
-                      </span>
-                      <span className="rounded-full bg-[#0027eb] px-1.5 py-0.5 text-[9px] font-bold text-white">
-                        NEW
+                        <Video
+                          className={`h-4 w-4 ${
+                            studioInitialTab === "video"
+                              ? "text-white"
+                              : "text-white/60 group-hover:text-white/90"
+                          }`}
+                          strokeWidth={1.75}
+                        />
+                        <span>Video Ads</span>
+                        <span className="rounded-full bg-[#0027eb] px-1.5 py-0.5 text-[9.5px] font-bold leading-none text-white">
+                          NEW
+                        </span>
                       </span>
                     </button>
-                    <div className="ml-3 space-y-0.5 border-l border-white/[0.08] pl-2.5">
+                    <div className="ml-4 space-y-0.5">
                       <button
                         type="button"
                         data-no-glass="true"
                         onClick={() => setStudioInitialTab("video_projects")}
                         className={drawerRowClass(studioInitialTab === "video_projects")}
                       >
-                        <span>Video projects</span>
+                        <span className="flex items-center gap-2.5">
+                          <Folder
+                            className={`h-4 w-4 ${
+                              studioInitialTab === "video_projects"
+                                ? "text-white"
+                                : "text-white/60 group-hover:text-white/90"
+                            }`}
+                            strokeWidth={1.75}
+                          />
+                          <span>Video projects</span>
+                        </span>
                       </button>
                       <button
                         type="button"
@@ -1985,7 +2161,17 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         onClick={() => setStudioInitialTab("media")}
                         className={drawerRowClass(studioInitialTab === "media")}
                       >
-                        <span>Media</span>
+                        <span className="flex items-center gap-2.5">
+                          <PlaySquare
+                            className={`h-4 w-4 ${
+                              studioInitialTab === "media"
+                                ? "text-white"
+                                : "text-white/60 group-hover:text-white/90"
+                            }`}
+                            strokeWidth={1.75}
+                          />
+                          <span>Media</span>
+                        </span>
                       </button>
                     </div>
 
@@ -1997,18 +2183,35 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       className={drawerRowClass(studioInitialTab === "static")}
                     >
                       <span className="flex items-center gap-2.5">
-                        <ImageIcon className="h-[15px] w-[15px] text-[#7AA2FF]" />
-                        Image Ads
+                        <ImageIcon
+                          className={`h-4 w-4 ${
+                            studioInitialTab === "static"
+                              ? "text-white"
+                              : "text-white/60 group-hover:text-white/90"
+                          }`}
+                          strokeWidth={1.75}
+                        />
+                        <span>Image Ads</span>
                       </span>
                     </button>
-                    <div className="ml-3 space-y-0.5 border-l border-white/[0.08] pl-2.5">
+                    <div className="ml-4 space-y-0.5">
                       <button
                         type="button"
                         data-no-glass="true"
                         onClick={() => setStudioInitialTab("image_projects")}
                         className={drawerRowClass(studioInitialTab === "image_projects")}
                       >
-                        <span>Image projects</span>
+                        <span className="flex items-center gap-2.5">
+                          <Folder
+                            className={`h-4 w-4 ${
+                              studioInitialTab === "image_projects"
+                                ? "text-white"
+                                : "text-white/60 group-hover:text-white/90"
+                            }`}
+                            strokeWidth={1.75}
+                          />
+                          <span>Image projects</span>
+                        </span>
                       </button>
                     </div>
 
@@ -2020,11 +2223,18 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       className={drawerRowClass(studioInitialTab === "miner")}
                     >
                       <span className="flex items-center gap-2.5">
-                        <Bot className="h-[15px] w-[15px]" />
-                        AI Playground
+                        <Bot
+                          className={`h-4 w-4 ${
+                            studioInitialTab === "miner"
+                              ? "text-white"
+                              : "text-white/60 group-hover:text-white/90"
+                          }`}
+                          strokeWidth={1.75}
+                        />
+                        <span>AI Playground</span>
                       </span>
-                      <span className="rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[9px] text-white/60">
-                        Miner
+                      <span className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] font-medium text-white/50">
+                        Legacy
                       </span>
                     </button>
                   </div>
@@ -2032,10 +2242,19 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
                 {/* SECTION 5: ASSETS DRAWER */}
                 {view === "assets" && (
-                  <div className="space-y-2">
-                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.05] px-3 py-2 text-[12px] font-semibold text-white">
-                      {brandMemory ? brandMemory.brandName : "Arch & Pillar"}
-                    </div>
+                  <div className="flex flex-1 flex-col">
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setBrandMemoryModalOpen(true)}
+                      className="mb-2.5 flex h-9 w-full items-center justify-between rounded-lg border border-white/15 bg-white/[0.04] px-3 text-left text-[13px] font-medium text-white transition-colors hover:bg-white/[0.08]"
+                    >
+                      <span className="truncate">
+                        {brandMemory ? brandMemory.brandName : "Arch & Pillar"}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/60" />
+                    </button>
+
                     <button
                       type="button"
                       data-no-glass="true"
@@ -2043,31 +2262,44 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                       className={drawerRowClass(true)}
                     >
                       <span className="flex items-center gap-2.5">
-                        <FolderOpen className="h-[15px] w-[15px] text-[#7AA2FF]" />
-                        All assets
+                        <Layers className="h-4 w-4 text-white" strokeWidth={1.75} />
+                        <span>All assets</span>
                       </span>
                     </button>
-                    <div className="border-t border-white/[0.07] pt-3">
-                      <p className="mb-1.5 px-2 text-[10.5px] font-semibold uppercase tracking-wider text-white/35">
+
+                    <div className="my-2.5 border-t border-white/10" />
+
+                    <div className="mb-1.5 flex items-center justify-between px-2">
+                      <span className="text-[12.5px] font-semibold text-white/50">
                         Boards
-                      </p>
-                      {boards.slice(0, 4).map((b) => (
+                      </span>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setQuickFolderOpen((v) => !v)}
+                        title="New board"
+                        className="flex h-6 w-6 items-center justify-center rounded text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      </button>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      {sidebarBoardsList.map((b) => (
                         <button
                           key={b.id}
                           type="button"
                           data-no-glass="true"
                           onClick={() =>
                             navigateWithSkeleton(() => {
-                              setSelectedFolderId(b.id);
+                              setSelectedFolderId(b.isVirtual ? null : b.id);
                               setView("folders");
                             })
                           }
-                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-white/60 hover:bg-white/[0.05] hover:text-white"
+                          className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[13px] font-medium text-white/65 transition-colors hover:bg-white/10 hover:text-white"
                         >
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: b.accent_color }}
-                          />
+                          <ChevronRight className="h-3 w-3 shrink-0 text-white/45" />
+                          <AtriaBoardGridIcon className="h-4 w-4 shrink-0 text-white/60" />
                           <span className="truncate">{b.name}</span>
                         </button>
                       ))}
@@ -2077,61 +2309,134 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
 
                 {/* SECTION 6: BRANDS DRAWER */}
                 {view === "brands" && (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-1.5">
+                      <span className="text-[13px] font-semibold text-white/60">
+                        Brands ({brandMemory ? 1 : 1})
+                      </span>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => setBrandMemoryModalOpen(true)}
+                        title="Create brand"
+                        className="flex h-6 w-6 items-center justify-center rounded text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       data-no-glass="true"
-                      onClick={() => setBrandsSubView("list")}
-                      className={drawerRowClass(brandsSubView === "list")}
+                      onClick={() => setBrandDropdownOpen((v) => !v)}
+                      className="flex h-9 w-full items-center justify-between rounded-lg border border-white/15 bg-white/[0.04] px-3 text-left text-[13px] font-medium text-white/75 transition-colors hover:bg-white/[0.08] hover:text-white"
                     >
-                      <span className="flex items-center gap-2.5">
-                        <Layers className="h-[15px] w-[15px]" />
-                        All brands
+                      <span className="truncate">
+                        {brandsSubView === "list"
+                          ? "Select a brand"
+                          : brandMemory
+                            ? brandMemory.brandName
+                            : "Arch & Pillar"}
                       </span>
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/60" />
                     </button>
-                    <div className="my-2 rounded-xl border border-white/[0.08] bg-white/[0.05] px-3 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
-                        Active brand
-                      </p>
-                      <p className="truncate text-[12.5px] font-semibold text-white">
-                        {brandMemory ? brandMemory.brandName : "Arch & Pillar"}
-                      </p>
-                    </div>
-                    {[
-                      { id: "overview" as BrandsSubView, label: "Overview", icon: <Store className="h-[15px] w-[15px]" /> },
-                      { id: "audience" as BrandsSubView, label: "Audience", icon: <Users className="h-[15px] w-[15px]" /> },
-                      { id: "products" as BrandsSubView, label: "Products", icon: <Package className="h-[15px] w-[15px]" /> },
-                      { id: "competitors" as BrandsSubView, label: "Competitors", icon: <Radar className="h-[15px] w-[15px]" /> },
-                    ].map((bItem) => (
-                      <button
-                        key={bItem.id}
-                        type="button"
-                        data-no-glass="true"
-                        onClick={() => setBrandsSubView(bItem.id)}
-                        className={drawerRowClass(brandsSubView === bItem.id)}
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <span
-                            className={
-                              brandsSubView === bItem.id ? "text-[#7AA2FF]" : "text-white/45"
-                            }
-                          >
-                            {bItem.icon}
+
+                    {(brandDropdownOpen || brandsSubView !== "list") && (
+                      <div className="space-y-0.5 pt-1">
+                        <button
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => {
+                            setBrandsSubView("list");
+                            setBrandDropdownOpen(false);
+                          }}
+                          className={drawerRowClass(brandsSubView === "list")}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <Layers
+                              className={`h-4 w-4 ${
+                                brandsSubView === "list"
+                                  ? "text-white"
+                                  : "text-white/60 group-hover:text-white/90"
+                              }`}
+                              strokeWidth={1.75}
+                            />
+                            All brands
                           </span>
-                          {bItem.label}
-                        </span>
-                      </button>
-                    ))}
+                        </button>
+                        {[
+                          {
+                            id: "overview" as BrandsSubView,
+                            label: "Overview",
+                            icon: <Store className="h-4 w-4" strokeWidth={1.75} />,
+                          },
+                          {
+                            id: "audience" as BrandsSubView,
+                            label: "Audience",
+                            icon: <Users className="h-4 w-4" strokeWidth={1.75} />,
+                          },
+                          {
+                            id: "products" as BrandsSubView,
+                            label: "Products",
+                            icon: <Package className="h-4 w-4" strokeWidth={1.75} />,
+                          },
+                          {
+                            id: "competitors" as BrandsSubView,
+                            label: "Competitors",
+                            icon: <Radar className="h-4 w-4" strokeWidth={1.75} />,
+                          },
+                        ].map((bItem) => (
+                          <button
+                            key={bItem.id}
+                            type="button"
+                            data-no-glass="true"
+                            onClick={() => {
+                              setBrandsSubView(bItem.id);
+                              setBrandDropdownOpen(false);
+                            }}
+                            className={drawerRowClass(brandsSubView === bItem.id)}
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <span
+                                className={
+                                  brandsSubView === bItem.id
+                                    ? "text-white"
+                                    : "text-white/60 group-hover:text-white/90"
+                                }
+                              >
+                                {bItem.icon}
+                              </span>
+                              {bItem.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* SECTION 7: MCP DRAWER */}
                 {view === "mcp" && (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
+                    <p className="px-2.5 pb-1.5 text-[13px] font-semibold text-white">
+                      Flake MCP
+                    </p>
                     {[
-                      { id: "overview" as McpSubView, label: "Overview", icon: <Server className="h-[15px] w-[15px]" /> },
-                      { id: "prompts" as McpSubView, label: "Prompt library", icon: <Sparkles className="h-[15px] w-[15px]" /> },
-                      { id: "skills" as McpSubView, label: "Skill Hub", icon: <Zap className="h-[15px] w-[15px]" /> },
+                      {
+                        id: "overview" as McpSubView,
+                        label: "Overview",
+                        icon: <Home className="h-4 w-4" strokeWidth={1.75} />,
+                      },
+                      {
+                        id: "prompts" as McpSubView,
+                        label: "Prompt library",
+                        icon: <FileText className="h-4 w-4" strokeWidth={1.75} />,
+                      },
+                      {
+                        id: "skills" as McpSubView,
+                        label: "Skill Hub",
+                        icon: <LayoutGrid className="h-4 w-4" strokeWidth={1.75} />,
+                      },
                     ].map((mItem) => (
                       <button
                         key={mItem.id}
@@ -2143,7 +2448,9 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         <span className="flex items-center gap-2.5">
                           <span
                             className={
-                              mcpSubView === mItem.id ? "text-[#7AA2FF]" : "text-white/45"
+                              mcpSubView === mItem.id
+                                ? "text-white"
+                                : "text-white/60 group-hover:text-white/90"
                             }
                           >
                             {mItem.icon}
@@ -2152,6 +2459,23 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                         </span>
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setMcpSubView("overview");
+                        showToast("Flake MCP endpoint: https://api.flake.app/mcp");
+                      }}
+                      className={drawerRowClass(false)}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <span className="text-white/60 group-hover:text-white/90">
+                          <BookOpen className="h-4 w-4" strokeWidth={1.75} />
+                        </span>
+                        Documentation
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 text-white/45" strokeWidth={1.75} />
+                    </button>
                   </div>
                 )}
               </div>
@@ -2161,54 +2485,58 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       })()}
 
       {/* =====================================================================
-          STATIONARY WORKSPACE FRAME — ONLY INNER <main> SCROLLS (MOBILE + DESKTOP)
+          STATIONARY WORKSPACE FRAME — CRISP STRAIGHT SEAM ONTO #f5f5fa CANVAS
          ===================================================================== */}
-      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#F7F8FB] lg:relative lg:z-10 lg:-ml-6 lg:rounded-tl-[24px] lg:bg-white">
+      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#f5f5fa] lg:relative lg:z-10">
+        {/* Global Live Toast (floating so full-bleed sticky headers never shift) */}
+        {toast && (
+          <div className="fixed right-5 top-4 z-50 inline-flex items-center gap-2 rounded-lg border border-[#d6d6e0] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A] shadow-[0_8px_28px_rgba(15,23,42,0.12)]">
+            <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+            {toast}
+          </div>
+        )}
+
         {/* SCROLLABLE WORKSPACE CONTENT VIEWPORT */}
         <main
           ref={workspaceScrollRef}
           data-scroll-root="true"
-          className="workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7F8FB] px-3.5 pt-[calc(env(safe-area-inset-top,0px)+58px)] pb-[calc(7rem+env(safe-area-inset-bottom,0px))] text-[#0F172A] sm:px-6 lg:bg-transparent lg:px-7 lg:py-6 lg:pb-12"
+          className="workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#f5f5fa] pt-[calc(env(safe-area-inset-top,0px)+52px)] pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] text-[#0F172A] lg:p-0"
         >
-          {/* Global Live Toast */}
-          {toast && (
-            <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-[#E2E6EF] bg-[#F8FAFC] px-3.5 py-2 text-xs font-semibold text-[#0F172A]">
-              <Check className="h-3.5 w-3.5 text-[#16A34A]" />
-              {toast}
-            </div>
-          )}
-
           {/* UNIFORM SKELETON LOADING ON INITIAL HYDRATION */}
           {!catalogLoaded ? (
-            view === "explore" ? (
-              <ExploreSkeleton />
-            ) : view === "folders" ? (
-              <FoldersSkeleton />
-            ) : selectedShop ? (
-              <ShopAnalyticsSkeleton />
-            ) : (
-              <ShopsSkeleton />
-            )
+            <div className="px-4 py-5 sm:px-6">
+              {view === "explore" ? (
+                <ExploreSkeleton />
+              ) : view === "folders" ? (
+                <FoldersSkeleton />
+              ) : selectedShop ? (
+                <ShopAnalyticsSkeleton />
+              ) : (
+                <ShopsSkeleton />
+              )}
+            </div>
           ) : (
             <>
           {/* =================================================================
               VIEW 1: SHOPS (Table Explorer + Full Trendtrack Shop Analytics)
              ================================================================= */}
           {view === "shops" && selectedShop && (
-            <ShopAnalyticsView
-              brand={selectedShop}
-              ads={ads}
-              boards={boards}
-              onBack={() =>
-                navigateWithSkeleton(() => {
-                  setSelectedShopId(null);
-                })
-              }
-              onOpenAd={(ad) => setActiveAdId(ad.id)}
-              onToggleBoard={handleToggleBoard}
-              onToggleBrandFolder={handleToggleBrandFolder}
-              onUpdateBrand={handleUpdateBrand}
-            />
+            <div className="px-4 py-5 sm:px-6">
+              <ShopAnalyticsView
+                brand={selectedShop}
+                ads={ads}
+                boards={boards}
+                onBack={() =>
+                  navigateWithSkeleton(() => {
+                    setSelectedShopId(null);
+                  })
+                }
+                onOpenAd={(ad) => setActiveAdId(ad.id)}
+                onToggleBoard={handleToggleBoard}
+                onToggleBrandFolder={handleToggleBrandFolder}
+                onUpdateBrand={handleUpdateBrand}
+              />
+            </div>
           )}
 
           {view === "shops" && !selectedShop && (
@@ -2226,7 +2554,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               VIEW 2: ADS (Atria Discovery Suite + Masonry Ad Feed)
              ================================================================= */}
           {view === "explore" && (
-            <div className="animate-view-in space-y-4">
+            <div className="animate-view-in">
               <AtriaDiscoveryBar
                 search={search}
                 onSearchChange={(val) => {
@@ -2254,47 +2582,49 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 }}
               />
 
-              {/* KONVERT-STYLE 4-COLUMN HORIZONTAL MASONRY FEED */}
-              <div className="grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {exploreMasonryColumns.map((col, colIdx) => (
-                  <div key={colIdx} className="flex flex-col gap-3.5">
-                    {col.map(({ ad, idx }) => (
-                      <AdCard
-                        key={ad.id}
-                        ad={ad}
-                        boards={boards}
-                        rank={idx < 3 ? idx + 1 : undefined}
-                        isFollowed={followedBrandIds.includes(ad.brand_id)}
-                        onToggleFollow={handleToggleFollow}
-                        onOpen={handleOpenAd}
-                        onToggleBoard={handleToggleBoard}
-                        onOpenBrand={openShopAnalytics}
-                        onCloneAd={(a) => handleCloneAdToStudio(a)}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-
-              {/* Seamless Infinite Scroll Sentinel (triggers ~3 screens ahead so user never hits a wall) */}
-              {visibleAds.length > visibleLimit && (
-                <div
-                  ref={loadMoreRef}
-                  className="h-8 w-full"
-                  aria-hidden="true"
-                />
-              )}
-
-              {visibleAds.length === 0 && (
-                <div className="py-16 text-center">
-                  <p className="font-display text-sm font-bold text-[#0F172A]">
-                    No ads match your active filters
-                  </p>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Try switching tabs, format, or clearing your search.
-                  </p>
+              {/* 4-COLUMN HORIZONTAL MASONRY FEED ON #f5f5fa CANVAS */}
+              <div className="px-4 py-4 sm:px-6 lg:py-5">
+                <div className="grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {exploreMasonryColumns.map((col, colIdx) => (
+                    <div key={colIdx} className="flex flex-col gap-3.5">
+                      {col.map(({ ad, idx }) => (
+                        <AdCard
+                          key={ad.id}
+                          ad={ad}
+                          boards={boards}
+                          rank={idx < 3 ? idx + 1 : undefined}
+                          isFollowed={followedBrandIds.includes(ad.brand_id)}
+                          onToggleFollow={handleToggleFollow}
+                          onOpen={handleOpenAd}
+                          onToggleBoard={handleToggleBoard}
+                          onOpenBrand={openShopAnalytics}
+                          onCloneAd={(a) => handleCloneAdToStudio(a)}
+                        />
+                      ))}
+                    </div>
+                  ))}
                 </div>
-              )}
+
+                {/* Seamless Infinite Scroll Sentinel (triggers ~3 screens ahead so user never hits a wall) */}
+                {visibleAds.length > visibleLimit && (
+                  <div
+                    ref={loadMoreRef}
+                    className="h-8 w-full"
+                    aria-hidden="true"
+                  />
+                )}
+
+                {visibleAds.length === 0 && (
+                  <div className="py-16 text-center">
+                    <p className="font-display text-sm font-bold text-[#0F172A]">
+                      No ads match your active filters
+                    </p>
+                    <p className="mt-1 text-xs text-[#64748B]">
+                      Try switching tabs, format, or clearing your search.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -2379,7 +2709,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
           )}
 
           {view === "folders" && selectedFolderId && (
-            <div className="animate-view-in">
+            <div className="animate-view-in px-4 py-5 sm:px-6">
               <CollectionsView
                 boards={boards}
                 ads={ads}
@@ -2404,7 +2734,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               VIEW 4: SNOW AI CREATIVE STRATEGIST
              ================================================================= */}
           {view === "snow" && (
-            <div className="animate-view-in h-[calc(100%-1rem)]">
+            <div className="animate-view-in min-h-full">
               <SnowAssistantView
                 brandMemory={brandMemory}
                 messages={snowMessages}
@@ -2527,13 +2857,14 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
       </div>
     </div>
 
-      {/* FLOATING "SNOW" COPILOT BUTTON (Desktop only — crisp SnowMark circular icon) */}
+      {/* FLOATING "SNOW" COPILOT BUTTON (Desktop only — solid Flake Cobalt circle matching Atria bottom-right assistant) */}
       {view !== "snow" && (
         <button
           type="button"
+          data-no-glass="true"
           onClick={() => setSnowDrawerOpen(true)}
-          aria-label="Spørg Snow"
-          className="fixed bottom-6 right-6 z-30 hidden h-11 w-11 items-center justify-center rounded-full border border-[#DCE4FF] bg-white text-[#0027eb] shadow-[0_10px_28px_-6px_rgba(0,39,235,0.3)] transition-all hover:scale-105 hover:border-[#0027eb] lg:inline-flex"
+          aria-label="Ask Snow"
+          className="fixed bottom-5 right-5 z-30 hidden h-11 w-11 items-center justify-center rounded-full bg-[#0027eb] text-white shadow-[0_8px_22px_-4px_rgba(0,39,235,0.45)] transition-transform hover:scale-105 hover:bg-[#001fc2] lg:inline-flex"
         >
           <SnowMark className="h-5 w-5" />
         </button>
