@@ -5,24 +5,24 @@ import { createPortal } from "react-dom";
 import {
   ArrowRight,
   ArrowUpDown,
+  ArrowUpRight,
   Calendar,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  ChevronUp,
-  Coins,
+  CircleDollarSign,
   ExternalLink,
   Filter,
   Globe,
+  Heart,
   HelpCircle,
   Image as ImageIcon,
+  Info,
   Layers,
   Minus,
   Plus,
-  RotateCcw,
   Search,
   Settings,
   Star,
@@ -36,6 +36,11 @@ import {
 } from "../lib/ad-ranking";
 import { summarizeAdAudience } from "../lib/audience-insights";
 import { getActiveDays } from "../lib/url-parser";
+import {
+  InstagramColorIcon,
+  MetaInfinityIcon,
+  TikTokColorIcon,
+} from "./BrandIcons";
 import { FlakePopover } from "./ui/FlakeDropdown";
 import {
   ATRIA_COUNTRIES,
@@ -130,7 +135,7 @@ export const DEFAULT_DISCOVERY_FILTERS: DiscoveryFiltersState = {
   adSpend: { min: null, max: null, window: "All time" },
 };
 
-const DEFAULT_ASSUMED_CPM = 10;
+const DEFAULT_ASSUMED_CPM = 9;
 
 const SORT_OPTIONS: Array<{
   value: DiscoverySortOption;
@@ -1670,50 +1675,53 @@ function CountryFilter({
         onOpenChange={onOpenChange}
         anchorRef={triggerRef}
         align="left"
-        width={420}
-        maxHeight={500}
+        width={472}
+        maxHeight={520}
       >
         <AtriaPopoverHeader
           title="Country"
-          subtitle="Filter by primary target country, included markets, or exclusions"
+          subtitle="Click a state to set it, click it again to clear"
           hasValue={selectedKeys.length > 0}
           onClear={() => onChange({})}
         />
 
         {/* Search */}
-        <div className="border-b border-[#F1F4F9] p-2.5">
+        <div className="px-4 pb-2.5 pt-1">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#94A3B8]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#94A3B8]" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for countries"
-              className="w-full rounded-lg border border-[#E2E6EF] bg-[#FAFBFD] py-1.5 pl-8 pr-2.5 text-[12px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0027eb] focus:bg-white"
+              className="h-9 w-full rounded-[8px] border border-[#d6d6e0] bg-white pl-8 pr-3 text-[13px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0027eb]"
             />
           </div>
         </div>
 
         {/* Matrix Header */}
-        <div className="grid grid-cols-[1fr_54px_54px_54px] items-center border-b border-[#F1F4F9] bg-[#FAFBFD] px-3 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#64748B]">
-          <span>Country</span>
+        <div className="grid grid-cols-[1fr_58px_58px_58px] items-center gap-1.5 border-b border-[#ebebf3] px-4 py-2 text-[12px] font-medium text-[#64748B]">
+          <span className="inline-flex items-center gap-1">
+            Country
+            <Info className="h-3.5 w-3.5 text-[#94A3B8]" />
+          </span>
           <span className="text-center">Main</span>
           <span className="text-center">Among</span>
           <span className="text-center">Exclude</span>
         </div>
 
         {/* Country Rows */}
-        <div className="workspace-scroll max-h-[240px] overflow-y-auto px-2 py-1">
+        <div className="workspace-scroll max-h-[250px] overflow-y-auto px-4 py-1.5">
           {filteredCountries.map((c) => {
             const state = value[c.code];
             return (
               <div
                 key={c.code}
-                className="grid grid-cols-[1fr_54px_54px_54px] items-center rounded-lg px-1.5 py-1.5 text-[12px] hover:bg-[#F7F8FB]"
+                className="grid grid-cols-[1fr_58px_58px_58px] items-center gap-1.5 py-1.5 text-[13px]"
               >
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="text-sm leading-none">{c.flag}</span>
-                  <span className="truncate font-medium text-[#1E293B]">
+                  <span className="text-[15px] leading-none">{c.flag}</span>
+                  <span className="truncate font-medium text-[#0F172A]">
                     {c.name}
                   </span>
                 </div>
@@ -1725,15 +1733,15 @@ function CountryFilter({
                     data-no-glass="true"
                     aria-label={`Set ${c.name} as Main`}
                     onClick={() => setCountryState(c.code, "main")}
-                    className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+                    className={`flex h-7 w-[50px] items-center justify-center rounded-[6px] border transition-colors ${
                       state === "main"
-                        ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                        : "border-[#E2E6EF] bg-white text-[#94A3B8] hover:border-[#CBD5E1] hover:text-[#475569]"
+                        ? "border-[#0027eb] bg-[#EEF2FF] text-[#0F172A]"
+                        : "border-[#ebebf3] bg-white text-[#64748B] hover:border-[#d6d6e0] hover:text-[#0F172A]"
                     }`}
                   >
                     <Star
-                      className={`h-3 w-3 ${
-                        state === "main" ? "fill-[#0027eb]" : ""
+                      className={`h-3.5 w-3.5 text-[#475569] ${
+                        state === "main" ? "fill-[#0F172A] text-[#0F172A]" : ""
                       }`}
                     />
                   </button>
@@ -1746,13 +1754,17 @@ function CountryFilter({
                     data-no-glass="true"
                     aria-label={`Include ${c.name}`}
                     onClick={() => setCountryState(c.code, "among")}
-                    className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+                    className={`flex h-7 w-[50px] items-center justify-center rounded-[6px] border transition-colors ${
                       state === "among"
                         ? "border-[#0027eb] bg-[#0027eb] text-white"
-                        : "border-[#E2E6EF] bg-white text-[#94A3B8] hover:border-[#CBD5E1] hover:text-[#475569]"
+                        : "border-[#ebebf3] bg-white text-[#64748B] hover:border-[#d6d6e0] hover:text-[#0F172A]"
                     }`}
                   >
-                    <Check className="h-3 w-3 stroke-[2.5]" />
+                    <Check
+                      className={`h-3.5 w-3.5 stroke-[2.2] ${
+                        state === "among" ? "text-white" : "text-[#475569]"
+                      }`}
+                    />
                   </button>
                 </div>
 
@@ -1763,13 +1775,17 @@ function CountryFilter({
                     data-no-glass="true"
                     aria-label={`Exclude ${c.name}`}
                     onClick={() => setCountryState(c.code, "exclude")}
-                    className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+                    className={`flex h-7 w-[50px] items-center justify-center rounded-[6px] border transition-colors ${
                       state === "exclude"
                         ? "border-[#0F172A] bg-[#0F172A] text-white"
-                        : "border-[#E2E6EF] bg-white text-[#94A3B8] hover:border-[#CBD5E1] hover:text-[#475569]"
+                        : "border-[#ebebf3] bg-white text-[#64748B] hover:border-[#d6d6e0] hover:text-[#0F172A]"
                     }`}
                   >
-                    <X className="h-3 w-3 stroke-[2.5]" />
+                    <X
+                      className={`h-3.5 w-3.5 stroke-[2.2] ${
+                        state === "exclude" ? "text-white" : "text-[#475569]"
+                      }`}
+                    />
                   </button>
                 </div>
               </div>
@@ -1783,12 +1799,12 @@ function CountryFilter({
           )}
         </div>
 
-        {/* Quick Select Region Pills */}
-        <div className="border-t border-[#F1F4F9] bg-[#FAFBFD] px-3 py-2.5">
-          <p className="mb-1.5 text-[11px] font-medium text-[#64748B]">
+        {/* Quick Select 2x2 Pill Grid */}
+        <div className="border-t border-[#ebebf3] bg-white px-4 py-3">
+          <p className="mb-2 text-[12px] font-medium text-[#64748B]">
             Quick select
           </p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             {ATRIA_COUNTRY_QUICK_GROUPS.map((grp) => {
               const codes = ATRIA_COUNTRIES.filter((c) =>
                 c.regions.includes(grp.id)
@@ -1801,13 +1817,16 @@ function CountryFilter({
                   type="button"
                   data-no-glass="true"
                   onClick={() => applyQuickGroup(grp.id)}
-                  className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
+                  className={`flex items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
                     allActive
                       ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                      : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0] hover:bg-[#f5f5fa]"
                   }`}
                 >
-                  {grp.label} ({grp.count})
+                  <span>{grp.label}</span>
+                  <span className="font-mono-num text-[11.5px] text-[#64748B]">
+                    {grp.count}
+                  </span>
                 </button>
               );
             })}
@@ -1931,15 +1950,15 @@ function FormatFilter({
         onOpenChange={onOpenChange}
         anchorRef={triggerRef}
         align="left"
-        width={300}
+        width={295}
       >
         <AtriaPopoverHeader
           title="Format"
-          subtitle="Select one or more creative formats"
+          subtitle="Choose one or more creative types"
           hasValue={value.length > 0}
           onClear={() => onChange([])}
         />
-        <div className="grid grid-cols-3 gap-2 p-3">
+        <div className="space-y-2 px-4 pb-4 pt-2">
           {(
             [
               { id: "Image", label: "Image", icon: ImageIcon },
@@ -1955,14 +1974,17 @@ function FormatFilter({
                 type="button"
                 data-no-glass="true"
                 onClick={() => toggle(opt.id)}
-                className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border py-3 text-[12px] font-semibold transition-colors ${
+                className={`flex w-full items-center gap-2.5 rounded-[8px] border px-3.5 py-2.5 text-left text-[13.5px] font-medium transition-colors ${
                   active
-                    ? "border-transparent bg-[#EFEFF2] text-[#0F172A]"
-                    : "border-[#D8DDE6] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
+                    ? "border-[#0027eb] bg-[#EEF2FF] font-semibold text-[#0027eb]"
+                    : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0] hover:bg-[#f5f5fa]/50"
                 }`}
               >
-                <Icon className="h-4 w-4 text-[#475569]" />
+                <Icon className="h-4 w-4 shrink-0 text-[#475569]" />
                 <span>{opt.label}</span>
+                {active && (
+                  <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-[#0F172A]" />
+                )}
               </button>
             );
           })}
@@ -1988,6 +2010,7 @@ function PlatformFilter({
   onChange: (next: string[]) => void;
 }) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [metaExpanded, setMetaExpanded] = useState(true);
   const allMetaChecked = META_CHILD_PLATFORMS.every((p) => value.includes(p));
   const someMetaChecked =
     !allMetaChecked && META_CHILD_PLATFORMS.some((p) => value.includes(p));
@@ -2032,84 +2055,100 @@ function PlatformFilter({
         onOpenChange={onOpenChange}
         anchorRef={triggerRef}
         align="left"
-        width={268}
+        width={345}
       >
         <AtriaPopoverHeader
           title="Platform"
-          subtitle="Filter by ad placement networks"
+          subtitle="Narrow results down to specific placements"
           hasValue={value.length > 0}
           onClear={() => onChange([])}
         />
-        <div className="space-y-1 p-2.5">
-          {/* Meta Parent */}
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={toggleMetaGroup}
-            className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[12.5px] font-semibold text-[#0F172A] hover:bg-[#F7F8FB]"
-          >
-            <span
-              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                allMetaChecked || someMetaChecked
-                  ? "border-[#0027eb] bg-[#0027eb] text-white"
-                  : "border-[#CBD5E1] bg-white"
-              }`}
+        <div className="space-y-1 px-4 pb-4 pt-2">
+          {/* Meta Parent Row */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              data-no-glass="true"
+              aria-label={metaExpanded ? "Collapse Meta placements" : "Expand Meta placements"}
+              onClick={() => setMetaExpanded((prev) => !prev)}
+              className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-[10px] text-[#64748B] hover:bg-[#f5f5fa]"
             >
-              {allMetaChecked && <Check className="h-3 w-3 stroke-[3]" />}
-              {someMetaChecked && <Minus className="h-3 w-3 stroke-[3]" />}
-            </span>
-            <span>Meta</span>
-          </button>
-
-          {/* Meta Children */}
-          <div className="ml-5 space-y-0.5 border-l border-[#ECEFF5] pl-2.5">
-            {META_CHILD_PLATFORMS.map((child) => {
-              const checked = value.includes(child);
-              return (
-                <button
-                  key={child}
-                  type="button"
-                  data-no-glass="true"
-                  onClick={() => toggleSingle(child)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[12px] text-[#334155] hover:bg-[#F7F8FB]"
-                >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                      checked
-                        ? "border-[#0027eb] bg-[#0027eb] text-white"
-                        : "border-[#CBD5E1] bg-white"
-                    }`}
-                  >
-                    {checked && <Check className="h-3 w-3 stroke-[3]" />}
-                  </span>
-                  <span>{child}</span>
-                </button>
-              );
-            })}
+              {metaExpanded ? "▾" : "▸"}
+            </button>
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={toggleMetaGroup}
+              className="flex flex-1 items-center gap-2.5 rounded-[8px] px-1.5 py-1.5 text-left text-[13.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+            >
+              <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+                  allMetaChecked || someMetaChecked
+                    ? "border-[#0027eb] bg-[#0027eb] text-white"
+                    : "border-[#d6d6e0] bg-white"
+                }`}
+              >
+                {allMetaChecked && <Check className="h-3 w-3 stroke-[3] text-white" />}
+                {someMetaChecked && <Minus className="h-3 w-3 stroke-[3] text-white" />}
+              </span>
+              <MetaInfinityIcon className="h-4 w-4 shrink-0" />
+              <span>Meta</span>
+            </button>
           </div>
 
-          <div className="my-1.5 border-t border-[#F1F4F9]" />
+          {/* Meta Children */}
+          {metaExpanded && (
+            <div className="ml-7 space-y-0.5 border-l border-[#ebebf3] pl-3">
+              {META_CHILD_PLATFORMS.map((child) => {
+                const checked = value.includes(child);
+                return (
+                  <button
+                    key={child}
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => toggleSingle(child)}
+                    className="flex w-full items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left text-[13px] font-normal text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+                  >
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+                        checked
+                          ? "border-[#0027eb] bg-[#0027eb] text-white"
+                          : "border-[#d6d6e0] bg-white"
+                      }`}
+                    >
+                      {checked && <Check className="h-3 w-3 stroke-[3] text-white" />}
+                    </span>
+                    <span>{child}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* TikTok */}
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => toggleSingle("TikTok")}
-            className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[12.5px] font-semibold text-[#0F172A] hover:bg-[#F7F8FB]"
-          >
-            <span
-              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                value.includes("TikTok")
-                  ? "border-[#0027eb] bg-[#0027eb] text-white"
-                  : "border-[#CBD5E1] bg-white"
-              }`}
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="h-6 w-5 shrink-0" />
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => toggleSingle("TikTok")}
+              className="flex flex-1 items-center gap-2.5 rounded-[8px] px-1.5 py-1.5 text-left text-[13.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
             >
-              {value.includes("TikTok") && (
-                <Check className="h-3 w-3 stroke-[3]" />
-              )}
-            </span>
-            <span>TikTok</span>
-          </button>
+              <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+                  value.includes("TikTok")
+                    ? "border-[#0027eb] bg-[#0027eb] text-white"
+                    : "border-[#d6d6e0] bg-white"
+                }`}
+              >
+                {value.includes("TikTok") && (
+                  <Check className="h-3 w-3 stroke-[3] text-white" />
+                )}
+              </span>
+              <TikTokColorIcon className="h-4 w-4 shrink-0" />
+              <span>TikTok</span>
+            </button>
+          </div>
         </div>
       </FlakePopover>
     </>
@@ -2638,14 +2677,23 @@ function IndustryFilterSlot({
    ============================================================================ */
 
 const EXTENSION_WORKS_ON = [
-  { label: "Meta Ad Library", href: "https://www.facebook.com/ads/library/" },
-  { label: "Instagram", href: "https://www.instagram.com/" },
-  { label: "TikTok Ad Library", href: "https://library.tiktok.com/" },
+  { label: "Meta Ad Library", href: "https://www.facebook.com/ads/library/", kind: "meta" as const },
+  { label: "Instagram", href: "https://www.instagram.com/", kind: "instagram" as const },
+  { label: "TikTok Ad Library", href: "https://library.tiktok.com/", kind: "tiktok" as const },
   {
     label: "TikTok Creative Center",
     href: "https://ads.tiktok.com/business/creativecenter/",
+    kind: "tiktok" as const,
   },
-  { label: "TikTok", href: "https://www.tiktok.com/" },
+  { label: "TikTok", href: "https://www.tiktok.com/", kind: "tiktok" as const },
+];
+
+const REQUEST_MODAL_AVATARS = [
+  { src: "/atria-assets/inspo/adv-meshki.jpg", alt: "Meshki" },
+  { src: "/atria-assets/inspo/adv-legend-london.jpg", alt: "Legend London" },
+  { src: "/atria-assets/inspo/adv-nude-project.jpg", alt: "Nude Project" },
+  { src: "/atria-assets/inspo/adv-muscle-mat.jpg", alt: "Muscle Mat" },
+  { src: "/atria-assets/inspo/adv-tradesman.jpg", alt: "Tradesman Nutrition" },
 ];
 
 function CantFindAdvertiserModal({
@@ -2665,16 +2713,16 @@ function CantFindAdvertiserModal({
       onClick={onClose}
     >
       <div
-        className="animate-sheet-up w-full max-w-[680px] rounded-2xl border border-[#E6E9F0] bg-white p-6 shadow-2xl"
+        className="animate-sheet-up w-full max-w-[640px] rounded-[16px] border border-[#ebebf3] bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="font-display text-[18px] font-bold text-[#0F172A]">
+            <h3 className="font-sans text-[18px] font-bold text-[#0F172A]">
               Can&apos;t find an advertiser?
             </h3>
-            <p className="mt-1 text-[13px] text-[#64748B]">
+            <p className="mt-1 text-[13.5px] text-[#64748B]">
               Two ways to get its ads into Flake.
             </p>
           </div>
@@ -2683,80 +2731,72 @@ function CantFindAdvertiserModal({
             data-no-glass="true"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#64748B] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#64748B] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-[#64748B]" />
           </button>
         </div>
 
-        {/* 2-Column Options */}
+        {/* 2-Column Options (Atria step_30.png 1:1) */}
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Left Card: Chrome Extension */}
-          <div className="flex flex-col justify-between rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] p-5">
+          <div className="flex flex-col justify-between rounded-[10px] border border-[#ebebf3] bg-white p-5">
             <div>
-              {/* Chrome-inspired geometric badge in Flake Obsidian & Cobalt */}
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E6EF] bg-white shadow-xs">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-6 w-6"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="9.5"
-                    stroke="#0F172A"
-                    strokeWidth="1.75"
-                  />
-                  <circle cx="12" cy="12" r="4" fill="#0027eb" />
+              {/* Official 4-color Chrome Icon (32px) */}
+              <div className="mb-3.5">
+                <svg viewBox="0 0 48 48" className="h-8 w-8" aria-hidden="true">
+                  <circle cx="24" cy="24" r="22" fill="#4285F4" />
                   <path
-                    d="M12 8H20.6"
-                    stroke="#0F172A"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
+                    fill="#EA4335"
+                    d="M24 2C15.5 2 8.1 6.8 4.4 13.8l9.9 17.1A10 10 0 0 1 24 14h20.1C41 6.9 33.1 2 24 2z"
                   />
                   <path
-                    d="M8.5 14L4.2 6.6"
-                    stroke="#3B66FF"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
+                    fill="#34A853"
+                    d="M4.4 13.8A22 22 0 0 0 21.8 45.9l10-17.3A10 10 0 0 1 14.3 30.9L4.4 13.8z"
                   />
                   <path
-                    d="M15.5 14L11.2 21.3"
-                    stroke="#64748B"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
+                    fill="#FBBC05"
+                    d="M24 14a10 10 0 0 1 7.8 14.6l-10 17.3c.7.1 1.5.1 2.2.1a22 22 0 0 0 20.1-32H24z"
                   />
+                  <circle cx="24" cy="24" r="9.5" fill="#FFFFFF" />
+                  <circle cx="24" cy="24" r="7.5" fill="#4285F4" />
                 </svg>
               </div>
 
-              <h4 className="font-display text-[15px] font-bold text-[#0F172A]">
+              <h4 className="font-sans text-[15px] font-bold leading-snug text-[#0F172A]">
                 Save ads with the Chrome extension
               </h4>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#64748B]">
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748B]">
                 Pick the ads you want. They land in Saved ads right away.
               </p>
 
               <div className="mt-4">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">
+                <p className="mb-2 text-[12px] font-medium text-[#64748B]">
                   Works on
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+                <ul className="space-y-2">
                   {EXTENSION_WORKS_ON.map((site) => (
-                    <a
-                      key={site.label}
-                      href={site.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-no-glass="true"
-                      className="inline-flex items-center gap-1 rounded-md border border-[#E2E6EF] bg-white px-2 py-1 text-[11.5px] font-medium text-[#334155] transition-colors hover:border-[#0027eb]/40 hover:text-[#0027eb]"
-                    >
-                      <span>{site.label}</span>
-                      <ExternalLink className="h-2.5 w-2.5 opacity-60" />
-                    </a>
+                    <li key={site.label}>
+                      <a
+                        href={site.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-no-glass="true"
+                        className="inline-flex items-center gap-2 text-[13px] font-medium text-[#0F172A] transition-colors hover:text-[#0027eb]"
+                      >
+                        {site.kind === "meta" ? (
+                          <MetaInfinityIcon className="h-4 w-4 shrink-0" />
+                        ) : site.kind === "instagram" ? (
+                          <InstagramColorIcon className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <TikTokColorIcon className="h-4 w-4 shrink-0" />
+                        )}
+                        <span>{site.label}</span>
+                        <ArrowUpRight className="h-3.5 w-3.5 text-[#64748B]" />
+                      </a>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             </div>
 
@@ -2764,51 +2804,47 @@ function CantFindAdvertiserModal({
               href="https://chromewebstore.google.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="adtrack-btn-primary mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-white"
+              data-no-glass="true"
+              className="mt-5 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
             >
               <span>Get the Chrome extension</span>
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3.5 w-3.5 text-white" />
             </a>
           </div>
 
           {/* Right Card: Request Advertiser */}
-          <div className="flex flex-col justify-between rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] p-5">
+          <div className="flex flex-col justify-between rounded-[10px] border border-[#ebebf3] bg-white p-5">
             <div>
-              {/* Overlapping brand avatar stack (Obsidian / Cobalt / Slate) */}
-              <div className="mb-4 flex items-center -space-x-2">
-                {[
-                  { initials: "NR", bg: "bg-[#050811] text-white" },
-                  { initials: "FL", bg: "bg-[#0027eb] text-white" },
-                  { initials: "SK", bg: "bg-[#3B66FF] text-white" },
-                  { initials: "AL", bg: "bg-[#1E293B] text-white" },
-                ].map((av) => (
-                  <span
-                    key={av.initials}
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-[11px] font-bold shadow-xs ${av.bg}`}
-                  >
-                    {av.initials}
-                  </span>
+              {/* 5 Overlapping Circular Brand Avatars */}
+              <div className="mb-3.5 flex items-center -space-x-2">
+                {REQUEST_MODAL_AVATARS.map((av) => (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    key={av.alt}
+                    src={av.src}
+                    alt={av.alt}
+                    className="h-8 w-8 rounded-full border-2 border-white bg-[#0F172A] object-cover shadow-xs"
+                  />
                 ))}
               </div>
 
-              <h4 className="font-display text-[15px] font-bold text-[#0F172A]">
+              <h4 className="font-sans text-[15px] font-bold leading-snug text-[#0F172A]">
                 Have us add the advertiser
               </h4>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#64748B]">
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748B]">
                 We add all its ads for you.
               </p>
 
-              <ul className="mt-4 space-y-2.5 text-[12.5px] text-[#334155]">
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#ECEFF4] text-[#0F172A]">
-                    <Check className="h-2.5 w-2.5 stroke-[3]" />
+              <ul className="mt-6 space-y-3 text-[13px] text-[#0F172A]">
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex shrink-0 items-center gap-1">
+                    <MetaInfinityIcon className="h-3.5 w-3.5" />
+                    <TikTokColorIcon className="h-3.5 w-3.5" />
                   </span>
                   <span>Meta and TikTok advertisers</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#ECEFF4] text-[#0F172A]">
-                    <Check className="h-2.5 w-2.5 stroke-[3]" />
-                  </span>
+                <li className="flex items-start gap-2.5">
+                  <Heart className="mt-0.5 h-4 w-4 shrink-0 fill-[#0F172A] text-[#0F172A]" />
                   <span>
                     You&apos;ll follow its brand, which keeps the
                     advertiser&apos;s ads up to date.
@@ -2819,14 +2855,15 @@ function CantFindAdvertiserModal({
 
             <button
               type="button"
+              data-no-glass="true"
               onClick={() => {
                 onClose();
                 onRequestAdvertiser();
               }}
-              className="adtrack-btn-primary mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-white"
+              className="mt-5 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
             >
               <span>Request an advertiser</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3.5 w-3.5 text-white" />
             </button>
           </div>
         </div>
@@ -2934,23 +2971,21 @@ export function AtriaDiscoveryBar({
     onViewTabChange(view.id);
   };
 
-  const sampleEstSpendK = ((199.8 * assumedCpm) / 1000).toFixed(1);
-
   return (
-    <div className="space-y-2.5">
+    <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3 sm:-mx-6 sm:px-6 lg:-mx-7 lg:-mt-6">
       {/* ====================================================================
-          ROW 1: VIEW TABS + SEARCH BAR + "Can't find an advertiser?" (SINGLE ROW)
+          ROW 1: VIEW TABS + AI SEARCH + "Can't find an advertiser?" (SINGLE ROW)
          ==================================================================== */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#ebebf3] pb-3">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             data-no-glass="true"
             onClick={() => onViewTabChange("all")}
-            className={`inline-flex h-8 min-w-[66px] items-center justify-center rounded-md px-3 text-[13px] font-semibold transition-colors ${
+            className={`inline-flex h-9 items-center justify-center rounded-[8px] px-3.5 text-[13.5px] font-semibold transition-colors ${
               activeViewTab === "all"
                 ? "bg-[#0027eb] text-white"
-                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+                : "bg-transparent text-[#0F172A] hover:bg-black/[0.04]"
             }`}
           >
             All ads
@@ -2960,10 +2995,10 @@ export function AtriaDiscoveryBar({
             type="button"
             data-no-glass="true"
             onClick={() => onViewTabChange("trending")}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
+            className={`inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[13.5px] font-semibold transition-colors ${
               activeViewTab === "trending"
                 ? "bg-[#0027eb] text-white"
-                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+                : "bg-transparent text-[#0F172A] hover:bg-black/[0.04]"
             }`}
           >
             <span aria-hidden="true" className="text-[14px] leading-none">
@@ -2976,10 +3011,10 @@ export function AtriaDiscoveryBar({
             type="button"
             data-no-glass="true"
             onClick={() => onViewTabChange("following")}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
+            className={`inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[13.5px] font-semibold transition-colors ${
               activeViewTab === "following"
                 ? "bg-[#0027eb] text-white"
-                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+                : "bg-transparent text-[#0F172A] hover:bg-black/[0.04]"
             }`}
           >
             <span aria-hidden="true" className="text-[14px] leading-none">
@@ -2991,7 +3026,7 @@ export function AtriaDiscoveryBar({
                 className={`ml-0.5 rounded-full px-1.5 py-0.2 font-mono-num text-[11px] font-semibold ${
                   activeViewTab === "following"
                     ? "bg-white/20 text-white"
-                    : "bg-[#ECEFF4] text-[#0F172A]"
+                    : "bg-[#f5f5fa] text-[#0F172A]"
                 }`}
               >
                 {followedCount}
@@ -3008,10 +3043,10 @@ export function AtriaDiscoveryBar({
                 type="button"
                 data-no-glass="true"
                 onClick={() => handleSelectCustomView(cv)}
-                className={`inline-flex h-8 max-w-[160px] items-center rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
+                className={`inline-flex h-9 max-w-[160px] items-center rounded-[8px] px-3 text-[13.5px] font-semibold transition-colors ${
                   active
                     ? "bg-[#0027eb] text-white"
-                    : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
+                    : "bg-transparent text-[#0F172A] hover:bg-black/[0.04]"
                 }`}
               >
                 <span className="truncate">{cv.name}</span>
@@ -3019,14 +3054,14 @@ export function AtriaDiscoveryBar({
             );
           })}
 
-          {/* + New view */}
+          {/* + New view (dashed border, Atria exact style) */}
           <button
             type="button"
             data-no-glass="true"
             onClick={() => setCreateViewOpen(true)}
-            className="ml-1 inline-flex h-8 items-center gap-1 rounded-md border border-[#E2E6EF] bg-white px-2.5 text-[12.5px] font-medium text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
+            className="ml-0.5 inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-dashed border-[#d6d6e0] bg-white px-3.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
           >
-            <Plus className="h-3.5 w-3.5 text-[#64748B]" />
+            <Plus className="h-3.5 w-3.5 text-[#475569]" />
             <span>New view</span>
           </button>
 
@@ -3037,21 +3072,21 @@ export function AtriaDiscoveryBar({
             onClick={() => setManageViewsOpen(true)}
             aria-label="Manage views"
             title="Manage views"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+            className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#475569] transition-colors hover:bg-black/[0.04] hover:text-[#0F172A]"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4 text-[#475569]" />
           </button>
         </div>
 
-        {/* Inline Search Input */}
-        <div className="relative flex h-9 min-w-[220px] max-w-[460px] flex-1 items-center rounded-lg border border-[#E2E6EF] bg-white px-3 transition-all focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
+        {/* Inline AI Search Input (flex-1 min-w-[200px] in single row) */}
+        <div className="relative flex h-9 min-w-[200px] max-w-[480px] flex-1 items-center rounded-[8px] border border-[#d6d6e0] bg-white px-3 transition-all focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/12">
           <Search className="mr-2 h-4 w-4 shrink-0 text-[#64748B]" />
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search for ads or advertisers with AI"
-            className="w-full bg-transparent text-[13px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+            className="w-full bg-transparent text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
           />
           {search.length > 0 && (
             <button
@@ -3059,9 +3094,9 @@ export function AtriaDiscoveryBar({
               data-no-glass="true"
               onClick={() => onSearchChange("")}
               aria-label="Clear search"
-              className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#94A3B8] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+              className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#94A3B8] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3.5 w-3.5 text-[#64748B]" />
             </button>
           )}
         </div>
@@ -3071,31 +3106,27 @@ export function AtriaDiscoveryBar({
           type="button"
           data-no-glass="true"
           onClick={() => setCantFindOpen(true)}
-          className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-[#334155] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
+          className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[8px] px-2 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-black/[0.04] hover:text-[#0027eb]"
         >
-          <HelpCircle className="h-4 w-4 text-[#64748B]" />
+          <HelpCircle className="h-4 w-4 text-[#475569]" />
           <span>Can&apos;t find an advertiser?</span>
         </button>
       </div>
 
       {/* ====================================================================
-          ROW 2: FILTER CONTROL ROW (Filters Hide/Show · Sort · Spend CPM)
+          ROW 3: FILTER CONTROL ROW (Filters Hide/Show · Sort · Spend $9 CPM)
          ==================================================================== */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pb-2.5 pt-3">
         {/* Filters Hide / Show */}
         <button
           type="button"
           data-no-glass="true"
           onClick={() => setFiltersExpanded((prev) => !prev)}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
-            filtersExpanded
-              ? "border-[#E2E6EF] bg-white text-[#0F172A] hover:border-[#CBD5E1]"
-              : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-          }`}
+          className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#d6d6e0]"
         >
-          <Filter className="h-3.5 w-3.5 text-[#475569]" />
+          <Filter className="h-3.5 w-3.5 text-[#64748B]" />
           <span className="font-semibold text-[#0F172A]">Filters</span>
-          <span className="text-[#64748B]">
+          <span className="text-[12.5px] text-[#64748B]">
             {filtersExpanded ? "Hide" : "Show"}
           </span>
           {activeFilterCount > 0 && (
@@ -3103,11 +3134,16 @@ export function AtriaDiscoveryBar({
               {activeFilterCount}
             </span>
           )}
-          {filtersExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5 text-[#475569]" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-[#475569]" />
-          )}
+          <svg
+            viewBox="0 0 8 5"
+            aria-hidden="true"
+            className={`ml-0.5 h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+              filtersExpanded ? "rotate-180" : ""
+            }`}
+            fill="currentColor"
+          >
+            <path d="M4 5L0 0h8L4 5z" />
+          </svg>
         </button>
 
         {/* Sort: <label> */}
@@ -3118,10 +3154,10 @@ export function AtriaDiscoveryBar({
           onClick={() =>
             setOpenPopover(openPopover === "sort" ? null : "sort")
           }
-          className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
+          className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition-colors ${
             openPopover === "sort"
-              ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
-              : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+              ? "border-[#d6d6e0] bg-[#ECECF4] text-[#0F172A]"
+              : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
           }`}
         >
           <ArrowUpDown className="h-3.5 w-3.5 text-[#64748B]" />
@@ -3129,7 +3165,16 @@ export function AtriaDiscoveryBar({
           <span className="font-semibold text-[#0F172A]">
             {currentSortMeta.label}
           </span>
-          <ChevronDown className="h-3.5 w-3.5 text-[#475569]" />
+          <svg
+            viewBox="0 0 8 5"
+            aria-hidden="true"
+            className={`ml-0.5 h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+              openPopover === "sort" ? "rotate-180" : ""
+            }`}
+            fill="currentColor"
+          >
+            <path d="M4 5L0 0h8L4 5z" />
+          </svg>
         </button>
 
         <FlakePopover
@@ -3151,10 +3196,10 @@ export function AtriaDiscoveryBar({
                     onSortChange(opt.value);
                     setOpenPopover(null);
                   }}
-                  className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[12.5px] transition-colors ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2 text-left text-[12.5px] transition-colors ${
                     active
-                      ? "bg-[#EFEFF2] font-semibold text-[#0F172A]"
-                      : "font-medium text-[#334155] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
+                      ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                      : "font-medium text-[#334155] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
                   }`}
                 >
                   <span className="flex flex-col">
@@ -3182,18 +3227,27 @@ export function AtriaDiscoveryBar({
           onClick={() =>
             setOpenPopover(openPopover === "spend_cpm" ? null : "spend_cpm")
           }
-          className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
+          className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition-colors ${
             openPopover === "spend_cpm"
-              ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
-              : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+              ? "border-[#d6d6e0] bg-[#ECECF4] text-[#0F172A]"
+              : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
           }`}
         >
-          <Coins className="h-3.5 w-3.5 text-[#64748B]" />
+          <CircleDollarSign className="h-3.5 w-3.5 text-[#64748B]" />
           <span className="text-[#64748B]">Spend:</span>
           <span className="font-mono-num font-semibold text-[#0F172A]">
             ${assumedCpm} CPM
           </span>
-          <ChevronDown className="h-3.5 w-3.5 text-[#475569]" />
+          <svg
+            viewBox="0 0 8 5"
+            aria-hidden="true"
+            className={`ml-0.5 h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+              openPopover === "spend_cpm" ? "rotate-180" : ""
+            }`}
+            fill="currentColor"
+          >
+            <path d="M4 5L0 0h8L4 5z" />
+          </svg>
         </button>
 
         <FlakePopover
@@ -3202,89 +3256,73 @@ export function AtriaDiscoveryBar({
           anchorRef={spendTriggerRef}
           align="left"
           width={344}
+          maxHeight={560}
         >
           <AtriaPopoverHeader
             title="Est. ad spend"
             subtitle="Estimated ad spend = Reach ÷ 1,000 × CPM"
             badge={
-              <span className="rounded border border-[#E2E6EF] bg-[#F3F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
-                EU/UK
+              <span className="inline-flex items-center gap-1 text-[12px] leading-none">
+                🇪🇺🇬🇧
               </span>
             }
           />
-          <div className="space-y-3.5 px-5 pb-5 pt-2.5">
-            {/* Assumed CPM Input + Reset */}
+          <div className="space-y-3 px-4 pb-4 pt-1.5">
+            {/* Assumed CPM Input + inline Reset (matches step_28.png) */}
             <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-[12px] font-medium text-[#475569]">
-                  Assumed CPM
-                </label>
+              <label className="mb-1.5 block text-[12.5px] font-medium text-[#0F172A]">
+                Assumed CPM
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-[144px] items-center rounded-[8px] border border-[#d6d6e0] bg-white px-3 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/12">
+                  <span className="mr-1.5 text-[13px] font-medium text-[#64748B]">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={250}
+                    step={1}
+                    value={assumedCpm}
+                    onChange={(e) => {
+                      const next = Number(e.target.value);
+                      if (Number.isFinite(next) && next > 0) {
+                        onAssumedCpmChange(next);
+                      }
+                    }}
+                    className="w-full bg-transparent font-mono-num text-[13.5px] font-semibold text-[#0F172A] outline-none"
+                  />
+                </div>
                 <button
                   type="button"
                   data-no-glass="true"
                   onClick={() => onAssumedCpmChange(DEFAULT_ASSUMED_CPM)}
-                  className="inline-flex items-center gap-1 text-[12px] font-medium text-[#475569] hover:text-[#0F172A]"
+                  className="text-[13px] font-medium text-[#94A3B8] transition-colors hover:text-[#0F172A]"
                 >
-                  <RotateCcw className="h-3 w-3 text-[#64748B]" />
                   Reset
                 </button>
               </div>
-              <div className="flex h-10 items-center rounded-xl border border-[#D8DDE6] bg-white px-3 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/15">
-                <span className="mr-1.5 text-xs font-semibold text-[#64748B]">
-                  $
-                </span>
-                <input
-                  type="number"
-                  min={1}
-                  max={250}
-                  step={1}
-                  value={assumedCpm}
-                  onChange={(e) => {
-                    const next = Number(e.target.value);
-                    if (Number.isFinite(next) && next > 0) {
-                      onAssumedCpmChange(next);
-                    }
-                  }}
-                  className="w-full bg-transparent font-mono-num text-[13.5px] font-semibold text-[#0F172A] outline-none"
-                />
-                <span className="ml-1.5 shrink-0 text-[11.5px] font-medium text-[#64748B]">
-                  per 1K reach
-                </span>
-              </div>
             </div>
 
-            {/* Crisp Visual Sample Card */}
-            <div className="rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 rounded-lg border border-[#E2E6EF] bg-white px-2.5 py-2 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#94A3B8]">
-                    EU/UK Reach
-                  </p>
-                  <p className="mt-0.5 font-mono-num text-[14px] font-bold text-[#0F172A]">
-                    199.8K
-                  </p>
-                </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-[#64748B]" />
-                <div className="flex-1 rounded-lg border border-[#D8DDE6] bg-white px-2.5 py-2 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#64748B]">
-                    Est. spend
-                  </p>
-                  <p className="mt-0.5 font-mono-num text-[14px] font-bold text-[#0F172A]">
-                    ${sampleEstSpendK}K
-                  </p>
-                </div>
-              </div>
+            {/* Ripped Atria Assumed CPM Ad-Card Preview Graphic */}
+            <div className="overflow-hidden rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/atria-assets/inspo/assumed-cpm-preview.png"
+                alt="Estimated ad spend card preview"
+                className="block w-full object-cover"
+              />
             </div>
 
-            {/* Explanation */}
-            <div className="space-y-1">
-              <p className="text-[12px] font-semibold text-[#0F172A]">
+            {/* Explanation (exact Atria copy from step_28.png) */}
+            <div className="space-y-1.5">
+              <p className="text-[12.5px] font-semibold leading-snug text-[#0F172A]">
                 Every ad card with reach data shows it, at the CPM above.
               </p>
-              <p className="text-[11.5px] leading-relaxed text-[#64748B]">
-                Adjust your assumed CPM to match your niche or market. Spend
-                estimates and the Ad spend filter recalculate instantly across
-                all EU &amp; UK Meta and TikTok ads.
+              <p className="text-[12px] leading-relaxed text-[#64748B]">
+                Ad libraries publish reach, never spend, so the figure is an
+                estimate. A card without one is an ad with no published reach —
+                only Meta&apos;s and TikTok&apos;s EU and UK ads report it.
               </p>
             </div>
           </div>
@@ -3304,14 +3342,14 @@ export function AtriaDiscoveryBar({
       </div>
 
       {/* ====================================================================
-          ROW 3: EXPANDED 3-LINE COMPACT FILTER PANEL (ALL 22 FILTERS)
+          ROW 4: EXPANDED 3-LINE COMPACT FILTER PANEL (ALL 22 FILTERS)
          ==================================================================== */}
       {filtersExpanded && (
-        <div className="space-y-2 rounded-xl border border-[#ECEFF5] bg-[#F7F8FB] px-3.5 py-2.5">
+        <div className="space-y-2 rounded-[10px] bg-[#f5f5fa] px-4 py-3">
           {/* LINE 1: LIFECYCLE (3) + TARGETING (3) SIDE-BY-SIDE */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="w-[74px] shrink-0 text-[11.5px] font-medium text-[#64748B]">
+              <span className="w-[74px] shrink-0 text-[12.5px] font-medium text-[#64748B]">
                 Lifecycle
               </span>
 
@@ -3355,7 +3393,7 @@ export function AtriaDiscoveryBar({
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11.5px] font-medium text-[#64748B]">
+              <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
                 Targeting
               </span>
 
@@ -3408,7 +3446,7 @@ export function AtriaDiscoveryBar({
 
           {/* LINE 2: CREATIVE (11) WITH SUBTLE HAIRLINE DIVIDERS */}
           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-0">
-            <span className="w-[80px] shrink-0 text-[11.5px] font-medium text-[#64748B] sm:pt-1">
+            <span className="w-[80px] shrink-0 text-[12.5px] font-medium text-[#64748B] sm:pt-1">
               Creative
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -3579,7 +3617,7 @@ export function AtriaDiscoveryBar({
 
           {/* LINE 3: PERFORMANCE (5) */}
           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-0">
-            <span className="w-[80px] shrink-0 text-[11.5px] font-medium text-[#64748B]">
+            <span className="w-[80px] shrink-0 text-[12.5px] font-medium text-[#64748B]">
               Performance
             </span>
             <div className="flex flex-wrap items-center gap-1.5">

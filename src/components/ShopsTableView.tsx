@@ -4,28 +4,23 @@ import React, { useDeferredValue, useEffect, useId, useMemo, useRef, useState } 
 import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
-  Calendar,
   Check,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
   ExternalLink,
   Globe,
   Heart,
   HelpCircle,
+  Info,
   ListFilter,
   Loader2,
   Package,
-  Play,
   Plus,
   Search,
   Settings,
-  Users,
   X,
 } from "lucide-react";
 import type {
   Ad,
-  AdsTimelinePoint,
   Board,
   Brand,
   TrafficPoint,
@@ -516,30 +511,6 @@ function hasPositivePrice(price?: string): boolean {
   const normalized = price.replace(/[^0-9.,]/g, "").replace(",", ".");
   const num = parseFloat(normalized);
   return Number.isFinite(num) && num > 0;
-}
-
-function formatFoundedAge(iso?: string): { date: string; age: string } | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  const monthsDiff = Math.max(
-    1,
-    Math.round((Date.UTC(2026, 10, 23) - d.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
-  );
-  const years = Math.floor(monthsDiff / 12);
-  const remMonths = monthsDiff % 12;
-  const age =
-    years >= 2
-      ? `${years} years`
-      : years === 1
-        ? remMonths > 0
-          ? `1 year ${remMonths}m`
-          : "1 year"
-        : `${monthsDiff} months`;
-  return { date: `${mm}/${dd}/${yyyy}`, age };
 }
 
 function AreaSparkline({
@@ -1195,362 +1166,360 @@ export const ShopsTableView = React.memo(function ShopsTableView({
           : "🇺🇸";
 
   return (
-    <div className="animate-view-in space-y-2.5">
+    <div className="animate-view-in space-y-4">
       {/* =====================================================================
-          ROW 1: VIEW TABS + SEARCH BAR + "Can't find a brand?" (SINGLE ROW)
+          WHITE ATRIA STICKY HEADER: ROW 1 TABS · ROW 2 SEARCH · ROW 3 TOOLBAR · ROW 4 FILTER DRAWER
          ===================================================================== */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3 sm:-mx-6 sm:px-6 lg:-mx-7 lg:-mt-6">
+        {/* ROW 1: VIEW TABS + SEARCH BAR + "Can't find a brand?" (SINGLE ROW) */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#ebebf3] pb-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => {
+                setActiveViewId("all");
+                resetAllBrandFilters();
+                setSortBy("recommended");
+              }}
+              className={`inline-flex h-9 items-center justify-center rounded-[8px] px-3.5 text-[13.5px] font-semibold transition-colors ${
+                activeViewId === "all"
+                  ? "bg-[#0027eb] text-white"
+                  : "bg-transparent text-[#0F172A] hover:bg-black/[0.04]"
+              }`}
+            >
+              All brands
+            </button>
+
+            {customViews.map((cv) => {
+              const isActive = activeViewId === cv.id;
+              return (
+                <button
+                  key={cv.id}
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setActiveViewId(cv.id);
+                    applyFilterSnapshot(cv.filters, cv.sortBy);
+                  }}
+                  className={`inline-flex h-9 max-w-[180px] items-center justify-center truncate rounded-[8px] px-3 text-[13.5px] font-semibold transition-colors ${
+                    isActive
+                      ? "bg-[#0027eb] text-white"
+                      : "bg-transparent text-[#0F172A] hover:bg-black/[0.04]"
+                  }`}
+                >
+                  <span className="truncate">{cv.name}</span>
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setCreateViewOpen(true)}
+              className="ml-0.5 inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-dashed border-[#d6d6e0] bg-white px-3.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
+            >
+              <Plus className="h-3.5 w-3.5 text-[#475569]" />
+              <span>New view</span>
+            </button>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setManageViewsOpen(true)}
+              aria-label="Manage views"
+              title="Manage views"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#475569] transition-colors hover:bg-black/[0.04] hover:text-[#0F172A]"
+            >
+              <Settings className="h-4 w-4 text-[#475569]" />
+            </button>
+          </div>
+
+          <div className="relative flex h-9 min-w-[200px] max-w-[480px] flex-1 items-center rounded-[8px] border border-[#d6d6e0] bg-white px-3 transition-all focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/12">
+            <Search className="mr-2 h-4 w-4 shrink-0 text-[#64748B]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search brands"
+              className="w-full bg-transparent text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#94A3B8] transition-colors hover:bg-[#f5f5fa] hover:text-[#0F172A]"
+              >
+                <X className="h-3.5 w-3.5 text-[#64748B]" />
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             data-no-glass="true"
             onClick={() => {
-              setActiveViewId("all");
-              resetAllBrandFilters();
-              setSortBy("recommended");
+              setError(null);
+              setRequestModalOpen(true);
             }}
-            className={`inline-flex h-8 min-w-[78px] items-center justify-center rounded-md px-3 text-[13px] font-semibold transition-colors ${
-              activeViewId === "all"
-                ? "bg-[#0027eb] text-white"
-                : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
-            }`}
+            className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[8px] px-2 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-black/[0.04] hover:text-[#0027eb]"
           >
-            All brands
+            <HelpCircle className="h-4 w-4 text-[#475569]" />
+            <span>Can&apos;t find a brand?</span>
           </button>
+        </div>
 
-          {customViews.map((cv) => {
-            const isActive = activeViewId === cv.id;
-            return (
+        {/* ROW 3: FILTER CONTROL ROW (Filters Hide/Show + Sort + Clear all) */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 pt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filters Hide / Show button */}
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setFiltersPanelOpen((v) => !v)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#d6d6e0]"
+            >
+              <ListFilter className="h-3.5 w-3.5 text-[#64748B]" />
+              <span className="font-semibold text-[#0F172A]">Filters</span>
+              <span className="text-[12.5px] text-[#64748B]">
+                {filtersPanelOpen ? "Hide" : "Show"}
+              </span>
+              {activeFilterCount > 0 && (
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0027eb] px-1 font-mono-num text-[10px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+              <svg
+                viewBox="0 0 8 5"
+                aria-hidden="true"
+                className={`ml-0.5 h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+                  filtersPanelOpen ? "rotate-180" : ""
+                }`}
+                fill="currentColor"
+              >
+                <path d="M4 5L0 0h8L4 5z" />
+              </svg>
+            </button>
+
+            {/* Sort dropdown button + Atria 8-option popover */}
+            <button
+              ref={sortTriggerRef}
+              type="button"
+              data-no-glass="true"
+              onClick={() => togglePopover("sort")}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition-colors ${
+                openPopover === "sort"
+                  ? "border-[#d6d6e0] bg-[#ECECF4] text-[#0F172A]"
+                  : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+              }`}
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 text-[#64748B]" />
+              <span className="text-[#64748B]">Sort:</span>
+              <span className="font-semibold text-[#0F172A]">{activeSortLabel}</span>
+              <svg
+                viewBox="0 0 8 5"
+                aria-hidden="true"
+                className={`ml-0.5 h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+                  openPopover === "sort" ? "rotate-180" : ""
+                }`}
+                fill="currentColor"
+              >
+                <path d="M4 5L0 0h8L4 5z" />
+              </svg>
+            </button>
+
+            <FlakePopover
+              open={openPopover === "sort"}
+              onOpenChange={(o) => setOpenPopover(o ? "sort" : null)}
+              anchorRef={sortTriggerRef}
+              align="left"
+              width={255}
+              maxHeight={360}
+            >
+              <div className="p-1.5" role="listbox" aria-label="Sort brands">
+                {BRAND_SORT_OPTIONS.map((opt) => {
+                  const active = sortBy === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      data-no-glass="true"
+                      onClick={() => {
+                        setSortBy(opt.value);
+                        setOpenPopover(null);
+                      }}
+                      className={`flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] transition-colors ${
+                        active
+                          ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                          : "font-medium text-[#334155] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
+                      }`}
+                    >
+                      <span className="truncate">{opt.label}</span>
+                      {active && <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </FlakePopover>
+
+            {hasAnyBrandFilter && (
               <button
-                key={cv.id}
                 type="button"
                 data-no-glass="true"
-                onClick={() => {
-                  setActiveViewId(cv.id);
-                  applyFilterSnapshot(cv.filters, cv.sortBy);
-                }}
-                className={`inline-flex h-8 max-w-[180px] items-center justify-center truncate rounded-md px-2.5 text-[13px] font-semibold transition-colors ${
-                  isActive
-                    ? "bg-[#0027eb] text-white"
-                    : "bg-transparent text-[#0F172A] hover:bg-[#F3F5F9]"
-                }`}
+                onClick={resetAllBrandFilters}
+                className="inline-flex h-8 items-center gap-1 rounded-[8px] px-2 text-[12.5px] font-medium text-[#475569] transition-colors hover:bg-[#f5f5fa] hover:text-[#0F172A]"
               >
-                <span className="truncate">{cv.name}</span>
+                Clear all
               </button>
-            );
-          })}
-
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => setCreateViewOpen(true)}
-            className="ml-1 inline-flex h-8 items-center gap-1 rounded-md border border-[#E2E6EF] bg-white px-2.5 text-[12.5px] font-medium text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-          >
-            <Plus className="h-3.5 w-3.5 text-[#64748B]" />
-            New view
-          </button>
-
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => setManageViewsOpen(true)}
-            aria-label="Manage views"
-            title="Manage views"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Inline Search Input */}
-        <div className="relative h-9 min-w-[220px] max-w-[460px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search brands"
-            className="h-9 w-full rounded-lg border border-[#E2E6EF] bg-white pl-9 pr-8 text-[13px] text-[#0F172A] outline-none transition-all placeholder:text-[#94A3B8] focus:border-[#0027eb] focus:ring-2 focus:ring-[#0027eb]/15"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setSearchQuery("")}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[#94A3B8] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A]"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => {
-            setError(null);
-            setRequestModalOpen(true);
-          }}
-          className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-[#334155] transition-colors hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-        >
-          <HelpCircle className="h-4 w-4 text-[#64748B]" />
-          <span>Can&apos;t find a brand?</span>
-        </button>
-      </div>
-
-      {/* =====================================================================
-          ROW 2: FILTER CONTROL ROW (Filters Hide/Show + Sort + Clear all)
-         ===================================================================== */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Filters Hide / Show button */}
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => setFiltersPanelOpen((v) => !v)}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
-              filtersPanelOpen || activeFilterCount > 0
-                ? "border-[#CBD5E1] bg-white text-[#0F172A]"
-                : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
-            }`}
-          >
-            <ListFilter className="h-3.5 w-3.5 text-[#475569]" />
-            <span>Filters</span>
-            <span className="text-[#64748B]">
-              {filtersPanelOpen ? "Hide" : "Show"}
-            </span>
-            {activeFilterCount > 0 && (
-              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0027eb] px-1 font-mono-num text-[10px] font-bold text-white">
-                {activeFilterCount}
-              </span>
             )}
-            {filtersPanelOpen ? (
-              <ChevronUp className="h-3.5 w-3.5 text-[#64748B]" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5 text-[#64748B]" />
-            )}
-          </button>
-
-          {/* Sort dropdown button + Atria 8-option popover */}
-          <button
-            ref={sortTriggerRef}
-            type="button"
-            data-no-glass="true"
-            onClick={() => togglePopover("sort")}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-medium transition-colors ${
-              openPopover === "sort" || sortBy !== "recommended"
-                ? "border-[#CBD5E1] bg-white text-[#0F172A]"
-                : "border-[#E2E6EF] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
-            }`}
-          >
-            <ArrowUpDown className="h-3.5 w-3.5 text-[#64748B]" />
-            <span className="text-[#64748B]">Sort:</span>
-            <span className="font-semibold text-[#0F172A]">{activeSortLabel}</span>
-            <ChevronDown
-              className={`h-3.5 w-3.5 text-[#64748B] transition-transform duration-150 ${
-                openPopover === "sort" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          <FlakePopover
-            open={openPopover === "sort"}
-            onOpenChange={(o) => setOpenPopover(o ? "sort" : null)}
-            anchorRef={sortTriggerRef}
-            align="left"
-            width={255}
-            maxHeight={360}
-          >
-            <div className="p-1.5" role="listbox" aria-label="Sort brands">
-              {BRAND_SORT_OPTIONS.map((opt) => {
-                const active = sortBy === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    data-no-glass="true"
-                    onClick={() => {
-                      setSortBy(opt.value);
-                      setOpenPopover(null);
-                    }}
-                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors ${
-                      active
-                        ? "bg-[#EFEFF2] font-semibold text-[#0F172A]"
-                        : "font-medium text-[#334155] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-                    }`}
-                  >
-                    <span className="truncate">{opt.label}</span>
-                    {active && <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />}
-                  </button>
-                );
-              })}
-            </div>
-          </FlakePopover>
-
-          {hasAnyBrandFilter && (
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={resetAllBrandFilters}
-              className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[12px] font-medium text-[#0027eb] transition-colors hover:bg-[#EEF2FF] hover:text-[#001fc2]"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
-
-        <span className="font-mono-num text-[12px] font-medium text-[#64748B]">
-          {filteredBrands.length.toLocaleString("en-US")}{" "}
-          {filteredBrands.length === 1 ? "brand" : "brands"}
-        </span>
-      </div>
-
-      {/* =====================================================================
-          ROW 4: EXPANDED 5-GROUP FILTER PANEL (10 EXACT BRAND FILTER PILLS)
-         ===================================================================== */}
-      {filtersPanelOpen && (
-        <div className="space-y-2.5 rounded-xl border border-[#ECEFF5] bg-[#F7F8FB] px-4 py-3">
-          {/* Group Row A: Brand (2) · Domain (3) */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {/* Group 1: Brand */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-[#64748B]">
-                Brand
-              </span>
-              <AtriaFilterPill
-                label="Industry"
-                activeLabel={industryActiveLabel}
-                active={selectedIndustries.length > 0}
-                open={openPopover === "industry"}
-                onToggle={() => togglePopover("industry")}
-                triggerRef={industryTriggerRef}
-              />
-              <AtriaFilterPill
-                label="Socials"
-                activeLabel={socialsActiveLabel}
-                active={selectedSocials.length > 0}
-                open={openPopover === "socials"}
-                onToggle={() => togglePopover("socials")}
-                triggerRef={socialsTriggerRef}
-              />
-            </div>
-
-            <span className="hidden h-4 w-px bg-[#E2E6EF] md:inline-block" />
-
-            {/* Group 2: Domain */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-[#64748B]">
-                Domain
-              </span>
-              <AtriaFilterPill
-                label="Traffic"
-                activeLabel={trafficActiveLabel}
-                active={trafficRange.min !== null || trafficRange.max !== null}
-                open={openPopover === "traffic"}
-                onToggle={() => togglePopover("traffic")}
-                triggerRef={trafficTriggerRef}
-              />
-              <AtriaFilterPill
-                label="Traffic growth"
-                activeLabel={trafficGrowthActiveLabel}
-                active={
-                  trafficGrowth.direction !== null ||
-                  trafficGrowth.minPct !== null
-                }
-                open={openPopover === "traffic_growth"}
-                onToggle={() => togglePopover("traffic_growth")}
-                triggerRef={trafficGrowthTriggerRef}
-              />
-              <AtriaFilterPill
-                label="Visitor country"
-                activeLabel={countryActiveLabel}
-                active={selectedCountries.length > 0}
-                open={openPopover === "visitor_country"}
-                onToggle={() => togglePopover("visitor_country")}
-                triggerRef={countryTriggerRef}
-              />
-            </div>
           </div>
 
-          {/* Group Row B: Ads (2) · Shop (1) · Products (2) */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {/* Group 3: Ads */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-[#64748B]">
-                Ads
-              </span>
-              <AtriaFilterPill
-                label="Active ads"
-                activeLabel={activeAdsActiveLabel}
-                active={activeAdsRange.min !== null || activeAdsRange.max !== null}
-                open={openPopover === "active_ads"}
-                onToggle={() => togglePopover("active_ads")}
-                triggerRef={activeAdsTriggerRef}
-              />
-              <AtriaFilterPill
-                label="Ads launched"
-                activeLabel={adsLaunchedActiveLabel}
-                active={
-                  adsLaunchedRange.min !== null || adsLaunchedRange.max !== null
-                }
-                open={openPopover === "ads_launched"}
-                onToggle={() => togglePopover("ads_launched")}
-                triggerRef={adsLaunchedTriggerRef}
-              />
+          <span className="font-mono-num text-[12px] font-medium text-[#64748B]">
+            {filteredBrands.length.toLocaleString("en-US")}{" "}
+            {filteredBrands.length === 1 ? "brand" : "brands"}
+          </span>
+        </div>
+
+        {/* ROW 4: EXPANDED 5-GROUP FILTER PANEL (10 EXACT BRAND FILTER PILLS) */}
+        {filtersPanelOpen && (
+          <div className="space-y-2 rounded-[10px] bg-[#f5f5fa] px-4 py-3">
+            {/* Group Row A: Brand (2) · Domain (3) */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {/* Group 1: Brand */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                  Brand
+                </span>
+                <AtriaFilterPill
+                  label="Industry"
+                  activeLabel={industryActiveLabel}
+                  active={selectedIndustries.length > 0}
+                  open={openPopover === "industry"}
+                  onToggle={() => togglePopover("industry")}
+                  triggerRef={industryTriggerRef}
+                />
+                <AtriaFilterPill
+                  label="Socials"
+                  activeLabel={socialsActiveLabel}
+                  active={selectedSocials.length > 0}
+                  open={openPopover === "socials"}
+                  onToggle={() => togglePopover("socials")}
+                  triggerRef={socialsTriggerRef}
+                />
+              </div>
+
+              {/* Group 2: Domain */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                  Domain
+                </span>
+                <AtriaFilterPill
+                  label="Traffic"
+                  activeLabel={trafficActiveLabel}
+                  active={trafficRange.min !== null || trafficRange.max !== null}
+                  open={openPopover === "traffic"}
+                  onToggle={() => togglePopover("traffic")}
+                  triggerRef={trafficTriggerRef}
+                />
+                <AtriaFilterPill
+                  label="Traffic growth"
+                  activeLabel={trafficGrowthActiveLabel}
+                  active={
+                    trafficGrowth.direction !== null ||
+                    trafficGrowth.minPct !== null
+                  }
+                  open={openPopover === "traffic_growth"}
+                  onToggle={() => togglePopover("traffic_growth")}
+                  triggerRef={trafficGrowthTriggerRef}
+                />
+                <AtriaFilterPill
+                  label="Visitor country"
+                  activeLabel={countryActiveLabel}
+                  active={selectedCountries.length > 0}
+                  open={openPopover === "visitor_country"}
+                  onToggle={() => togglePopover("visitor_country")}
+                  triggerRef={countryTriggerRef}
+                />
+              </div>
             </div>
 
-            <span className="hidden h-4 w-px bg-[#E2E6EF] md:inline-block" />
+            {/* Group Row B: Ads (2) · Shop (1) · Products (2) */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {/* Group 3: Ads */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                  Ads
+                </span>
+                <AtriaFilterPill
+                  label="Active ads"
+                  activeLabel={activeAdsActiveLabel}
+                  active={activeAdsRange.min !== null || activeAdsRange.max !== null}
+                  open={openPopover === "active_ads"}
+                  onToggle={() => togglePopover("active_ads")}
+                  triggerRef={activeAdsTriggerRef}
+                />
+                <AtriaFilterPill
+                  label="Ads launched"
+                  activeLabel={adsLaunchedActiveLabel}
+                  active={
+                    adsLaunchedRange.min !== null || adsLaunchedRange.max !== null
+                  }
+                  open={openPopover === "ads_launched"}
+                  onToggle={() => togglePopover("ads_launched")}
+                  triggerRef={adsLaunchedTriggerRef}
+                />
+              </div>
 
-            {/* Group 4: Shop */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-[#64748B]">
-                Shop
-              </span>
-              <AtriaFilterPill
-                label="Technology"
-                activeLabel={techActiveLabel}
-                active={selectedTechs.length > 0}
-                open={openPopover === "technology"}
-                onToggle={() => togglePopover("technology")}
-                triggerRef={techTriggerRef}
-              />
-            </div>
+              {/* Group 4: Shop */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                  Shop
+                </span>
+                <AtriaFilterPill
+                  label="Technology"
+                  activeLabel={techActiveLabel}
+                  active={selectedTechs.length > 0}
+                  open={openPopover === "technology"}
+                  onToggle={() => togglePopover("technology")}
+                  triggerRef={techTriggerRef}
+                />
+              </div>
 
-            <span className="hidden h-4 w-px bg-[#E2E6EF] md:inline-block" />
-
-            {/* Group 5: Products */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-[#64748B]">
-                Products
-              </span>
-              <AtriaFilterPill
-                label="Product count"
-                activeLabel={productCountActiveLabel}
-                active={
-                  productCountRange.min !== null ||
-                  productCountRange.max !== null
-                }
-                open={openPopover === "product_count"}
-                onToggle={() => togglePopover("product_count")}
-                triggerRef={productCountTriggerRef}
-              />
-              <AtriaFilterPill
-                label="New launches"
-                activeLabel={newLaunchesActiveLabel}
-                active={
-                  newLaunchesRange.min !== null || newLaunchesRange.max !== null
-                }
-                open={openPopover === "new_launches"}
-                onToggle={() => togglePopover("new_launches")}
-                triggerRef={newLaunchesTriggerRef}
-              />
+              {/* Group 5: Products */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                  Products
+                </span>
+                <AtriaFilterPill
+                  label="Product count"
+                  activeLabel={productCountActiveLabel}
+                  active={
+                    productCountRange.min !== null ||
+                    productCountRange.max !== null
+                  }
+                  open={openPopover === "product_count"}
+                  onToggle={() => togglePopover("product_count")}
+                  triggerRef={productCountTriggerRef}
+                />
+                <AtriaFilterPill
+                  label="New launches"
+                  activeLabel={newLaunchesActiveLabel}
+                  active={
+                    newLaunchesRange.min !== null || newLaunchesRange.max !== null
+                  }
+                  open={openPopover === "new_launches"}
+                  onToggle={() => togglePopover("new_launches")}
+                  triggerRef={newLaunchesTriggerRef}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* =====================================================================
           ALL 10 BRAND FILTER POPOVERS
@@ -2060,7 +2029,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                       className="inline-flex items-center gap-1 font-medium text-[#0027eb] hover:text-[#001fc2]"
                     >
                       <span>Open Meta Ad Library</span>
-                      <ExternalLink className="h-3 w-3" />
+                      <ExternalLink className="h-3 w-3 text-[#475569]" />
                     </a>
                   </div>
 
@@ -2090,7 +2059,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
 
                 {/* Footer Note */}
                 <div className="flex items-center gap-2 text-[12px] text-[#475569]">
-                  <Heart className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />
+                  <Heart className="h-3.5 w-3.5 shrink-0 fill-[#475569] text-[#475569]" />
                   <span>
                     You&apos;ll follow this brand — that&apos;s what keeps its
                     ads up to date.
@@ -2098,23 +2067,24 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                 </div>
 
                 {/* Footer Actions */}
-                <div className="flex items-center justify-end gap-2 border-t border-[#F1F4F9] pt-3">
+                <div className="flex items-center justify-end gap-2 border-t border-[#ebebf3] pt-3">
                   <button
                     type="button"
                     data-no-glass="true"
                     disabled={loading}
                     onClick={() => setRequestModalOpen(false)}
-                    className="rounded-lg border border-[#E2E6EF] bg-white px-4 py-1.5 text-[12.5px] font-medium text-[#334155] transition-colors hover:bg-[#F7F8FB] hover:text-[#0F172A] disabled:opacity-40"
+                    className="rounded-[8px] border border-[#d6d6e0] bg-white px-4 py-1.5 text-[12.5px] font-medium text-[#334155] transition-colors hover:bg-[#f5f5fa] hover:text-[#0F172A] disabled:opacity-40"
                   >
                     Cancel
                   </button>
                   <button
                     id="brand-magic-submit"
                     type="submit"
+                    data-no-glass="true"
                     disabled={loading || !lookupInput.trim()}
-                    className="adtrack-btn-primary inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-[12.5px] font-semibold text-white transition-colors disabled:opacity-45"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#001fc2] disabled:opacity-45"
                   >
-                    {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />}
                     {loading ? "Scraping..." : "Request & follow"}
                   </button>
                 </div>
@@ -2329,22 +2299,28 @@ export const ShopsTableView = React.memo(function ShopsTableView({
       )}
 
       {/* =====================================================================
-          DESKTOP TRENDTRACK 6-COLUMN TABLE (xl+) — only mounted at xl+
+          DESKTOP ATRIA 8-COLUMN BRANDS TABLE (xl+) — ALL REAL SUPABASE BRANDS
          ===================================================================== */}
       {isDesktopTable && (
-      <div className="adtrack-card hidden overflow-visible rounded-2xl xl:block">
-        <div className="grid grid-cols-[2.35fr_1.45fr_0.9fr_1.15fr_1.15fr_1.45fr] items-center gap-4 border-b border-[#EFF2F6] bg-[#FAFBFD] px-5 py-3 text-[12px] font-semibold text-[#0F172A]">
+      <div className="hidden overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white xl:block">
+        <div className="grid grid-cols-[2.1fr_1.15fr_1.55fr_1.35fr_0.85fr_1fr_0.75fr_0.75fr] items-center gap-3 border-b border-[#ebebf3] bg-white px-5 py-3 text-[13px] font-semibold text-[#0F172A]">
           <span>Brand</span>
-          <span>Best-Selling Products</span>
-          <span className="text-center">Category</span>
-          <span>Monthly Visits</span>
-          <span>Meta Ads</span>
-          <span>Ads</span>
+          <span>Industry</span>
+          <span className="inline-flex items-center gap-1">
+            Products
+            <Info className="h-3.5 w-3.5 text-[#94A3B8]" />
+          </span>
+          <span>Monthly traffic</span>
+          <span>Advertisers</span>
+          <span>New ads (30D)</span>
+          <span className="text-right">Active ads</span>
+          <span className="text-right">Total ads</span>
         </div>
 
-        <div className="divide-y divide-[#F1F4F9]">
+        <div className="divide-y divide-[#ebebf3]">
           {filteredBrands.map((brand) => {
             const brandAds = adsByBrand.get(brand.id) || [];
+            const metrics = brandMetrics.get(brand.id);
             const domain = brand.website_url
               .replace(/^https?:\/\//, "")
               .replace(/^www\./, "")
@@ -2352,13 +2328,17 @@ export const ShopsTableView = React.memo(function ShopsTableView({
             const products = (brand.top_products || []).filter((p) =>
               hasPositivePrice(p.price)
             );
+            const totalProductCount = brand.products_count ?? products.length;
+            const remainingProducts = Math.max(0, totalProductCount - 2);
             const growthPositive = (brand.traffic_growth_pct ?? 0) >= 0;
             const marketFlag = getFlag(brand);
-            const homepageShot = getHomepageScreenshotUrl(
-              brand.website_url,
-              brand.storefront_image_url
-            );
-            const founded = formatFoundedAge(brand.founded_date);
+            const brandThumb =
+              brand.logo_url ||
+              getHomepageScreenshotUrl(
+                brand.website_url,
+                brand.storefront_image_url
+              ) ||
+              brand.storefront_image_url;
 
             const visitSeries =
               brand.traffic_history && brand.traffic_history.length >= 2
@@ -2371,26 +2351,14 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                     brand.monthly_visits || 10000,
                   ];
 
-            const adsSeries =
-              brand.ads_timeline && brand.ads_timeline.length >= 2
-                ? brand.ads_timeline.slice(-8).map((p: AdsTimelinePoint) => p.count)
-                : [
-                    Math.max(1, Math.round((brand.active_ads_count || 10) * 0.55)),
-                    Math.max(1, Math.round((brand.active_ads_count || 10) * 0.7)),
-                    Math.max(1, Math.round((brand.active_ads_count || 10) * 0.62)),
-                    Math.max(1, Math.round((brand.active_ads_count || 10) * 0.85)),
-                    brand.active_ads_count || brandAds.length || 1,
-                  ];
-
-            const visitorFlags =
-              brand.visitor_countries && brand.visitor_countries.length > 0
-                ? brand.visitor_countries.slice(0, 3).map((c) => c.flag)
-                : [marketFlag];
-
-            const targetedFlags =
-              brand.targeted_countries && brand.targeted_countries.length > 0
-                ? brand.targeted_countries.slice(0, 3).map((c) => c.flag)
-                : [marketFlag];
+            const extraMarketsCount = Math.max(
+              0,
+              (brand.visitor_countries?.length || brand.targeted_countries?.length || 1) - 1
+            );
+            const newAds30d = metrics?.launchedByDays[30] ?? 0;
+            const newAdsGrowth30d = metrics?.newAdsGrowth30d ?? 0;
+            const activeAdsCount = metrics?.activeAds ?? (brand.active_ads_count ?? brandAds.length);
+            const totalAdsCount = metrics?.totalAds ?? Math.max(activeAdsCount, brandAds.length);
 
             return (
               <div
@@ -2404,16 +2372,16 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                     onOpenShop(brand.id);
                   }
                 }}
-                className="cv-shop-row group relative grid cursor-pointer grid-cols-[2.35fr_1.45fr_0.9fr_1.15fr_1.15fr_1.45fr] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F5F7FA]"
+                className="cv-shop-row group relative grid cursor-pointer grid-cols-[2.1fr_1.15fr_1.55fr_1.35fr_0.85fr_1fr_0.75fr_0.75fr] items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#f5f5fa]/65"
               >
-                {/* 1. SHOP INFOS (Wide Homepage Screenshot + Name + Domain + Founded Date) */}
-                <div className="flex min-w-0 items-center gap-3.5">
-                  <div className="relative h-[68px] w-[108px] shrink-0 overflow-hidden rounded-xl border border-[#E2E6EF] bg-[#F3F5F9] text-left shadow-2xs">
-                    {homepageShot || brand.storefront_image_url ? (
+                {/* 1. BRAND (40x40 rounded-[8px] logo + Bold Name + Shopify Bag + Domain + +N badge) */}
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa]">
+                    {brandThumb ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
-                        src={homepageShot || brand.storefront_image_url || ""}
-                        alt={`${brand.name} homepage`}
+                        src={brandThumb}
+                        alt={brand.name}
                         loading="lazy"
                         decoding="async"
                         onError={(e) => {
@@ -2425,182 +2393,151 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                             img.src = brand.storefront_image_url;
                           }
                         }}
-                        className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-[#F7F8FB] font-display text-xs font-bold text-[#334155]">
+                      <span
+                        className="flex h-full w-full items-center justify-center font-display text-[12px] font-bold text-white"
+                        style={{ backgroundColor: brand.avatar_color || "#0F172A" }}
+                      >
                         {brand.avatar_initials}
-                      </div>
+                      </span>
                     )}
-                    <span
-                      title={brand.market}
-                      className="absolute bottom-1 right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-white text-[11px] shadow-xs ring-1 ring-black/10"
-                    >
-                      {marketFlag}
-                    </span>
                   </div>
 
-                  <div className="min-w-0 flex-1 space-y-1">
-                    {/* Line 1: Brand Name */}
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="truncate font-display text-[14.5px] font-bold text-[#0F172A] transition-colors group-hover:text-[#0027eb]">
+                      <span className="truncate font-sans text-[13.5px] font-bold text-[#0F172A] group-hover:underline">
                         {brand.name}
                       </span>
-                    </div>
-
-                    {/* Line 2: Globe + Domain + Shopify Icon */}
-                    <div className="flex max-w-full items-center gap-1.5 text-[12px] text-[#64748B]">
-                      <Globe className="h-3.5 w-3.5 shrink-0 text-[#94A3B8]" />
-                      <span className="truncate font-mono-num">{domain}</span>
                       {brand.is_shopify && (
                         <ShopifyBagIcon className="h-3.5 w-3.5 shrink-0" />
                       )}
                     </div>
 
-                    {/* Line 3: Founded Date & Age */}
-                    <div className="flex max-w-full items-center gap-1.5 text-[11.5px] text-[#64748B]">
-                      <Calendar className="h-3 w-3 shrink-0 text-[#94A3B8]" />
-                      {founded ? (
-                        <span className="truncate font-mono-num">
-                          <span className="text-[#475569]">{founded.date}</span>{" "}
-                          <span className="text-[#94A3B8]">{founded.age}</span>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-[#64748B]">
+                      <span className="truncate">{domain}</span>
+                      {extraMarketsCount > 0 ? (
+                        <span className="shrink-0 rounded bg-[#f5f5fa] px-1.5 py-0.2 font-mono-num text-[11px] font-medium text-[#64748B]">
+                          +{extraMarketsCount}
                         </span>
                       ) : (
-                        <span className="truncate text-[#94A3B8]">
-                          {brand.shopify_theme || brand.currency || "Active Store"}
+                        <span className="shrink-0 text-[11px] leading-none" title={brand.market}>
+                          {marketFlag}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* 2. BEST-SELLING PRODUCTS (3 Square Thumbnails + Package Count Below) */}
-                <div className="flex flex-col items-center gap-1.5 text-left">
-                  {products.length > 0 ? (
-                    <>
-                      <div className="flex items-center gap-1.5">
-                        {products.slice(0, 3).map((prod, i) => (
-                          <div
-                            key={`${prod.title}-${i}`}
-                            title={prod.title}
-                            className="h-14 w-14 overflow-hidden rounded-lg border border-[#E6E9F0] bg-[#F7F8FB]"
-                          >
-                            {prod.image_url ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={prod.image_url}
-                                alt={prod.title}
-                                loading="lazy"
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
-                                <Package className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <span className="inline-flex items-center gap-1 font-mono-num text-[11.5px] font-semibold text-[#334155]">
-                        <Package className="h-3.5 w-3.5 text-[#64748B]" />
-                        {(brand.products_count ?? products.length).toLocaleString("en-US")}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 font-mono-num text-xs text-[#94A3B8]">
-                      <Package className="h-3.5 w-3.5" />
-                      {brand.products_count || "—"}
-                    </span>
-                  )}
-                </div>
-
-                {/* 3. CATEGORY PILL */}
-                <div className="flex justify-center">
-                  <span className="max-w-full truncate rounded-full bg-[#F3F5F9] px-3 py-1 text-[11.5px] font-medium text-[#475569] transition-colors group-hover:bg-[#E2E8F0] group-hover:text-[#0F172A]">
+                {/* 2. INDUSTRY */}
+                <div className="min-w-0">
+                  <span className="block truncate text-[13px] font-normal text-[#0F172A]">
                     {brand.category}
                   </span>
                 </div>
 
-                {/* 4. MONTHLY VISITS + FLAGS + AREA SPARKLINE */}
-                <div className="flex flex-col gap-1.5 text-left">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 font-display text-[13.5px] font-bold text-[#0F172A]">
-                      <Users className="h-3.5 w-3.5 text-[#64748B]" />
-                      {formatReach(brand.monthly_visits)}
+                {/* 3. PRODUCTS (3 Square 56x56 Thumbnails with dark +count overlay on 3rd) */}
+                <div className="flex items-center gap-1.5">
+                  {products.length > 0 ? (
+                    products.slice(0, 3).map((prod, i) => {
+                      const showMoreOverlay = i === 2 && totalProductCount > 3;
+                      return (
+                        <div
+                          key={`${prod.title}-${i}`}
+                          title={prod.title}
+                          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa]"
+                        >
+                          {prod.image_url ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={prod.image_url}
+                              alt={prod.title}
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
+                              <Package className="h-4 w-4 text-[#94A3B8]" />
+                            </div>
+                          )}
+                          {showMoreOverlay && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-[#050811]/60 font-mono-num text-[11.5px] font-bold text-white">
+                              +{formatCompactCount(remainingProducts)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 font-mono-num text-[12.5px] text-[#94A3B8]">
+                      <Package className="h-3.5 w-3.5 text-[#94A3B8]" />
+                      {brand.products_count
+                        ? formatCompactCount(brand.products_count)
+                        : "—"}
                     </span>
-                    <span className="flex items-center gap-0.5 text-[11px]">
-                      {visitorFlags.map((flag, idx) => (
-                        <span key={`${flag}-${idx}`}>{flag}</span>
-                      ))}
-                    </span>
-                  </div>
-                  <AreaSparkline
-                    values={visitSeries}
-                    positive={growthPositive}
-                    width={126}
-                    height={34}
-                  />
-                </div>
-
-                {/* 5. META ADS + FLAGS + AREA SPARKLINE */}
-                <div className="flex flex-col gap-1.5 text-left">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 font-display text-[13.5px] font-bold text-[#0F172A]">
-                      <MetaInfinityIcon className="h-3.5 w-3.5 shrink-0" />
-                      {(brand.active_ads_count ?? brandAds.length).toLocaleString("en-US")}
-                    </span>
-                    <span className="flex items-center gap-0.5 text-[11px]">
-                      {targetedFlags.map((flag, idx) => (
-                        <span key={`${flag}-${idx}`}>{flag}</span>
-                      ))}
-                    </span>
-                  </div>
-                  <AreaSparkline
-                    values={adsSeries}
-                    positive={true}
-                    width={126}
-                    height={34}
-                  />
-                </div>
-
-                {/* 6. ADS CREATIVES PREVIEW (3 Square Ad Thumbnails with Video Play Icon) */}
-                <div className="flex items-center justify-end gap-1.5">
-                  {brandAds.slice(0, 3).map((ad) => {
-                    const thumb =
-                      ad.thumbnail_url ||
-                      ad.fallback_image_url ||
-                      (ad.media_type === "image" ? ad.media_url : "");
-                    return (
-                      <div
-                        key={ad.id}
-                        className="relative h-14 w-14 overflow-hidden rounded-lg border border-[#E6E9F0] bg-[#0F172A]/5"
-                      >
-                        {thumb ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={thumb}
-                            alt={ad.headline || brand.name}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-[#F3F5F9] text-[10px] font-semibold text-[#94A3B8]">
-                            Ad
-                          </div>
-                        )}
-                        {ad.media_type === "video" && (
-                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/85 text-[#0F172A] shadow-xs backdrop-blur-xs">
-                              <Play className="ml-0.5 h-3 w-3 fill-current" />
-                            </span>
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {brandAds.length === 0 && (
-                    <span className="text-xs text-[#94A3B8]">—</span>
                   )}
+                </div>
+
+                {/* 4. MONTHLY TRAFFIC (Bold metric + soft green ↑ X% pill + trend sparkline) */}
+                <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono-num text-[13.5px] font-semibold text-[#0F172A]">
+                        {formatReach(brand.monthly_visits)}
+                      </span>
+                      {typeof brand.traffic_growth_pct === "number" && (
+                        <span
+                          className={`inline-flex items-center rounded px-1.5 py-0.5 font-mono-num text-[11px] font-semibold ${
+                            growthPositive
+                              ? "bg-[#ECFDF3] text-[#15803D]"
+                              : "bg-[#FEF2F2] text-[#DC2626]"
+                          }`}
+                        >
+                          {growthPositive ? "↑" : "↓"}{" "}
+                          {Math.abs(brand.traffic_growth_pct)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-auto w-[54px] shrink-0">
+                    <AreaSparkline
+                      values={visitSeries}
+                      positive={growthPositive}
+                      width={54}
+                      height={24}
+                    />
+                  </div>
+                </div>
+
+                {/* 5. ADVERTISERS */}
+                <div className="flex items-center gap-1.5">
+                  <MetaInfinityIcon className="h-4 w-4 shrink-0" />
+                  <span className="font-mono-num text-[13px] font-medium text-[#0F172A]">
+                    1
+                  </span>
+                </div>
+
+                {/* 6. NEW ADS (30D) */}
+                <div className="flex items-center gap-1.5 font-mono-num">
+                  <span className="text-[13px] font-medium text-[#0F172A]">
+                    {newAds30d.toLocaleString("en-US")}
+                  </span>
+                  {newAdsGrowth30d > 0 && (
+                    <span className="rounded bg-[#ECFDF3] px-1.5 py-0.5 text-[11px] font-semibold text-[#15803D]">
+                      ↑ {newAdsGrowth30d}%
+                    </span>
+                  )}
+                </div>
+
+                {/* 7. ACTIVE ADS */}
+                <div className="text-right font-mono-num text-[13px] font-semibold text-[#0F172A]">
+                  {activeAdsCount.toLocaleString("en-US")}
+                </div>
+
+                {/* 8. TOTAL ADS */}
+                <div className="text-right font-mono-num text-[13px] font-medium text-[#475569]">
+                  {totalAdsCount.toLocaleString("en-US")}
                 </div>
               </div>
             );
@@ -2619,7 +2556,7 @@ export const ShopsTableView = React.memo(function ShopsTableView({
                   type="button"
                   data-no-glass="true"
                   onClick={resetAllBrandFilters}
-                  className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl border border-[#E2E6EF] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC]"
+                  className="mt-3.5 inline-flex items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#f5f5fa]"
                 >
                   Clear all filters
                 </button>

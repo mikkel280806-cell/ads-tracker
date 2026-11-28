@@ -4,9 +4,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Check,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
   Lock,
   Plus,
   Search,
@@ -342,29 +340,34 @@ export function AtriaFilterPill({
       type="button"
       data-no-glass="true"
       onClick={onToggle}
-      className={`inline-flex h-7 select-none items-center gap-1 rounded-md border px-2.5 text-[12px] transition-colors ${
+      className={`inline-flex h-7 select-none items-center gap-1.5 rounded-[6px] border px-2.5 text-[12.5px] transition-colors ${
         active
-          ? "border-[#D8DDE6] bg-[#ECEFF4] text-[#0F172A] hover:bg-[#E4E8F0]"
+          ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb] hover:bg-[#E0E7FF]"
           : open
-            ? "border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A]"
-            : "border-[#E2E6EF] bg-white text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+            ? "border-[#d6d6e0] bg-[#ECECF4] text-[#0F172A]"
+            : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
       }`}
     >
-      <span className="truncate max-w-[195px]">
+      <span className="max-w-[195px] truncate">
         {activeLabel ? (
           <>
-            <span className="font-normal text-[#64748B]">{label}: </span>
-            <span className="font-semibold text-[#0F172A]">{activeLabel}</span>
+            <span className="font-normal opacity-75">{label}: </span>
+            <span className="font-semibold">{activeLabel}</span>
           </>
         ) : (
           <span className="font-medium">{label}</span>
         )}
       </span>
-      {open ? (
-        <ChevronUp className="h-3 w-3 shrink-0 text-[#475569]" />
-      ) : (
-        <ChevronDown className="h-3 w-3 shrink-0 text-[#475569]" />
-      )}
+      <svg
+        viewBox="0 0 8 5"
+        aria-hidden="true"
+        className={`h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+          open ? "rotate-180" : ""
+        }`}
+        fill="currentColor"
+      >
+        <path d="M4 5L0 0h8L4 5z" />
+      </svg>
     </button>
   );
 }
@@ -386,13 +389,13 @@ export function AtriaPopoverHeader({
 }) {
   return (
     <div
-      className={`px-5 pt-4 ${
-        bordered ? "border-b border-[#EEF0F4] pb-3.5" : "pb-2"
+      className={`px-4 pt-4 ${
+        bordered ? "border-b border-[#ebebf3] pb-3.5" : "pb-2"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h4 className="font-display text-[15px] font-bold tracking-[-0.01em] text-[#0F172A]">
+          <h4 className="font-sans text-[15px] font-bold tracking-[-0.01em] text-[#0F172A]">
             {title}
           </h4>
           {badge}
@@ -405,7 +408,7 @@ export function AtriaPopoverHeader({
             className={`text-[13px] font-medium transition-colors ${
               hasValue
                 ? "text-[#0F172A] hover:text-[#475569]"
-                : "text-[#9CA3AF] hover:text-[#64748B]"
+                : "text-[#94A3B8] hover:text-[#64748B]"
             }`}
           >
             Clear
@@ -1288,7 +1291,7 @@ export function AtriaIndustryPopover({
                   </button>
                   <span className="truncate">{p.name}</span>
                 </div>
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
               </div>
             );
           })}
@@ -1323,18 +1326,19 @@ export function AtriaIndustryPopover({
       </div>
 
       {/* Explicit Apply Footer (matches Atria's Industry popover) */}
-      <div className="flex items-center justify-between border-t border-[#F1F4F9] bg-[#FAFBFD] px-3.5 py-2.5">
+      <div className="flex items-center justify-between border-t border-[#ebebf3] bg-[#f5f5fa]/60 px-3.5 py-2.5">
         <span className="text-[11.5px] text-[#64748B]">
           {draft.length > 0 ? `${draft.length} selected` : "All industries"}
         </span>
         <button
           type="button"
+          data-no-glass="true"
           onClick={() => {
             onApply(draft);
             setDraftOverride(null);
             onOpenChange(false);
           }}
-          className="adtrack-btn-primary rounded-lg px-4 py-1.5 text-[12px] font-semibold text-white"
+          className="rounded-[8px] bg-[#0027eb] px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
         >
           Apply
         </button>
@@ -1446,7 +1450,8 @@ export function AtriaCreateViewModal({
             </button>
             <button
               type="submit"
-              className="adtrack-btn-primary rounded-lg px-4 py-1.5 text-[12.5px] font-semibold text-white"
+              data-no-glass="true"
+              className="rounded-[8px] bg-[#0027eb] px-4 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
             >
               Create view
             </button>
@@ -1567,8 +1572,9 @@ export function AtriaManageViewsModal({
           </button>
           <button
             type="button"
+            data-no-glass="true"
             onClick={onClose}
-            className="adtrack-btn-primary rounded-lg px-4 py-1.5 text-[12.5px] font-semibold text-white"
+            className="rounded-[8px] bg-[#0027eb] px-4 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
           >
             Done
           </button>

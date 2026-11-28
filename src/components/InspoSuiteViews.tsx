@@ -1,21 +1,25 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
+  ArrowRight,
+  ArrowUpDown,
   ArrowUpRight,
   Bookmark,
   Check,
-  ChevronDown,
-  ChevronUp,
   ExternalLink,
-  Flame,
+  Filter,
   Heart,
+  HelpCircle,
+  Image as ImageIcon,
+  Info,
   Layers,
   LayoutGrid,
   List,
   Plus,
   RotateCcw,
   Search,
+  Settings,
   SlidersHorizontal,
   Sparkles,
   Upload,
@@ -30,7 +34,66 @@ import {
 } from "@/lib/atria-placeholders";
 import { getActiveDays } from "@/lib/url-parser";
 import { AdCard } from "./AdCard";
-import { FlakeSelect } from "./ui/FlakeDropdown";
+import {
+  FacebookColorIcon,
+  InstagramColorIcon,
+  MetaInfinityIcon,
+} from "./BrandIcons";
+import { FlakePopover, FlakeSelect } from "./ui/FlakeDropdown";
+
+/* ============================================================================
+   LOCAL RIPPED ASSET MAPS (VERIFIED UNDER public/atria-assets/inspo/)
+   ============================================================================ */
+
+const LOCAL_COLLECTION_THUMBS: Record<string, string> = {
+  "tp-1": "/atria-assets/inspo/collection-01-static-callout.jpg",
+  "tp-2": "/atria-assets/inspo/collection-02-us-vs-them.jpg",
+  "tp-3": "/atria-assets/inspo/collection-03-seasonal-offers.jpg",
+  "tp-4": "/atria-assets/inspo/collection-04-health-wellness.jpg",
+  "tp-5": "/atria-assets/inspo/collection-05-native-notes.jpg",
+  "tp-6": "/atria-assets/inspo/collection-06-beauty-skincare.jpg",
+  "tp-7": "/atria-assets/inspo/collection-07-apparel-editorial.jpg",
+  "tp-8": "/atria-assets/inspo/collection-08-social-proof.jpg",
+  "tp-9": "/atria-assets/inspo/collection-09-reasons-why.jpg",
+  "tp-10": "/atria-assets/inspo/collection-10-home-ergonomics.jpg",
+  "tp-11": "/atria-assets/inspo/collection-01-static-callout.jpg",
+  "tp-12": "/atria-assets/inspo/collection-12-founder-memo.jpg",
+};
+
+const LOCAL_ADVERTISER_AVATARS: Record<string, string> = {
+  "adv-meshki": "/atria-assets/inspo/adv-meshki.jpg",
+  "adv-legend": "/atria-assets/inspo/adv-legend-london.jpg",
+  "adv-tradesman": "/atria-assets/inspo/adv-tradesman.jpg",
+  "adv-nude": "/atria-assets/inspo/adv-nude-project.jpg",
+  "adv-musclemat": "/atria-assets/inspo/adv-muscle-mat.jpg",
+};
+
+function resolveCollectionThumb(col: AtriaCollectionPlaceholder): string {
+  return LOCAL_COLLECTION_THUMBS[col.id] || col.thumbnailUrl;
+}
+
+function sanitizeCollectionTitle(col: AtriaCollectionPlaceholder): string {
+  return col.id === "tp-3" ? "Seasonal & Promotional Offer Winners" : col.title;
+}
+
+function MicroCaret({ open = false }: { open?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 8 5"
+      aria-hidden="true"
+      className={`h-[5px] w-[7px] shrink-0 text-[#475569] transition-transform duration-150 ${
+        open ? "rotate-180" : ""
+      }`}
+      fill="currentColor"
+    >
+      <path d="M4 5L0 0h8L4 5z" />
+    </svg>
+  );
+}
+
+/* ============================================================================
+   1. LEGACY / ALTERNATE DISCOVERY HEADER (KEPT CLEAN)
+   ============================================================================ */
 
 export interface InspoDiscoveryHeaderProps {
   search: string;
@@ -103,25 +166,17 @@ export function InspoDiscoveryHeader({
   onResetFilters,
   onOpenRequestBrand,
 }: InspoDiscoveryHeaderProps) {
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [newViewNotice, setNewViewNotice] = useState(false);
-
-  const heroCards = ATRIA_TOP_PICKS_COLLECTIONS.slice(0, 3);
 
   const viewTabs: Array<{
     id: "all" | "trending" | "following" | "dk" | "us";
     label: string;
-    icon?: React.ReactNode;
+    emoji?: string;
     badge?: number;
   }> = [
     { id: "all", label: "All ads" },
-    { id: "trending", label: "Trending", icon: <Flame className="h-3.5 w-3.5" /> },
-    {
-      id: "following",
-      label: "Following",
-      icon: <Heart className="h-3.5 w-3.5" />,
-      badge: followedCount,
-    },
+    { id: "trending", label: "Trending", emoji: "🔥" },
+    { id: "following", label: "Following", emoji: "❤️", badge: followedCount },
     { id: "dk", label: "DK" },
     { id: "us", label: "US & Global" },
   ];
@@ -139,227 +194,120 @@ export function InspoDiscoveryHeader({
   ].filter(Boolean).length;
 
   return (
-    <div className="mb-5 space-y-3.5">
-      {/* 1. Dismissible Deep Obsidian Seasonal Hero Banner */}
-      {!bannerDismissed && (
-        <section className="relative overflow-hidden rounded-2xl border border-[#1E293B]/60 bg-[#050811] px-5 py-5 text-white shadow-[0_14px_36px_-12px_rgba(5,8,17,0.55)] sm:px-7 sm:py-6">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
-            style={{
-              background:
-                "radial-gradient(circle, rgba(59,102,255,0.55) 0%, rgba(0,39,235,0.2) 50%, transparent 75%)",
-            }}
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full opacity-25 blur-3xl"
-            style={{
-              background:
-                "radial-gradient(circle, rgba(0,39,235,0.5) 0%, transparent 70%)",
-            }}
-          />
-
-          <div className="relative z-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-            <div className="max-w-xl space-y-2.5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#3B66FF]/35 bg-[#0027eb]/20 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#EEF2FF]">
-                <Sparkles className="h-3 w-3 text-[#3B66FF]" />
-                BLACK FRIDAY &amp; Q4 WINNERS
-              </div>
-
-              <h2 className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
-                See what winning brands are scaling right now.
-              </h2>
-
-              <p className="text-[13px] leading-relaxed text-slate-300 sm:text-sm">
-                The offers that convert, and the creatives behind them.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onViewTabChange("trending");
-                    onScaledOnlyChange(true);
-                  }}
-                  className="adtrack-btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-white"
+    <div className="mb-5 space-y-3">
+      {/* View Tabs Row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {viewTabs.map((tab) => {
+          const active = activeViewTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              data-no-glass="true"
+              onClick={() => onViewTabChange(tab.id)}
+              className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] px-3.5 text-[13.5px] font-semibold transition-colors ${
+                active
+                  ? "bg-[#0027eb] text-white"
+                  : "bg-transparent text-[#0F172A] hover:bg-black/[0.04]"
+              }`}
+            >
+              {tab.emoji && (
+                <span aria-hidden="true" className="text-[14px] leading-none">
+                  {tab.emoji}
+                </span>
+              )}
+              <span>{tab.label}</span>
+              {typeof tab.badge === "number" && tab.badge > 0 && (
+                <span
+                  className={`rounded-full px-1.5 py-0.2 font-mono-num text-[11px] font-semibold ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-[#f5f5fa] text-[#0F172A]"
+                  }`}
                 >
-                  Explore Winners
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </button>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
 
-                <button
-                  type="button"
-                  data-no-glass="true"
-                  onClick={() => setBannerDismissed(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.06] px-3.5 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-white/[0.12] hover:text-white"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
+        <button
+          type="button"
+          data-no-glass="true"
+          onClick={() => {
+            setNewViewNotice(true);
+            window.setTimeout(() => setNewViewNotice(false), 2600);
+          }}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] border border-dashed border-[#d6d6e0] bg-white px-3.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
+        >
+          <Plus className="h-3.5 w-3.5 text-[#475569]" />
+          New view
+        </button>
 
-            {/* 3 Tilted Preview Thumbnail Cards */}
-            <div className="hidden items-center justify-end pr-2 sm:flex">
-              <div className="flex items-center -space-x-5">
-                {heroCards.map((col, idx) => {
-                  const tiltClass =
-                    idx === 0
-                      ? "-rotate-6 translate-y-2"
-                      : idx === 1
-                        ? "rotate-0 -translate-y-1 z-10 scale-105"
-                        : "rotate-6 translate-y-2";
-                  return (
-                    <button
-                      key={col.id}
-                      type="button"
-                      data-no-glass="true"
-                      onClick={() => onViewTabChange("trending")}
-                      title={col.title}
-                      className={`group relative h-32 w-24 overflow-hidden rounded-xl border border-white/20 bg-[#0F172A] shadow-xl transition-transform duration-200 hover:z-20 hover:scale-105 ${tiltClass}`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={col.thumbnailUrl}
-                        alt={col.title}
-                        className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#050811]/95 via-[#050811]/55 to-transparent p-1.5 text-left">
-                        <span className="block truncate text-[9px] font-semibold text-white">
-                          {col.category}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 2. View Tabs Row */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          {viewTabs.map((tab) => {
-            const active = activeViewTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                data-no-glass="true"
-                onClick={() => onViewTabChange(tab.id)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  active
-                    ? "border-[#0027eb] bg-[#0027eb] text-white shadow-xs"
-                    : "border-[#E6E9F0] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-                {typeof tab.badge === "number" && (
-                  <span
-                    className={`rounded-full px-1.5 py-0.2 font-mono-num text-[10.5px] font-bold ${
-                      active
-                        ? "bg-white/20 text-white"
-                        : "bg-[#EEF2FF] text-[#0027eb]"
-                    }`}
-                  >
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => {
-              setNewViewNotice(true);
-              window.setTimeout(() => setNewViewNotice(false), 2600);
-            }}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed border-[#CBD5E1] bg-[#F7F8FB] px-3 py-1.5 text-xs font-medium text-[#475569] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New view
-          </button>
-
-          {newViewNotice && (
-            <span className="ml-1 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-medium text-[#0027eb]">
-              Use Filters below to customize &amp; pin a view
-            </span>
-          )}
-        </div>
+        {newViewNotice && (
+          <span className="ml-1 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-medium text-[#0027eb]">
+            Use Filters below to customize &amp; pin a view
+          </span>
+        )}
       </div>
 
-      {/* 3. Full-width AI Search Bar + Right Advertiser Action & Live Count */}
-      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+      {/* Search Row */}
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full max-w-[540px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search for ads or advertisers with AI"
-            className="h-11 w-full rounded-xl border border-[#E6E9F0] bg-white pl-10 pr-24 text-[13.5px] text-[#0F172A] placeholder:text-[#94A3B8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition-colors focus:border-[#0027eb] focus:ring-2 focus:ring-[#0027eb]/15"
+            className="h-9 w-full rounded-[8px] border border-[#d6d6e0] bg-white pl-9 pr-9 text-[13.5px] text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-colors focus:border-[#0027eb]"
           />
-          <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
-            {search && (
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={() => onSearchChange("")}
-                aria-label="Clear search"
-                className="rounded-lg p-1 text-[#94A3B8] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <span className="hidden items-center gap-1 rounded-lg bg-[#EEF2FF] px-2 py-1 text-[10.5px] font-semibold text-[#0027eb] sm:inline-flex">
-              <Sparkles className="h-3 w-3" />
-              AI
-            </span>
-          </div>
+          {search && (
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => onSearchChange("")}
+              aria-label="Clear search"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-[#94A3B8] hover:text-[#0F172A]"
+            >
+              <X className="h-3.5 w-3.5 text-[#64748B]" />
+            </button>
+          )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 lg:justify-end">
+        <div className="flex flex-wrap items-center gap-3">
           {onOpenRequestBrand && (
             <button
               type="button"
               data-no-glass="true"
               onClick={onOpenRequestBrand}
-              className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-3.5 text-xs font-medium text-[#334155] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB] hover:text-[#0F172A]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2 text-[13px] font-medium text-[#0F172A] hover:bg-black/[0.04]"
             >
+              <HelpCircle className="h-4 w-4 text-[#475569]" />
               Can&apos;t find an advertiser?
             </button>
           )}
-
-          <div className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] px-3.5 font-mono-num text-xs font-semibold text-[#0F172A]">
-            <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+          <span className="font-mono-num text-[12px] font-medium text-[#64748B]">
             {displayAdsTotal !== null
               ? `${displayAdsTotal.toLocaleString()} ads`
               : "Loading ads..."}
-          </div>
+          </span>
         </div>
       </div>
 
-      {/* 4. Filter & Sort Row */}
+      {/* Filter & Sort Row */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             data-no-glass="true"
             onClick={onToggleFiltersExpanded}
-            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors ${
-              filtersExpanded || activeFilterCount > 0
-                ? "border-[#0027eb]/30 bg-[#EEF2FF] text-[#0027eb]"
-                : "border-[#E6E9F0] bg-white text-[#0F172A] hover:bg-[#F7F8FB]"
-            }`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px] font-medium text-[#0F172A] hover:border-[#d6d6e0]"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <SlidersHorizontal className="h-3.5 w-3.5 text-[#64748B]" />
             <span>Filters</span>
-            <span className="rounded-md bg-white/80 px-1.5 py-0.5 text-[10.5px] font-semibold text-[#334155]">
+            <span className="text-[12.5px] text-[#64748B]">
               {filtersExpanded ? "Hide" : "Show"}
             </span>
             {activeFilterCount > 0 && (
@@ -391,13 +339,17 @@ export function InspoDiscoveryHeader({
             type="button"
             data-no-glass="true"
             onClick={() => onScaledOnlyChange(!scaledOnly)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+            className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition-colors ${
               scaledOnly
                 ? "border-[#0027eb] bg-[#0027eb] text-white"
-                : "border-[#E6E9F0] bg-white text-[#334155] hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
+                : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
             }`}
           >
-            <Layers className="h-3.5 w-3.5" />
+            <Layers
+              className={`h-3.5 w-3.5 ${
+                scaledOnly ? "text-white" : "text-[#64748B]"
+              }`}
+            />
             Scaled 3x+
           </button>
         </div>
@@ -407,228 +359,154 @@ export function InspoDiscoveryHeader({
             type="button"
             data-no-glass="true"
             onClick={onResetFilters}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-3 py-2 text-xs font-medium text-[#475569] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[12.5px] font-medium text-[#475569] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3.5 w-3.5 text-[#64748B]" />
             Reset filters
           </button>
         )}
       </div>
 
-      {/* 5. Expanded 4-Row Grouped Filter Panel (Lifecycle / Targeting / Creative / Performance) */}
       {filtersExpanded && (
-        <div className="rounded-2xl border border-[#E6E9F0] bg-white p-4 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.08)]">
-          <div className="divide-y divide-[#F1F4F9]">
-            {/* Row 1: Lifecycle */}
-            <div className="flex flex-col gap-2.5 pb-3 sm:flex-row sm:items-center">
-              <span className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+        <div className="rounded-[10px] bg-[#f5f5fa] p-4">
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-24 text-[12.5px] font-medium text-[#64748B]">
                 Lifecycle
               </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <FlakeSelect
-                  ariaLabel="Launch time"
-                  value={timeFilter}
-                  onChange={(v) =>
-                    onTimeFilterChange(v as "all" | "7d" | "30d" | "90d")
-                  }
-                  variant="bordered"
-                  isActive={timeFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Launch time: All" },
-                    { value: "7d", label: "Launch time: Last 7d" },
-                    { value: "30d", label: "Launch time: Last 30d" },
-                    { value: "90d", label: "Launch time: Last 90d" },
-                  ]}
-                />
-
-                <FlakeSelect
-                  ariaLabel="Days / Active"
-                  value={sortBy === "longest" ? "longest" : timeFilter}
-                  onChange={(v) => {
-                    if (v === "longest") {
-                      onSortChange("longest");
-                    } else {
-                      onTimeFilterChange(v as "all" | "7d" | "30d" | "90d");
-                    }
-                  }}
-                  variant="bordered"
-                  isActive={sortBy === "longest" || timeFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Days / Active: Any" },
-                    { value: "longest", label: "Days / Active: Longest (30d+)" },
-                    { value: "7d", label: "Days / Active: Newest (7d)" },
-                    { value: "30d", label: "Days / Active: Within 30d" },
-                  ]}
-                />
-              </div>
+              <FlakeSelect
+                ariaLabel="Launch time"
+                value={timeFilter}
+                onChange={(v) =>
+                  onTimeFilterChange(v as "all" | "7d" | "30d" | "90d")
+                }
+                variant="bordered"
+                isActive={timeFilter !== "all"}
+                options={[
+                  { value: "all", label: "Launch time: All" },
+                  { value: "7d", label: "Launch time: Last 7d" },
+                  { value: "30d", label: "Launch time: Last 30d" },
+                  { value: "90d", label: "Launch time: Last 90d" },
+                ]}
+              />
             </div>
-
-            {/* Row 2: Targeting */}
-            <div className="flex flex-col gap-2.5 py-3 sm:flex-row sm:items-center">
-              <span className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-24 text-[12.5px] font-medium text-[#64748B]">
                 Targeting
               </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <FlakeSelect
-                  ariaLabel="Country filter"
-                  value={countryFilter}
-                  onChange={onCountryFilterChange}
-                  variant="bordered"
-                  isActive={countryFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Country: All" },
-                    ...availableCountries.map((c) => ({
-                      value: c.code,
-                      label: `${c.flag} ${c.code} (${c.count})`,
-                    })),
-                  ]}
-                />
-
-                <FlakeSelect
-                  ariaLabel="Age filter"
-                  value={ageFilter}
-                  onChange={(v) =>
-                    onAgeFilterChange(
-                      v as "all" | "18-24" | "25-34" | "35-44" | "45-54" | "55+"
-                    )
-                  }
-                  variant="bordered"
-                  isActive={ageFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Age: All" },
-                    { value: "18-24", label: "Age: 18-24" },
-                    { value: "25-34", label: "Age: 25-34" },
-                    { value: "35-44", label: "Age: 35-44" },
-                    { value: "45-54", label: "Age: 45-54" },
-                    { value: "55+", label: "Age: 55+" },
-                  ]}
-                />
-
-                <FlakeSelect
-                  ariaLabel="Gender filter"
-                  value={genderFilter}
-                  onChange={(v) =>
-                    onGenderFilterChange(v as "all" | "Women" | "Men" | "All")
-                  }
-                  variant="bordered"
-                  isActive={genderFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Gender: Any" },
-                    { value: "Women", label: "Gender: Women" },
-                    { value: "Men", label: "Gender: Men" },
-                    { value: "All", label: "Gender: All Genders" },
-                  ]}
-                />
-              </div>
+              <FlakeSelect
+                ariaLabel="Country filter"
+                value={countryFilter}
+                onChange={onCountryFilterChange}
+                variant="bordered"
+                isActive={countryFilter !== "all"}
+                options={[
+                  { value: "all", label: "Country: All" },
+                  ...availableCountries.map((c) => ({
+                    value: c.code,
+                    label: `${c.flag} ${c.code} (${c.count})`,
+                  })),
+                ]}
+              />
+              <FlakeSelect
+                ariaLabel="Age filter"
+                value={ageFilter}
+                onChange={(v) =>
+                  onAgeFilterChange(
+                    v as "all" | "18-24" | "25-34" | "35-44" | "45-54" | "55+"
+                  )
+                }
+                variant="bordered"
+                isActive={ageFilter !== "all"}
+                options={[
+                  { value: "all", label: "Age: All" },
+                  { value: "18-24", label: "Age: 18-24" },
+                  { value: "25-34", label: "Age: 25-34" },
+                  { value: "35-44", label: "Age: 35-44" },
+                  { value: "45-54", label: "Age: 45-54" },
+                  { value: "55+", label: "Age: 55+" },
+                ]}
+              />
+              <FlakeSelect
+                ariaLabel="Gender filter"
+                value={genderFilter}
+                onChange={(v) =>
+                  onGenderFilterChange(v as "all" | "Women" | "Men" | "All")
+                }
+                variant="bordered"
+                isActive={genderFilter !== "all"}
+                options={[
+                  { value: "all", label: "Gender: Any" },
+                  { value: "Women", label: "Gender: Women" },
+                  { value: "Men", label: "Gender: Men" },
+                  { value: "All", label: "Gender: All Genders" },
+                ]}
+              />
             </div>
-
-            {/* Row 3: Creative */}
-            <div className="flex flex-col gap-2.5 py-3 sm:flex-row sm:items-center">
-              <span className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-24 text-[12.5px] font-medium text-[#64748B]">
                 Creative
               </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <FlakeSelect
-                  ariaLabel="Platform filter"
-                  value={platformFilter}
-                  onChange={onPlatformFilterChange}
-                  variant="bordered"
-                  isActive={platformFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Platform: All" },
-                    { value: "Facebook", label: "Platform: Facebook" },
-                    { value: "Instagram", label: "Platform: Instagram" },
-                    { value: "Audience Network", label: "Platform: Audience Network" },
-                    { value: "Messenger", label: "Platform: Messenger" },
-                  ]}
-                />
-
-                <FlakeSelect
-                  ariaLabel="Format filter"
-                  value={mediaFilter}
-                  onChange={(v) =>
-                    onMediaFilterChange(
-                      v as "all" | "video" | "image" | "carousel"
-                    )
-                  }
-                  variant="bordered"
-                  isActive={mediaFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Format: All" },
-                    { value: "video", label: "Format: Video" },
-                    { value: "image", label: "Format: Image" },
-                    { value: "carousel", label: "Format: Carousel" },
-                  ]}
-                />
-
-                <FlakeSelect
-                  ariaLabel="Brand filter"
-                  value={brandFilter}
-                  onChange={onBrandFilterChange}
-                  variant="bordered"
-                  isActive={brandFilter !== "all"}
-                  options={[
-                    { value: "all", label: "Brand: All" },
-                    ...brands.map((b) => ({
-                      value: b.id,
-                      label: b.name,
-                    })),
-                  ]}
-                />
-
-                <button
-                  type="button"
-                  data-no-glass="true"
-                  onClick={() => onScaledOnlyChange(!scaledOnly)}
-                  className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
-                    scaledOnly
-                      ? "border-[#0027eb] bg-[#EEF2FF] font-semibold text-[#0027eb]"
-                      : "border-[#E6E9F0] bg-white text-[#334155] hover:border-[#CBD5E1]"
-                  }`}
-                >
-                  Creative reuse: {scaledOnly ? "3x+ Scaled" : "All"}
-                </button>
-              </div>
-            </div>
-
-            {/* Row 4: Performance */}
-            <div className="flex flex-col gap-2.5 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                <span className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  Performance
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <FlakeSelect
-                    ariaLabel="Minimum reach filter"
-                    value={minReachFilter}
-                    onChange={(v) =>
-                      onMinReachFilterChange(
-                        v as "all" | "10k" | "50k" | "100k" | "500k"
-                      )
-                    }
-                    variant="bordered"
-                    isActive={minReachFilter !== "all"}
-                    options={[
-                      { value: "all", label: "Min Reach: Any" },
-                      { value: "10k", label: "Min Reach: 10K+" },
-                      { value: "50k", label: "Min Reach: 50K+" },
-                      { value: "100k", label: "Min Reach: 100K+" },
-                      { value: "500k", label: "Min Reach: 500K+" },
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                data-no-glass="true"
-                disabled={!hasAnyFilter}
-                onClick={onResetFilters}
-                className="inline-flex items-center gap-1.5 self-start rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] px-3 py-2 text-xs font-semibold text-[#334155] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A] disabled:cursor-not-allowed disabled:opacity-45 sm:self-auto"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reset filters
-              </button>
+              <FlakeSelect
+                ariaLabel="Platform filter"
+                value={platformFilter}
+                onChange={onPlatformFilterChange}
+                variant="bordered"
+                isActive={platformFilter !== "all"}
+                options={[
+                  { value: "all", label: "Platform: All" },
+                  { value: "Facebook", label: "Platform: Facebook" },
+                  { value: "Instagram", label: "Platform: Instagram" },
+                  { value: "Audience Network", label: "Platform: Audience Network" },
+                  { value: "Messenger", label: "Platform: Messenger" },
+                ]}
+              />
+              <FlakeSelect
+                ariaLabel="Format filter"
+                value={mediaFilter}
+                onChange={(v) =>
+                  onMediaFilterChange(
+                    v as "all" | "video" | "image" | "carousel"
+                  )
+                }
+                variant="bordered"
+                isActive={mediaFilter !== "all"}
+                options={[
+                  { value: "all", label: "Format: All" },
+                  { value: "video", label: "Format: Video" },
+                  { value: "image", label: "Format: Image" },
+                  { value: "carousel", label: "Format: Carousel" },
+                ]}
+              />
+              <FlakeSelect
+                ariaLabel="Brand filter"
+                value={brandFilter}
+                onChange={onBrandFilterChange}
+                variant="bordered"
+                isActive={brandFilter !== "all"}
+                options={[
+                  { value: "all", label: "Brand: All" },
+                  ...brands.map((b) => ({ value: b.id, label: b.name })),
+                ]}
+              />
+              <FlakeSelect
+                ariaLabel="Minimum reach filter"
+                value={minReachFilter}
+                onChange={(v) =>
+                  onMinReachFilterChange(
+                    v as "all" | "10k" | "50k" | "100k" | "500k"
+                  )
+                }
+                variant="bordered"
+                isActive={minReachFilter !== "all"}
+                options={[
+                  { value: "all", label: "Min Reach: Any" },
+                  { value: "10k", label: "Min Reach: 10K+" },
+                  { value: "50k", label: "Min Reach: 50K+" },
+                  { value: "100k", label: "Min Reach: 100K+" },
+                  { value: "500k", label: "Min Reach: 500K+" },
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -638,7 +516,7 @@ export function InspoDiscoveryHeader({
 }
 
 /* ============================================================================
-   2. ADVERTISERS VIEW (/workspace/advertisers)
+   2. ADVERTISERS VIEW (/workspace/advertisers) — ATRIA step_36.png 1:1
    ============================================================================ */
 
 export interface AdvertisersViewProps {
@@ -659,7 +537,9 @@ interface UnifiedAdvertiserRow {
   initials: string;
   avatarColor: string;
   fbFollowers: string;
+  fbFollowersNum: number;
   igFollowers: string;
+  igFollowersNum: number;
   newAds30d: number;
   growthPct: number;
   activeAds: number;
@@ -668,11 +548,36 @@ interface UnifiedAdvertiserRow {
   topAd?: Ad;
 }
 
+type AdvertiserSortKey =
+  | "recommended"
+  | "followers"
+  | "new_ads_30d"
+  | "active_ads"
+  | "total_ads";
+
+const ADVERTISER_SORT_OPTIONS: Array<{ value: AdvertiserSortKey; label: string }> = [
+  { value: "recommended", label: "Recommended" },
+  { value: "followers", label: "Most followers" },
+  { value: "new_ads_30d", label: "Most new ads (30d)" },
+  { value: "active_ads", label: "Most active ads" },
+  { value: "total_ads", label: "Most total ads" },
+];
+
 function formatCompactCount(num?: number): string {
   if (!num || num <= 0) return "—";
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
   if (num >= 1_000) return `${Math.round(num / 1_000)}K`;
   return String(num);
+}
+
+function parseCompactCount(str: string): number {
+  const clean = str.trim().toUpperCase();
+  if (!clean || clean === "—") return 0;
+  const num = parseFloat(clean.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(num)) return 0;
+  if (clean.endsWith("M")) return num * 1_000_000;
+  if (clean.endsWith("K")) return num * 1_000;
+  return num;
 }
 
 export function AdvertisersView({
@@ -683,11 +588,19 @@ export function AdvertisersView({
   onOpenBrand,
   onCloneAd,
 }: AdvertisersViewProps) {
-  const [activeTab, setActiveTab] = useState<"all" | "following">("all");
   const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [sortBy, setSortBy] = useState<AdvertiserSortKey>("recommended");
   const [industryFilter, setIndustryFilter] = useState("all");
-  const [adsScopeFilter, setAdsScopeFilter] = useState<"all" | "tracked" | "high_velocity">("all");
+  const [activeAdsMin, setActiveAdsMin] = useState<number | null>(null);
+  const [platformFilter, setPlatformFilter] = useState<"all" | "Meta" | "TikTok">("all");
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [newViewTip, setNewViewTip] = useState(false);
+
+  const sortBtnRef = useRef<HTMLButtonElement | null>(null);
+  const industryBtnRef = useRef<HTMLButtonElement | null>(null);
+  const platformBtnRef = useRef<HTMLButtonElement | null>(null);
+  const activeAdsBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const rows: UnifiedAdvertiserRow[] = useMemo(() => {
     const adsByBrand = new Map<string, Ad[]>();
@@ -708,7 +621,9 @@ export function AdvertisersView({
         (a) => getActiveDays(a.started_running_at) <= 30
       ).length;
       const growthPct =
-        totalAds > 0 ? Math.max(8, Math.round((newAds30d / Math.max(1, totalAds)) * 100)) : 12;
+        totalAds > 0
+          ? Math.max(8, Math.round((newAds30d / Math.max(1, totalAds)) * 100))
+          : 12;
 
       let domain = b.website_url || "";
       try {
@@ -732,7 +647,9 @@ export function AdvertisersView({
         initials: b.avatar_initials,
         avatarColor: b.avatar_color || "#0F172A",
         fbFollowers: formatCompactCount(b.fb_likes),
+        fbFollowersNum: b.fb_likes ?? 0,
         igFollowers: formatCompactCount(b.ig_followers),
+        igFollowersNum: b.ig_followers ?? 0,
         newAds30d,
         growthPct,
         activeAds,
@@ -742,43 +659,44 @@ export function AdvertisersView({
       };
     });
 
-    const placeholderRows: UnifiedAdvertiserRow[] = ATRIA_ADVERTISERS_PLACEHOLDERS.filter(
-      (p) => !seenNames.has(p.name.toLowerCase())
-    ).map((p: AtriaAdvertiserPlaceholder) => ({
-      id: p.id,
-      name: p.name,
-      domain: p.domain,
-      industry: p.industry,
-      avatarUrl: p.avatarUrl,
-      initials: p.name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-      avatarColor: "#0F172A",
-      fbFollowers: p.fbFollowers,
-      igFollowers: p.igFollowers,
-      newAds30d: p.newAds30d,
-      growthPct: p.growthPct,
-      activeAds: p.activeAds,
-      totalAds: p.totalAds,
-      isTracked: false,
-    }));
+    const placeholderRows: UnifiedAdvertiserRow[] =
+      ATRIA_ADVERTISERS_PLACEHOLDERS.filter(
+        (p) => !seenNames.has(p.name.toLowerCase())
+      ).map((p: AtriaAdvertiserPlaceholder) => ({
+        id: p.id,
+        name: p.name,
+        domain: p.domain,
+        industry: p.industry,
+        avatarUrl: LOCAL_ADVERTISER_AVATARS[p.id] || p.avatarUrl,
+        initials: p.name
+          .split(" ")
+          .map((w) => w[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase(),
+        avatarColor: "#0F172A",
+        fbFollowers: p.fbFollowers,
+        fbFollowersNum: parseCompactCount(p.fbFollowers),
+        igFollowers: p.igFollowers,
+        igFollowersNum: parseCompactCount(p.igFollowers),
+        newAds30d: p.newAds30d,
+        growthPct: p.growthPct,
+        activeAds: p.activeAds,
+        totalAds: p.totalAds,
+        isTracked: false,
+      }));
 
     return [...trackedRows, ...placeholderRows];
   }, [brands, ads]);
 
-  const industries = useMemo(() => {
-    return Array.from(new Set(rows.map((r) => r.industry))).slice(0, 6);
-  }, [rows]);
+  const industries = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.industry))),
+    [rows]
+  );
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (activeTab === "following" && !followedBrandIds.includes(r.id)) {
-        return false;
-      }
+    const list = rows.filter((r) => {
       if (
         q &&
         !r.name.toLowerCase().includes(q) &&
@@ -790,190 +708,518 @@ export function AdvertisersView({
       if (industryFilter !== "all" && r.industry !== industryFilter) {
         return false;
       }
-      if (adsScopeFilter === "tracked" && !r.isTracked) return false;
-      if (adsScopeFilter === "high_velocity" && r.growthPct < 20) return false;
+      if (activeAdsMin !== null && r.activeAds < activeAdsMin) {
+        return false;
+      }
+      if (platformFilter === "TikTok" && r.isTracked) {
+        return false;
+      }
       return true;
     });
-  }, [rows, activeTab, followedBrandIds, search, industryFilter, adsScopeFilter]);
+
+    return [...list].sort((a, b) => {
+      if (sortBy === "followers") {
+        return (
+          b.fbFollowersNum +
+          b.igFollowersNum -
+          (a.fbFollowersNum + a.igFollowersNum)
+        );
+      }
+      if (sortBy === "new_ads_30d") return b.newAds30d - a.newAds30d;
+      if (sortBy === "active_ads") return b.activeAds - a.activeAds;
+      if (sortBy === "total_ads") return b.totalAds - a.totalAds;
+      return 0;
+    });
+  }, [rows, search, industryFilter, activeAdsMin, platformFilter, sortBy]);
+
+  const activeFilterCount =
+    (industryFilter !== "all" ? 1 : 0) +
+    (activeAdsMin !== null ? 1 : 0) +
+    (platformFilter !== "all" ? 1 : 0);
+
+  const activeSortLabel =
+    ADVERTISER_SORT_OPTIONS.find((o) => o.value === sortBy)?.label ||
+    "Recommended";
+
+  const pillClass = (isActive: boolean) =>
+    `inline-flex h-7 select-none items-center gap-1.5 rounded-[6px] border px-2.5 text-[12.5px] font-medium transition-colors ${
+      isActive
+        ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+        : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+    }`;
 
   return (
-    <div className="animate-view-in space-y-5">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[#0F172A]">
-            Advertisers
-          </h1>
-          <p className="mt-1 text-sm text-[#64748B]">
-            Track creative velocity, active ad volume, and social reach across top DTC brands.
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-2 self-start rounded-full border border-[#E6E9F0] bg-[#F7F8FB] px-3 py-1 font-mono-num text-xs font-semibold text-[#334155]">
-          {filteredRows.length} advertisers
-        </span>
-      </div>
+    <div className="animate-view-in space-y-4">
+      {/* WHITE TOP HEADER (SINGLE-ROW TOP BAR + TOOLBAR + 2-ROW FILTER BOX — step_36.png) */}
+      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-4 pb-3.5 pt-3 sm:-mx-6 sm:px-6 lg:-mx-7 lg:-mt-6">
+        {/* Row 1: All advertisers + New view + Gear + Search + Can't find an advertiser? */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#ebebf3] pb-3">
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => {
+              setIndustryFilter("all");
+              setActiveAdsMin(null);
+              setPlatformFilter("all");
+              setSearch("");
+            }}
+            className="inline-flex h-9 items-center justify-center rounded-[8px] bg-[#0027eb] px-3.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
+          >
+            All advertisers
+          </button>
 
-      {/* Tabs row */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => setActiveTab("all")}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-            activeTab === "all"
-              ? "border-[#0027eb] bg-[#0027eb] text-white"
-              : "border-[#E6E9F0] bg-white text-[#334155] hover:bg-[#F7F8FB]"
-          }`}
-        >
-          All advertisers
-        </button>
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => {
+              setNewViewTip(true);
+              window.setTimeout(() => setNewViewTip(false), 2600);
+            }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-dashed border-[#d6d6e0] bg-white px-3.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
+          >
+            <Plus className="h-3.5 w-3.5 text-[#475569]" />
+            <span>New view</span>
+          </button>
 
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => setActiveTab("following")}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-            activeTab === "following"
-              ? "border-[#0027eb] bg-[#0027eb] text-white"
-              : "border-[#E6E9F0] bg-white text-[#334155] hover:bg-[#F7F8FB]"
-          }`}
-        >
-          <Heart className="h-3.5 w-3.5" />
-          Following ({followedBrandIds.length})
-        </button>
+          <button
+            type="button"
+            data-no-glass="true"
+            aria-label="Manage views"
+            title="Manage views"
+            onClick={() => {
+              setNewViewTip(true);
+              window.setTimeout(() => setNewViewTip(false), 2600);
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#475569] transition-colors hover:bg-black/[0.04]"
+          >
+            <Settings className="h-4 w-4 text-[#475569]" />
+          </button>
 
-        <button
-          type="button"
-          data-no-glass="true"
-          onClick={() => {
-            setNewViewTip(true);
-            window.setTimeout(() => setNewViewTip(false), 2600);
-          }}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#CBD5E1] bg-[#F7F8FB] px-3 py-1.5 text-xs font-medium text-[#475569] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New view
-        </button>
-
-        {newViewTip && (
-          <span className="text-xs font-medium text-[#0027eb]">
-            Filter by industry or velocity below to narrow this view.
-          </span>
-        )}
-      </div>
-
-      {/* Search + Page/Ads Filter Bar Chips */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-[#E6E9F0] bg-white p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-        <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+          <div className="relative flex h-9 min-w-[220px] max-w-[440px] flex-1 items-center rounded-[8px] border border-[#d6d6e0] bg-white px-3 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/12">
+            <Search className="mr-2 h-4 w-4 shrink-0 text-[#64748B]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search advertisers"
-              className="h-10 w-full rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] pl-9 pr-9 text-sm text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-colors focus:border-[#0027eb] focus:bg-white"
+              className="w-full bg-transparent text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
             />
             {search && (
               <button
                 type="button"
                 data-no-glass="true"
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#0F172A]"
+                aria-label="Clear search"
+                className="ml-1 text-[#94A3B8] hover:text-[#0F172A]"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 text-[#64748B]" />
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="px-1 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-              Ads:
-            </span>
-            {(
-              [
-                { id: "all", label: "All" },
-                { id: "tracked", label: "Tracked shops" },
-                { id: "high_velocity", label: "High velocity (+20%)" },
-              ] as const
-            ).map((chip) => {
-              const active = adsScopeFilter === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  data-no-glass="true"
-                  onClick={() => setAdsScopeFilter(chip.id)}
-                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    active
-                      ? "border-[#0027eb] bg-[#EEF2FF] font-semibold text-[#0027eb]"
-                      : "border-[#E6E9F0] bg-white text-[#475569] hover:bg-[#F7F8FB]"
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Page / Industry Chips */}
-        <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-t border-[#F1F4F9] pt-2.5">
-          <span className="shrink-0 pr-1 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-            Page:
-          </span>
           <button
             type="button"
             data-no-glass="true"
-            onClick={() => setIndustryFilter("all")}
-            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
-              industryFilter === "all"
-                ? "border-[#0F172A] bg-[#0F172A] text-white"
-                : "border-[#E6E9F0] bg-[#F7F8FB] text-[#475569] hover:text-[#0F172A]"
-            }`}
+            onClick={() => {
+              setNewViewTip(true);
+              window.setTimeout(() => setNewViewTip(false), 2600);
+            }}
+            className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[8px] px-2 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-black/[0.04] hover:text-[#0027eb]"
           >
-            All industries
+            <HelpCircle className="h-4 w-4 text-[#475569]" />
+            <span>Can&apos;t find an advertiser?</span>
           </button>
-          {industries.map((ind) => {
-            const active = industryFilter === ind;
-            return (
+        </div>
+
+        {newViewTip && (
+          <p className="mt-2 text-[12px] font-medium text-[#475569]">
+            Use the Page and Ads filters below to slice advertisers by platform, industry, or active volume.
+          </p>
+        )}
+
+        {/* Row 2: Filters Hide + Sort: Recommended */}
+        <div className="flex flex-wrap items-center gap-2 pb-2.5 pt-3">
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => setFiltersOpen((v) => !v)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px] font-medium text-[#0F172A] hover:border-[#d6d6e0]"
+          >
+            <Filter className="h-3.5 w-3.5 text-[#64748B]" />
+            <span className="font-semibold">Filters</span>
+            <span className="text-[12.5px] text-[#64748B]">
+              {filtersOpen ? "Hide" : "Show"}
+            </span>
+            {activeFilterCount > 0 && (
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0027eb] px-1 font-mono-num text-[10px] font-bold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+            <MicroCaret open={filtersOpen} />
+          </button>
+
+          <button
+            ref={sortBtnRef}
+            type="button"
+            data-no-glass="true"
+            onClick={() => setOpenMenu(openMenu === "sort" ? null : "sort")}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px] font-medium text-[#0F172A] hover:border-[#d6d6e0]"
+          >
+            <ArrowUpDown className="h-3.5 w-3.5 text-[#64748B]" />
+            <span className="text-[#64748B]">Sort:</span>
+            <span className="font-semibold text-[#0F172A]">{activeSortLabel}</span>
+            <MicroCaret open={openMenu === "sort"} />
+          </button>
+
+          <FlakePopover
+            open={openMenu === "sort"}
+            onOpenChange={(o) => setOpenMenu(o ? "sort" : null)}
+            anchorRef={sortBtnRef}
+            align="left"
+            width={220}
+          >
+            <div className="p-1.5">
+              {ADVERTISER_SORT_OPTIONS.map((opt) => {
+                const active = sortBy === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => {
+                      setSortBy(opt.value);
+                      setOpenMenu(null);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-[12.5px] ${
+                      active
+                        ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                        : "font-medium text-[#334155] hover:bg-[#f5f5fa]"
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {active && <Check className="h-3.5 w-3.5 text-[#0F172A]" />}
+                  </button>
+                );
+              })}
+            </div>
+          </FlakePopover>
+
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => {
+                setIndustryFilter("all");
+                setActiveAdsMin(null);
+                setPlatformFilter("all");
+              }}
+              className="ml-1 text-[12.5px] font-medium text-[#475569] hover:text-[#0F172A]"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        {/* Row 3: 2-Row #f5f5fa Filter Box (Page + Ads) */}
+        {filtersOpen && (
+          <div className="space-y-2 rounded-[10px] bg-[#f5f5fa] px-4 py-3">
+            {/* Page Row */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="w-[46px] shrink-0 text-[12.5px] font-medium text-[#64748B]">
+                Page
+              </span>
+
               <button
-                key={ind}
+                ref={platformBtnRef}
                 type="button"
                 data-no-glass="true"
-                onClick={() => setIndustryFilter(active ? "all" : ind)}
-                className={`shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
-                  active
-                    ? "border-[#0F172A] bg-[#0F172A] text-white"
-                    : "border-[#E6E9F0] bg-[#F7F8FB] text-[#475569] hover:text-[#0F172A]"
-                }`}
+                onClick={() =>
+                  setOpenMenu(openMenu === "platform" ? null : "platform")
+                }
+                className={pillClass(platformFilter !== "all")}
               >
-                {ind}
+                <span>
+                  {platformFilter === "all"
+                    ? "Platform"
+                    : `Platform: ${platformFilter}`}
+                </span>
+                <MicroCaret open={openMenu === "platform"} />
               </button>
-            );
-          })}
-        </div>
+
+              <FlakePopover
+                open={openMenu === "platform"}
+                onOpenChange={(o) => setOpenMenu(o ? "platform" : null)}
+                anchorRef={platformBtnRef}
+                align="left"
+                width={200}
+              >
+                <div className="p-1.5">
+                  {(["all", "Meta", "TikTok"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setPlatformFilter(p);
+                        setOpenMenu(null);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-[12.5px] ${
+                        platformFilter === p
+                          ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                          : "font-medium text-[#334155] hover:bg-[#f5f5fa]"
+                      }`}
+                    >
+                      <span>{p === "all" ? "All platforms" : p}</span>
+                      {platformFilter === p && (
+                        <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </FlakePopover>
+
+              <button
+                ref={industryBtnRef}
+                type="button"
+                data-no-glass="true"
+                onClick={() =>
+                  setOpenMenu(openMenu === "industry" ? null : "industry")
+                }
+                className={pillClass(industryFilter !== "all")}
+              >
+                <span>
+                  {industryFilter === "all"
+                    ? "Industry"
+                    : `Industry: ${industryFilter}`}
+                </span>
+                <MicroCaret open={openMenu === "industry"} />
+              </button>
+
+              <FlakePopover
+                open={openMenu === "industry"}
+                onOpenChange={(o) => setOpenMenu(o ? "industry" : null)}
+                anchorRef={industryBtnRef}
+                align="left"
+                width={230}
+                maxHeight={280}
+              >
+                <div className="workspace-scroll overflow-y-auto p-1.5">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => {
+                      setIndustryFilter("all");
+                      setOpenMenu(null);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-[12.5px] ${
+                      industryFilter === "all"
+                        ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                        : "font-medium text-[#334155] hover:bg-[#f5f5fa]"
+                    }`}
+                  >
+                    <span>All industries</span>
+                    {industryFilter === "all" && (
+                      <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                    )}
+                  </button>
+                  {industries.map((ind) => (
+                    <button
+                      key={ind}
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setIndustryFilter(ind);
+                        setOpenMenu(null);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-[12.5px] ${
+                        industryFilter === ind
+                          ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                          : "font-medium text-[#334155] hover:bg-[#f5f5fa]"
+                      }`}
+                    >
+                      <span className="truncate">{ind}</span>
+                      {industryFilter === ind && (
+                        <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </FlakePopover>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setSortBy("followers")}
+                className={pillClass(sortBy === "followers")}
+              >
+                <span>Followers</span>
+                <MicroCaret />
+              </button>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setSortBy("recommended")}
+                className={pillClass(false)}
+              >
+                <span>Page created</span>
+                <MicroCaret />
+              </button>
+            </div>
+
+            {/* Ads Row */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="w-[46px] shrink-0 text-[12.5px] font-medium text-[#64748B]">
+                Ads
+              </span>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                className={pillClass(false)}
+              >
+                <span>Country</span>
+                <MicroCaret />
+              </button>
+
+              <button
+                ref={activeAdsBtnRef}
+                type="button"
+                data-no-glass="true"
+                onClick={() =>
+                  setOpenMenu(openMenu === "active_ads" ? null : "active_ads")
+                }
+                className={pillClass(activeAdsMin !== null)}
+              >
+                <span>
+                  {activeAdsMin !== null
+                    ? `Active ads: ≥${activeAdsMin}`
+                    : "Active ads"}
+                </span>
+                <MicroCaret open={openMenu === "active_ads"} />
+              </button>
+
+              <FlakePopover
+                open={openMenu === "active_ads"}
+                onOpenChange={(o) => setOpenMenu(o ? "active_ads" : null)}
+                anchorRef={activeAdsBtnRef}
+                align="left"
+                width={210}
+              >
+                <div className="p-1.5">
+                  {[
+                    { label: "Any active ads", val: null },
+                    { label: "≥ 50 active ads", val: 50 },
+                    { label: "≥ 100 active ads", val: 100 },
+                    { label: "≥ 250 active ads", val: 250 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => {
+                        setActiveAdsMin(opt.val);
+                        setOpenMenu(null);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-[12.5px] ${
+                        activeAdsMin === opt.val
+                          ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                          : "font-medium text-[#334155] hover:bg-[#f5f5fa]"
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {activeAdsMin === opt.val && (
+                        <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </FlakePopover>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setSortBy("new_ads_30d")}
+                className={pillClass(sortBy === "new_ads_30d")}
+              >
+                <span>Ads launched</span>
+                <MicroCaret />
+              </button>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                className={pillClass(false)}
+              >
+                <span>Language</span>
+                <MicroCaret />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 6-Column Advertisers Table */}
-      <div className="overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+      {/* 6-COLUMN ATRIA ADVERTISERS TABLE (BLACK HEADERS) */}
+      <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[780px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-[#EAECEF] bg-[#F7F8FB] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                <th className="px-4 py-3">Advertiser</th>
-                <th className="px-4 py-3">Followers</th>
-                <th className="px-4 py-3">New ads (30d)</th>
-                <th className="px-4 py-3">Active ads</th>
-                <th className="px-4 py-3">Total ads</th>
-                <th className="px-4 py-3 text-right">Follow</th>
+              <tr className="border-b border-[#ebebf3] bg-white text-[13px] font-semibold text-[#0F172A]">
+                <th className="px-5 py-3">Advertiser</th>
+                <th className="px-4 py-3">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setSortBy("followers")}
+                    className="inline-flex items-center gap-1 font-semibold text-[#0F172A]"
+                  >
+                    <span>Followers</span>
+                    <ArrowUpDown className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  </button>
+                </th>
+                <th className="px-4 py-3">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setSortBy("new_ads_30d")}
+                    className="inline-flex items-center gap-1 font-semibold text-[#0F172A]"
+                  >
+                    <span>New ads (30d)</span>
+                    <Info className="h-3.5 w-3.5 text-[#94A3B8]" />
+                    <ArrowUpDown className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  </button>
+                </th>
+                <th className="px-4 py-3">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setSortBy("active_ads")}
+                    className="inline-flex items-center gap-1 font-semibold text-[#0F172A]"
+                  >
+                    <span>Active ads</span>
+                    <Info className="h-3.5 w-3.5 text-[#94A3B8]" />
+                    <ArrowUpDown className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  </button>
+                </th>
+                <th className="px-4 py-3">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setSortBy("total_ads")}
+                    className="inline-flex items-center gap-1 font-semibold text-[#0F172A]"
+                  >
+                    <span>Total ads</span>
+                    <ArrowUpDown className="h-3.5 w-3.5 text-[#94A3B8]" />
+                  </button>
+                </th>
+                <th className="px-5 py-3 text-right">Follow</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F1F4F9]">
+            <tbody className="divide-y divide-[#ebebf3]">
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-14 text-center">
-                    <p className="font-display text-sm font-semibold text-[#0F172A]">
+                    <p className="font-sans text-sm font-semibold text-[#0F172A]">
                       No advertisers match your filters
                     </p>
                     <p className="mt-1 text-xs text-[#64748B]">
@@ -987,10 +1233,10 @@ export function AdvertisersView({
                   return (
                     <tr
                       key={row.id}
-                      className="transition-colors hover:bg-[#F7F8FB]/75"
+                      className="transition-colors hover:bg-[#f5f5fa]/65"
                     >
-                      {/* Col 1: Advertiser */}
-                      <td className="px-4 py-3.5">
+                      {/* Col 1: Advertiser (40x40 avatar + tiny Meta badge + bold name + Meta · Industry) */}
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
@@ -1002,36 +1248,39 @@ export function AdvertisersView({
                               row.isTracked ? "cursor-pointer" : "cursor-default"
                             }`}
                           >
-                            {row.avatarUrl ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={row.avatarUrl}
-                                alt={row.name}
-                                className="h-9 w-9 shrink-0 rounded-full border border-[#E6E9F0] bg-white object-cover"
-                              />
-                            ) : (
-                              <span
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-white"
-                                style={{ backgroundColor: row.avatarColor }}
-                              >
-                                {row.initials}
+                            <div className="relative h-10 w-10 shrink-0">
+                              {row.avatarUrl ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={row.avatarUrl}
+                                  alt={row.name}
+                                  className="h-10 w-10 rounded-full border border-[#ebebf3] bg-white object-cover"
+                                />
+                              ) : (
+                                <span
+                                  className="flex h-10 w-10 items-center justify-center rounded-full font-display text-xs font-bold text-white"
+                                  style={{ backgroundColor: row.avatarColor }}
+                                >
+                                  {row.initials}
+                                </span>
+                              )}
+                              <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-[#ebebf3] bg-white shadow-2xs">
+                                <MetaInfinityIcon className="h-2.5 w-2.5" />
                               </span>
-                            )}
+                            </div>
+
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="truncate font-display text-[13.5px] font-semibold text-[#0F172A]">
+                                <span className="truncate font-sans text-[13.5px] font-semibold text-[#0F172A]">
                                   {row.name}
                                 </span>
                                 {row.isTracked && (
                                   <ExternalLink className="h-3 w-3 shrink-0 text-[#94A3B8]" />
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-[11.5px] text-[#64748B]">
-                                <span className="truncate">{row.domain}</span>
-                                <span className="rounded-md bg-[#F3F5F9] px-1.5 py-0.5 text-[10px] font-medium text-[#475569]">
-                                  {row.industry}
-                                </span>
-                              </div>
+                              <p className="truncate text-[12px] text-[#64748B]">
+                                Meta &middot; {row.industry}
+                              </p>
                             </div>
                           </button>
 
@@ -1041,74 +1290,71 @@ export function AdvertisersView({
                               data-no-glass="true"
                               title={`Clone top ad from ${row.name}`}
                               onClick={() => onCloneAd(row.topAd!)}
-                              className="ml-auto hidden items-center gap-1 rounded-lg border border-[#E6E9F0] bg-white px-2 py-1 text-[11px] font-semibold text-[#334155] transition-colors hover:border-[#0027eb] hover:text-[#0027eb] xl:inline-flex"
+                              className="ml-auto hidden items-center gap-1 rounded-[6px] border border-[#ebebf3] bg-white px-2 py-1 text-[11.5px] font-medium text-[#0F172A] transition-colors hover:border-[#d6d6e0] hover:bg-[#f5f5fa] xl:inline-flex"
                             >
-                              <Sparkles className="h-3 w-3" />
+                              <Sparkles className="h-3 w-3 text-[#475569]" />
                               Clone
                             </button>
                           )}
                         </div>
                       </td>
 
-                      {/* Col 2: Followers FB + IG */}
-                      <td className="px-4 py-3.5 font-mono-num text-xs text-[#334155]">
-                        <div className="flex flex-col gap-0.5">
-                          <span>
-                            <span className="font-semibold text-[#64748B]">FB</span>{" "}
-                            {row.fbFollowers}
+                      {/* Col 2: Followers (FB + IG inline icons matching step_36.png) */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-3 font-mono-num text-[13px] font-medium text-[#0F172A]">
+                          <span className="inline-flex items-center gap-1.5">
+                            <FacebookColorIcon className="h-4 w-4 shrink-0" />
+                            <span>{row.fbFollowers}</span>
                           </span>
-                          <span>
-                            <span className="font-semibold text-[#64748B]">IG</span>{" "}
-                            {row.igFollowers}
+                          <span className="inline-flex items-center gap-1.5">
+                            <InstagramColorIcon className="h-4 w-4 shrink-0" />
+                            <span>{row.igFollowers}</span>
                           </span>
                         </div>
                       </td>
 
-                      {/* Col 3: New ads (30d) + green +X% badge */}
+                      {/* Col 3: New ads (30d) + soft green ↑ X% pill */}
                       <td className="px-4 py-3.5">
                         <div className="inline-flex items-center gap-2 font-mono-num">
-                          <span className="text-sm font-semibold text-[#0F172A]">
-                            {row.newAds30d}
+                          <span className="text-[13.5px] font-medium text-[#0F172A]">
+                            {row.newAds30d.toLocaleString("en-US")}
                           </span>
-                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-                            +{row.growthPct}%
+                          <span className="rounded bg-[#ECFDF3] px-1.5 py-0.5 text-[11.5px] font-semibold text-[#15803D]">
+                            ↑ {row.growthPct}%
                           </span>
                         </div>
                       </td>
 
                       {/* Col 4: Active ads */}
-                      <td className="px-4 py-3.5 font-mono-num text-sm font-semibold text-[#0F172A]">
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                          {row.activeAds.toLocaleString()}
-                        </span>
+                      <td className="px-4 py-3.5 font-mono-num text-[13.5px] font-medium text-[#0F172A]">
+                        {row.activeAds.toLocaleString("en-US")}
                       </td>
 
                       {/* Col 5: Total ads */}
-                      <td className="px-4 py-3.5 font-mono-num text-sm font-medium text-[#475569]">
-                        {row.totalAds.toLocaleString()}
+                      <td className="px-4 py-3.5 font-mono-num text-[13.5px] font-medium text-[#0F172A]">
+                        {row.totalAds.toLocaleString("en-US")}
                       </td>
 
-                      {/* Col 6: Follow / Following Cobalt pill */}
-                      <td className="px-4 py-3.5 text-right">
+                      {/* Col 6: Follow / Following */}
+                      <td className="px-5 py-3.5 text-right">
                         <button
                           type="button"
                           data-no-glass="true"
                           onClick={() => onToggleFollow(row.id)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                          className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] px-3.5 text-[12.5px] font-semibold transition-colors ${
                             following
-                              ? "border border-[#0027eb]/30 bg-[#EEF2FF] text-[#0027eb] hover:bg-[#dde5ff]"
-                              : "adtrack-btn-primary text-white"
+                              ? "border border-[#d6d6e0] bg-[#f5f5fa] text-[#0F172A] hover:bg-[#ECECF4]"
+                              : "bg-[#0027eb] text-white hover:bg-[#001fc2]"
                           }`}
                         >
                           {following ? (
                             <>
-                              <Check className="h-3.5 w-3.5" />
+                              <Check className="h-3.5 w-3.5 text-[#475569]" />
                               Following
                             </>
                           ) : (
                             <>
-                              <Plus className="h-3.5 w-3.5" />
+                              <Plus className="h-3.5 w-3.5 text-white" />
                               Follow
                             </>
                           )}
@@ -1127,7 +1373,7 @@ export function AdvertisersView({
 }
 
 /* ============================================================================
-   3. TOP PICKS VIEW (/workspace/collection)
+   3. TOP PICKS VIEW (/workspace/collection) — ATRIA step_38.png 1:1
    ============================================================================ */
 
 export interface TopPicksViewProps {
@@ -1143,139 +1389,134 @@ export function TopPicksView({
     null
   );
 
-  const steps = [
-    {
-      num: "1.",
-      title: "Browse winning formats",
-      desc: "Curated static & video collections from top-scaling DTC brands.",
-    },
-    {
-      num: "2.",
-      title: "Preview examples",
-      desc: "Inspect creative hierarchy, hook callouts, and template structure.",
-    },
-    {
-      num: "3.",
-      title: "Clone directly in Ad Maker",
-      desc: "Adapt any winning format to your own product memory in one click.",
-    },
-  ];
-
   return (
-    <div className="animate-view-in space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[#0F172A]">
-            Top Picks with Studio &amp; Canva templates
-          </h1>
-          <p className="mt-1 text-sm text-[#64748B]">
-            Create winning ads from proven creative formats. New templates added regularly.
-          </p>
+    <div className="animate-view-in">
+      {/* WHITE STICKY HEADER WITH 3-STEP HORIZONTAL FLOW (step_38.png) */}
+      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-6 py-5 sm:-mx-6 lg:-mx-7 lg:-mt-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-sans text-[22px] font-bold tracking-tight text-[#0F172A]">
+              Top Picks with Canva templates
+            </h1>
+            <p className="mt-1 text-[13.5px] text-[#475569]">
+              Create winning ads from 500+ templates. New templates are added
+              frequently.
+            </p>
+          </div>
+
+          {onBrowseAds && (
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={onBrowseAds}
+              className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+            >
+              <span>Browse Ads</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-[#475569]" />
+            </button>
+          )}
         </div>
 
-        {onBrowseAds && (
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={onBrowseAds}
-            className="inline-flex items-center gap-1.5 self-start rounded-xl border border-[#E6E9F0] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A] transition-colors hover:bg-[#F7F8FB]"
-          >
-            Browse Discovery feed
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* 3-Step Horizontal Instruction Strip */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        {steps.map((step) => (
-          <div
-            key={step.num}
-            className="flex items-start gap-3 rounded-2xl border border-[#E6E9F0] bg-[#F7F8FB] px-4 py-3.5"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0027eb] font-mono-num text-xs font-bold text-white">
-              {step.num}
+        {/* 3-Step Horizontal Flow */}
+        <div className="mt-4 flex flex-wrap items-center gap-3.5 text-[13px] font-medium text-[#0F172A]">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#EEF2FF]">
+              <ImageIcon className="h-4 w-4 text-[#0F172A]" />
             </span>
-            <div className="min-w-0">
-              <p className="font-display text-[13px] font-semibold text-[#0F172A]">
-                {step.num} {step.title}
-              </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-[#64748B]">
-                {step.desc}
-              </p>
-            </div>
+            <span className="max-w-[140px] leading-snug">
+              Click an ad you like
+            </span>
           </div>
-        ))}
+
+          <ArrowRight className="h-4 w-4 shrink-0 text-[#94A3B8]" />
+
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#EEF2FF]">
+              <LayoutGrid className="h-4 w-4 text-[#0F172A]" />
+            </span>
+            <span className="max-w-[205px] leading-snug">
+              Click &ldquo;Edit in template&rdquo; to open Canva template
+            </span>
+          </div>
+
+          <ArrowRight className="h-4 w-4 shrink-0 text-[#94A3B8]" />
+
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#EEF2FF]">
+              <Sparkles className="h-4 w-4 text-[#0F172A]" />
+            </span>
+            <span className="max-w-[215px] leading-snug">
+              Click &ldquo;Make ad copy&rdquo; to make ad copy using AI
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* 12 Stacked Horizontal Collection Cards */}
-      <div className="space-y-3">
-        {ATRIA_TOP_PICKS_COLLECTIONS.map((col) => (
-          <article
-            key={col.id}
-            className="flex flex-col justify-between gap-4 rounded-2xl border border-[#E6E9F0] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all hover:border-[#CBD5E1] hover:shadow-[0_10px_28px_-10px_rgba(15,23,42,0.09)] md:flex-row md:items-center"
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              {/* Thumbnail Left */}
-              <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-xl border border-[#EAECEF] bg-[#F7F8FB] sm:h-28 sm:w-44">
+      {/* HORIZONTAL FULL-WIDTH COLLECTION CARDS ON #f5f5fa CANVAS */}
+      <div className="mt-5 space-y-3.5">
+        {ATRIA_TOP_PICKS_COLLECTIONS.map((col) => {
+          const thumbSrc = resolveCollectionThumb(col);
+          const cleanTitle = sanitizeCollectionTitle(col);
+          return (
+            <article
+              key={col.id}
+              className="flex flex-col items-stretch gap-5 rounded-[12px] border border-[#ebebf3] bg-white p-4 transition-colors hover:border-[#d6d6e0] sm:flex-row"
+            >
+              {/* 128x128 Square Collection Thumbnail */}
+              <div className="h-[128px] w-full shrink-0 overflow-hidden rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] sm:w-[128px]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={col.thumbnailUrl}
-                  alt={col.title}
+                  src={thumbSrc}
+                  alt={cleanTitle}
                   loading="lazy"
                   className="h-full w-full object-cover"
                 />
-                {col.badge && (
-                  <span className="absolute left-2 top-2 rounded-md bg-[#050811]/85 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs">
-                    {col.badge}
-                  </span>
-                )}
               </div>
 
-              {/* Middle Details */}
-              <div className="min-w-0 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
-                    {col.category}
-                  </span>
-                  <span className="font-mono-num text-xs font-medium text-[#64748B]">
+              {/* Right Details + Bottom-Right Buttons */}
+              <div className="flex min-w-0 flex-1 flex-col justify-between">
+                <div>
+                  <h2 className="font-sans text-[15px] font-bold text-[#0F172A]">
+                    {cleanTitle}
+                  </h2>
+                  <p className="mt-0.5 font-mono-num text-[12.5px] text-[#64748B]">
                     {col.adCount} Ads | {col.templateCount} Templates
-                  </span>
+                  </p>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-[#475569]">
+                    {col.description}
+                  </p>
                 </div>
 
-                <h2 className="font-display text-base font-bold text-[#0F172A]">
-                  {col.title}
-                </h2>
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setPreviewCol({ ...col, title: cleanTitle, thumbnailUrl: thumbSrc })}
+                    className="inline-flex h-8 items-center justify-center rounded-[8px] border border-[#d6d6e0] bg-white px-4 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+                  >
+                    Preview
+                  </button>
 
-                <p className="max-w-2xl text-[13px] leading-relaxed text-[#475569]">
-                  {col.description}
-                </p>
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() =>
+                      onCloneCollectionToStudio({
+                        ...col,
+                        title: cleanTitle,
+                        thumbnailUrl: thumbSrc,
+                      })
+                    }
+                    className="inline-flex h-8 items-center justify-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                    <span>Clone templates</span>
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {/* Right Actions */}
-            <div className="flex shrink-0 flex-wrap items-center gap-2 md:flex-col md:items-stretch lg:flex-row lg:items-center">
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={() => setPreviewCol(col)}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-4 py-2.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
-              >
-                Preview
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onCloneCollectionToStudio(col)}
-                className="adtrack-btn-primary inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Clone in Ad Maker
-              </button>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
       {/* Preview Modal */}
@@ -1289,14 +1530,14 @@ export function TopPicksView({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="animate-sheet-up w-full max-w-2xl overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white shadow-2xl"
+            className="animate-sheet-up w-full max-w-2xl overflow-hidden rounded-[16px] border border-[#ebebf3] bg-white shadow-2xl"
           >
-            <div className="flex items-center justify-between border-b border-[#EAECEF] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[#ebebf3] px-5 py-4">
               <div className="min-w-0">
-                <span className="inline-block rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[10.5px] font-semibold text-[#0027eb]">
+                <span className="inline-block rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
                   {previewCol.category}
                 </span>
-                <h3 className="mt-1 truncate font-display text-lg font-bold text-[#0F172A]">
+                <h3 className="mt-1 truncate font-sans text-lg font-bold text-[#0F172A]">
                   {previewCol.title}
                 </h3>
               </div>
@@ -1306,14 +1547,14 @@ export function TopPicksView({
                 data-no-glass="true"
                 onClick={() => setPreviewCol(null)}
                 aria-label="Close preview"
-                className="rounded-xl border border-[#E6E9F0] bg-white p-2 text-[#64748B] hover:text-[#0F172A]"
+                className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#64748B] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 text-[#64748B]" />
               </button>
             </div>
 
             <div className="space-y-4 p-5">
-              <div className="overflow-hidden rounded-xl border border-[#EAECEF] bg-[#F7F8FB]">
+              <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-[#f5f5fa]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={previewCol.thumbnailUrl}
@@ -1322,8 +1563,8 @@ export function TopPicksView({
                 />
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#F7F8FB] px-4 py-3">
-                <span className="font-mono-num text-xs font-semibold text-[#0F172A]">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] bg-[#f5f5fa] px-4 py-3">
+                <span className="font-mono-num text-[12.5px] font-semibold text-[#0F172A]">
                   {previewCol.adCount} Ads | {previewCol.templateCount} Templates
                 </span>
                 {previewCol.badge && (
@@ -1333,31 +1574,32 @@ export function TopPicksView({
                 )}
               </div>
 
-              <p className="text-sm leading-relaxed text-[#475569]">
+              <p className="text-[13.5px] leading-relaxed text-[#475569]">
                 {previewCol.description}
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 border-t border-[#EAECEF] bg-[#F7F8FB] px-5 py-3.5">
+            <div className="flex items-center justify-end gap-2.5 border-t border-[#ebebf3] bg-white px-5 py-3.5">
               <button
                 type="button"
                 data-no-glass="true"
                 onClick={() => setPreviewCol(null)}
-                className="rounded-xl border border-[#E6E9F0] bg-white px-4 py-2 text-xs font-semibold text-[#334155] hover:bg-[#F3F5F9]"
+                className="h-9 rounded-[8px] border border-[#d6d6e0] bg-white px-4 text-[13px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
               >
                 Close
               </button>
               <button
                 type="button"
+                data-no-glass="true"
                 onClick={() => {
                   const chosen = previewCol;
                   setPreviewCol(null);
                   onCloneCollectionToStudio(chosen);
                 }}
-                className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[13px] font-semibold text-white hover:bg-[#001fc2]"
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                Clone in Ad Maker
+                <Sparkles className="h-3.5 w-3.5 text-white" />
+                Clone templates
               </button>
             </div>
           </div>
@@ -1368,7 +1610,7 @@ export function TopPicksView({
 }
 
 /* ============================================================================
-   4. FOLLOWING VIEW (/workspace/following/brands)
+   4. FOLLOWING VIEW (/workspace/following/brands) — ATRIA step_40.png 1:1
    ============================================================================ */
 
 export interface FollowingViewProps {
@@ -1390,7 +1632,9 @@ export function FollowingView({
 }: FollowingViewProps) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
-  const [sortBy, setSortBy] = useState<"latest" | "active_ads" | "alpha">("latest");
+  const [sortBy, setSortBy] = useState<"latest" | "active_ads" | "alpha">(
+    "latest"
+  );
 
   const followedItems = useMemo(() => {
     const brandMap = new Map(brands.map((b) => [b.id, b]));
@@ -1444,7 +1688,7 @@ export function FollowingView({
             name: p.name,
             domain: p.domain,
             category: p.industry,
-            avatarUrl: p.avatarUrl,
+            avatarUrl: LOCAL_ADVERTISER_AVATARS[p.id] || p.avatarUrl,
             initials: p.name.slice(0, 2).toUpperCase(),
             avatarColor: "#0F172A",
             activeAds: p.activeAds,
@@ -1480,145 +1724,152 @@ export function FollowingView({
   const progressPct = Math.min(100, Math.round((usedCount / followQuota) * 100));
 
   return (
-    <div className="animate-view-in space-y-5">
-      {/* Header + Cobalt Follow Quota Progress */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-[#E6E9F0] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[#0F172A]">
-            Following
-          </h1>
-          <p className="mt-1 text-sm text-[#64748B]">
-            Monitor new ad launches and active creative volume from your followed brands.
-          </p>
+    <div className="animate-view-in">
+      {/* WHITE TOP BAR + SUB-TOOLBAR (step_40.png 1:1) */}
+      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white sm:-mx-6 lg:-mx-7 lg:-mt-6">
+        {/* Row 1: Following + Search + Quota Widget */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#ebebf3] px-6 py-3.5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-5">
+            <h1 className="font-sans text-[20px] font-bold tracking-tight text-[#0F172A]">
+              Following
+            </h1>
+
+            <div className="relative flex h-9 w-full max-w-[440px] items-center rounded-[8px] border border-[#d6d6e0] bg-white px-3 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/12">
+              <Search className="mr-2 h-4 w-4 shrink-0 text-[#64748B]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search your followed brands"
+                className="w-full bg-transparent text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+              />
+              {search && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setSearch("")}
+                  className="ml-1 text-[#94A3B8] hover:text-[#0F172A]"
+                >
+                  <X className="h-3.5 w-3.5 text-[#64748B]" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="w-[180px] shrink-0 space-y-1.5">
+            <div className="flex items-baseline gap-1 text-[12px]">
+              <span className="font-mono-num font-bold text-[#0F172A]">
+                {usedCount}/{followQuota}
+              </span>
+              <span className="text-[#64748B]">brand follows used</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#ECEFF4]">
+              <div
+                className="h-full rounded-full bg-[#0027eb] transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="w-full max-w-xs space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-[#334155]">Brand follows</span>
-            <span className="font-mono-num text-[#0027eb]">
-              {usedCount}/{followQuota} brand follows used
-            </span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-[#EEF2FF]">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#0027eb] to-[#3B66FF] transition-all duration-300"
-              style={{ width: `${progressPct}%` }}
+        {/* Row 2: Card/Table Toggle + Sort + Can't find a brand? */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="inline-flex rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] p-0.5">
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setViewMode("card")}
+                aria-label="Card view"
+                className={`flex h-7 w-8 items-center justify-center rounded-[6px] transition-colors ${
+                  viewMode === "card"
+                    ? "bg-white text-[#0F172A] shadow-2xs"
+                    : "text-[#64748B] hover:text-[#0F172A]"
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5 text-[#475569]" />
+              </button>
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setViewMode("table")}
+                aria-label="Table view"
+                className={`flex h-7 w-8 items-center justify-center rounded-[6px] transition-colors ${
+                  viewMode === "table"
+                    ? "bg-white text-[#0F172A] shadow-2xs"
+                    : "text-[#64748B] hover:text-[#0F172A]"
+                }`}
+              >
+                <List className="h-3.5 w-3.5 text-[#475569]" />
+              </button>
+            </div>
+
+            <FlakeSelect
+              ariaLabel="Sort followed brands"
+              value={sortBy}
+              onChange={(v) => setSortBy(v as "latest" | "active_ads" | "alpha")}
+              variant="bordered"
+              icon={<ArrowUpDown className="h-3.5 w-3.5 text-[#64748B]" />}
+              options={[
+                { value: "latest", label: "Sort: Latest followed" },
+                { value: "active_ads", label: "Sort: Most active ads" },
+                { value: "alpha", label: "Sort: Alphabetical" },
+              ]}
             />
           </div>
+
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={onBrowseBrands}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-black/[0.04] hover:text-[#0027eb]"
+          >
+            <HelpCircle className="h-4 w-4 text-[#475569]" />
+            <span>Can&apos;t find a brand?</span>
+          </button>
         </div>
       </div>
 
-      {/* Controls Bar */}
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search your followed brands"
-            className="h-10 w-full rounded-xl border border-[#E6E9F0] bg-white pl-9 pr-8 text-sm text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-colors focus:border-[#0027eb]"
-          />
-          {search && (
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#0F172A]"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <FlakeSelect
-            ariaLabel="Sort followed brands"
-            value={sortBy}
-            onChange={(v) => setSortBy(v as "latest" | "active_ads" | "alpha")}
-            variant="bordered"
-            options={[
-              { value: "latest", label: "Sort: Latest followed" },
-              { value: "active_ads", label: "Sort: Most active ads" },
-              { value: "alpha", label: "Sort: Alphabetical" },
-            ]}
-          />
-
-          {/* Card / Table Segmented Toggle */}
-          <div className="inline-flex rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] p-0.5">
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setViewMode("card")}
-              aria-label="Card view"
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                viewMode === "card"
-                  ? "bg-white text-[#0F172A] shadow-xs"
-                  : "text-[#64748B] hover:text-[#0F172A]"
-              }`}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              Card
-            </button>
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setViewMode("table")}
-              aria-label="Table view"
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                viewMode === "table"
-                  ? "bg-white text-[#0F172A] shadow-xs"
-                  : "text-[#64748B] hover:text-[#0F172A]"
-              }`}
-            >
-              <List className="h-3.5 w-3.5" />
-              Table
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Empty State or Followed Brands */}
+      {/* EMPTY STATE OR FOLLOWED BRANDS ON #f5f5fa CANVAS */}
       {followedBrandIds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-6 py-16 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#0027eb]">
-            <Heart className="h-6 w-6" />
-          </div>
-          <h2 className="mt-4 font-display text-lg font-bold text-[#0F172A]">
+        <div className="flex flex-col items-center justify-center px-6 py-24 text-center">
+          <Heart className="h-12 w-12 stroke-[1.5] text-[#94A3B8]" />
+          <h2 className="mt-4 font-sans text-[18px] font-bold text-[#0F172A]">
             You are not following any brands yet
           </h2>
-          <p className="mt-1 max-w-md text-sm text-[#64748B]">
-            Follow top advertisers to track their newest Meta ad launches and scaling creatives in one place.
+          <p className="mt-1.5 max-w-md text-[13.5px] leading-relaxed text-[#475569]">
+            Follow a brand from the Brands list or from any ad card. Its new ads
+            land in Ads &rarr; Following.
           </p>
           <button
             type="button"
+            data-no-glass="true"
             onClick={onBrowseBrands}
-            className="adtrack-btn-primary mt-5 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold text-white"
+            className="mt-5 inline-flex h-9 items-center justify-center rounded-[8px] bg-[#0027eb] px-5 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
           >
             Browse brands
-            <ArrowUpRight className="h-3.5 w-3.5" />
           </button>
         </div>
       ) : followedItems.length === 0 ? (
-        <div className="rounded-2xl border border-[#E6E9F0] bg-white px-6 py-12 text-center">
-          <p className="font-display text-sm font-semibold text-[#0F172A]">
+        <div className="mt-5 rounded-[12px] border border-[#ebebf3] bg-white px-6 py-12 text-center">
+          <p className="font-sans text-sm font-semibold text-[#0F172A]">
             No followed brands match &ldquo;{search}&rdquo;
           </p>
           <button
             type="button"
             data-no-glass="true"
             onClick={() => setSearch("")}
-            className="mt-3 rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] px-3.5 py-1.5 text-xs font-semibold text-[#334155]"
+            className="mt-3 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A] hover:bg-[#f5f5fa]"
           >
             Clear search
           </button>
         </div>
       ) : viewMode === "card" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {followedItems.map((item) => (
             <article
               key={item.id}
-              className="flex flex-col justify-between rounded-2xl border border-[#E6E9F0] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all hover:border-[#CBD5E1] hover:shadow-[0_10px_24px_-10px_rgba(15,23,42,0.08)]"
+              className="flex flex-col justify-between rounded-[12px] border border-[#ebebf3] bg-white p-4 transition-colors hover:border-[#d6d6e0]"
             >
               <div className="flex items-start justify-between gap-3">
                 <button
@@ -1636,21 +1887,23 @@ export function FollowingView({
                     <img
                       src={item.avatarUrl}
                       alt={item.name}
-                      className="h-11 w-11 shrink-0 rounded-full border border-[#E6E9F0] bg-white object-cover"
+                      className="h-10 w-10 shrink-0 rounded-full border border-[#ebebf3] bg-white object-cover"
                     />
                   ) : (
                     <span
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-display text-sm font-bold text-white"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-white"
                       style={{ backgroundColor: item.avatarColor }}
                     >
                       {item.initials}
                     </span>
                   )}
                   <div className="min-w-0">
-                    <h3 className="truncate font-display text-sm font-bold text-[#0F172A]">
+                    <h3 className="truncate font-sans text-[14px] font-bold text-[#0F172A]">
                       {item.name}
                     </h3>
-                    <p className="truncate text-xs text-[#64748B]">{item.domain}</p>
+                    <p className="truncate text-[12px] text-[#64748B]">
+                      {item.domain}
+                    </p>
                   </div>
                 </button>
 
@@ -1658,17 +1911,17 @@ export function FollowingView({
                   type="button"
                   data-no-glass="true"
                   onClick={() => onToggleFollow(item.id)}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#0027eb]/30 bg-[#EEF2FF] px-3 py-1 text-[11px] font-semibold text-[#0027eb] transition-colors hover:bg-[#dde5ff]"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-[8px] border border-[#d6d6e0] bg-[#f5f5fa] px-3 py-1 text-[11.5px] font-semibold text-[#0F172A] transition-colors hover:bg-[#ECECF4]"
                 >
-                  <Check className="h-3 w-3" />
+                  <Check className="h-3 w-3 text-[#475569]" />
                   Following
                 </button>
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-[#F1F4F9] pt-3">
-                <div className="flex items-center gap-4 font-mono-num text-xs">
+              <div className="mt-4 flex items-center justify-between border-t border-[#ebebf3] pt-3">
+                <div className="flex items-center gap-4 font-mono-num text-[12px]">
                   <span className="inline-flex items-center gap-1.5 font-semibold text-[#0F172A]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+                    <span className="h-2 w-2 rounded-full bg-[#5daa1e] ring-[3px] ring-[#e7ffd3]" />
                     {item.activeAds} active
                   </span>
                   <span className="text-[#64748B]">{item.totalAds} total</span>
@@ -1679,13 +1932,13 @@ export function FollowingView({
                     type="button"
                     data-no-glass="true"
                     onClick={() => onOpenBrand(item.id)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#0027eb] hover:underline"
+                    className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#0027eb] hover:underline"
                   >
-                    Open brand
-                    <ArrowUpRight className="h-3.5 w-3.5" />
+                    <span>Open brand</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-[#475569]" />
                   </button>
                 ) : (
-                  <span className="rounded-md bg-[#F7F8FB] px-2 py-0.5 text-[11px] font-medium text-[#64748B]">
+                  <span className="rounded bg-[#f5f5fa] px-2 py-0.5 text-[11px] font-medium text-[#64748B]">
                     {item.category}
                   </span>
                 )}
@@ -1694,22 +1947,22 @@ export function FollowingView({
           ))}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white">
+        <div className="mt-5 overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-[#EAECEF] bg-[#F7F8FB] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  <th className="px-4 py-3">Brand</th>
+                <tr className="border-b border-[#ebebf3] bg-white text-[13px] font-semibold text-[#0F172A]">
+                  <th className="px-5 py-3">Brand</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Active ads</th>
                   <th className="px-4 py-3">Total ads</th>
-                  <th className="px-4 py-3 text-right">Status</th>
+                  <th className="px-5 py-3 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F1F4F9]">
+              <tbody className="divide-y divide-[#ebebf3]">
                 {followedItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-[#F7F8FB]/75">
-                    <td className="px-4 py-3">
+                  <tr key={item.id} className="hover:bg-[#f5f5fa]/65">
+                    <td className="px-5 py-3">
                       <button
                         type="button"
                         data-no-glass="true"
@@ -1723,7 +1976,7 @@ export function FollowingView({
                           <img
                             src={item.avatarUrl}
                             alt={item.name}
-                            className="h-8 w-8 rounded-full border border-[#E6E9F0] object-cover"
+                            className="h-8 w-8 rounded-full border border-[#ebebf3] object-cover"
                           />
                         ) : (
                           <span
@@ -1734,32 +1987,32 @@ export function FollowingView({
                           </span>
                         )}
                         <div>
-                          <div className="font-display text-xs font-semibold text-[#0F172A]">
+                          <div className="font-sans text-[13px] font-semibold text-[#0F172A]">
                             {item.name}
                           </div>
-                          <div className="text-[11px] text-[#64748B]">
+                          <div className="text-[11.5px] text-[#64748B]">
                             {item.domain}
                           </div>
                         </div>
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#475569]">
+                    <td className="px-4 py-3 text-[13px] text-[#475569]">
                       {item.category}
                     </td>
-                    <td className="px-4 py-3 font-mono-num text-xs font-semibold text-[#0F172A]">
+                    <td className="px-4 py-3 font-mono-num text-[13px] font-semibold text-[#0F172A]">
                       {item.activeAds}
                     </td>
-                    <td className="px-4 py-3 font-mono-num text-xs text-[#475569]">
+                    <td className="px-4 py-3 font-mono-num text-[13px] text-[#475569]">
                       {item.totalAds}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-3 text-right">
                       <button
                         type="button"
                         data-no-glass="true"
                         onClick={() => onToggleFollow(item.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-[#0027eb]/30 bg-[#EEF2FF] px-3 py-1 text-xs font-semibold text-[#0027eb]"
+                        className="inline-flex items-center gap-1 rounded-[8px] border border-[#d6d6e0] bg-[#f5f5fa] px-3 py-1 text-[12px] font-semibold text-[#0F172A] hover:bg-[#ECECF4]"
                       >
-                        <Check className="h-3 w-3" />
+                        <Check className="h-3 w-3 text-[#475569]" />
                         Following
                       </button>
                     </td>
@@ -1775,7 +2028,7 @@ export function FollowingView({
 }
 
 /* ============================================================================
-   5. SAVED ADS SUB-VIEW (/workspace/saved/ads)
+   5. SAVED ADS SUB-VIEW (/workspace/saved/ads) — ATRIA step_49.png 1:1
    ============================================================================ */
 
 export interface SavedAdsSubViewProps {
@@ -1800,11 +2053,14 @@ export function SavedAdsSubView({
   onOpenUpload,
 }: SavedAdsSubViewProps) {
   const [search, setSearch] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [boardFilter, setBoardFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState<
     "all" | "video" | "image" | "carousel"
   >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(
+    "all"
+  );
   const [sortBy, setSortBy] = useState<"recent" | "longest" | "reach">("recent");
 
   const savedAds = useMemo(() => {
@@ -1820,6 +2076,8 @@ export function SavedAdsSubView({
       if (formatFilter !== "all" && a.media_type !== formatFilter) {
         return false;
       }
+      if (statusFilter === "active" && !a.is_active) return false;
+      if (statusFilter === "inactive" && a.is_active) return false;
       if (
         q &&
         !a.brand_name.toLowerCase().includes(q) &&
@@ -1845,80 +2103,80 @@ export function SavedAdsSubView({
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     });
-  }, [savedAds, boardFilter, formatFilter, search, sortBy]);
+  }, [savedAds, boardFilter, formatFilter, statusFilter, search, sortBy]);
+
+  const activeFilterCount =
+    (boardFilter !== "all" ? 1 : 0) +
+    (formatFilter !== "all" ? 1 : 0) +
+    (statusFilter !== "all" ? 1 : 0);
 
   return (
-    <div className="animate-view-in space-y-5">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[#0F172A]">
-            Saved Ads
-          </h1>
-          <p className="mt-1 text-sm text-[#64748B]">
-            Your bookmarked creatives organized across folders for inspiration and cloning.
-          </p>
+    <div className="animate-view-in">
+      {/* WHITE TOP HEADER + TOOLBAR + #f5f5fa FILTER BAR */}
+      <div className="-mx-3.5 border-b border-[#ebebf3] bg-white px-6 pb-3.5 pt-3.5 sm:-mx-6 lg:-mx-7 lg:-mt-6">
+        {/* Row 1: Saved Ads + Search + Upload */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ebebf3] pb-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4">
+            <h1 className="font-sans text-[20px] font-bold tracking-tight text-[#0F172A]">
+              Saved Ads
+            </h1>
+
+            <div className="relative flex h-9 w-full max-w-[440px] items-center rounded-[8px] border border-[#d6d6e0] bg-white px-3 focus-within:border-[#0027eb] focus-within:ring-2 focus-within:ring-[#0027eb]/12">
+              <Search className="mr-2 h-4 w-4 shrink-0 text-[#64748B]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search for my saved ads"
+                className="w-full bg-transparent text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+              />
+              {search && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setSearch("")}
+                  className="ml-1 text-[#94A3B8] hover:text-[#0F172A]"
+                >
+                  <X className="h-3.5 w-3.5 text-[#64748B]" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {onOpenUpload && (
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={onOpenUpload}
+                className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+              >
+                <Upload className="h-3.5 w-3.5 text-[#475569]" />
+                <span>Upload</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="rounded-full border border-[#E6E9F0] bg-[#F7F8FB] px-3 py-1 font-mono-num text-xs font-semibold text-[#334155]">
-            {savedAds.length} saved
-          </span>
-          {onOpenUpload && (
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={onOpenUpload}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#CBD5E1] hover:bg-[#F7F8FB]"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              Upload
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Search + Filters + Sort Bar */}
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search for my saved ads"
-            className="h-10 w-full rounded-xl border border-[#E6E9F0] bg-white pl-10 pr-8 text-sm text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-colors focus:border-[#0027eb]"
-          />
-          {search && (
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#0F172A]"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Row 2: Filters Hide + Sort */}
+        <div className="flex flex-wrap items-center gap-2 pb-2.5 pt-3">
           <button
             type="button"
             data-no-glass="true"
             onClick={() => setFiltersOpen((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors ${
-              filtersOpen || boardFilter !== "all" || formatFilter !== "all"
-                ? "border-[#0027eb]/30 bg-[#EEF2FF] text-[#0027eb]"
-                : "border-[#E6E9F0] bg-white text-[#0F172A] hover:bg-[#F7F8FB]"
-            }`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px] font-medium text-[#0F172A] hover:border-[#d6d6e0]"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters
-            {filtersOpen ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
+            <Filter className="h-3.5 w-3.5 text-[#64748B]" />
+            <span className="font-semibold">Filters</span>
+            <span className="text-[12.5px] text-[#64748B]">
+              {filtersOpen ? "Hide" : "Show"}
+            </span>
+            {activeFilterCount > 0 && (
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0027eb] px-1 font-mono-num text-[10px] font-bold text-white">
+                {activeFilterCount}
+              </span>
             )}
+            <MicroCaret open={filtersOpen} />
           </button>
 
           <FlakeSelect
@@ -1926,106 +2184,136 @@ export function SavedAdsSubView({
             value={sortBy}
             onChange={(v) => setSortBy(v as "recent" | "longest" | "reach")}
             variant="bordered"
+            icon={<ArrowUpDown className="h-3.5 w-3.5 text-[#64748B]" />}
             options={[
               { value: "recent", label: "Sort: Recently added" },
               { value: "longest", label: "Sort: Longest running" },
               { value: "reach", label: "Sort: Highest reach" },
             ]}
           />
-        </div>
-      </div>
 
-      {/* Collapsible Filters Panel */}
-      {filtersOpen && (
-        <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-[#E6E9F0] bg-white p-3.5">
-          <FlakeSelect
-            ariaLabel="Folder filter"
-            value={boardFilter}
-            onChange={setBoardFilter}
-            variant="bordered"
-            isActive={boardFilter !== "all"}
-            options={[
-              { value: "all", label: "Folder: All folders" },
-              ...boards.map((b) => ({ value: b.id, label: b.name })),
-            ]}
-          />
-
-          <FlakeSelect
-            ariaLabel="Saved ad format"
-            value={formatFilter}
-            onChange={(v) =>
-              setFormatFilter(v as "all" | "video" | "image" | "carousel")
-            }
-            variant="bordered"
-            isActive={formatFilter !== "all"}
-            options={[
-              { value: "all", label: "Format: All" },
-              { value: "video", label: "Format: Video" },
-              { value: "image", label: "Format: Image" },
-              { value: "carousel", label: "Format: Carousel" },
-            ]}
-          />
-
-          {(boardFilter !== "all" || formatFilter !== "all" || search) && (
+          {(activeFilterCount > 0 || search) && (
             <button
               type="button"
               data-no-glass="true"
               onClick={() => {
                 setBoardFilter("all");
                 setFormatFilter("all");
+                setStatusFilter("all");
                 setSearch("");
               }}
-              className="inline-flex items-center gap-1 rounded-xl border border-[#E6E9F0] bg-[#F7F8FB] px-3 py-2 text-xs font-medium text-[#475569] hover:text-[#0F172A]"
+              className="ml-1 text-[12.5px] font-medium text-[#475569] hover:text-[#0F172A]"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
+              Clear all
             </button>
           )}
         </div>
-      )}
 
-      {/* Grid or Empty State */}
-      {savedAds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-6 py-16 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#0027eb]">
-            <Bookmark className="h-6 w-6" />
+        {/* Row 3: #f5f5fa Filter Drawer (Library + Lifecycle + Creative) */}
+        {filtersOpen && (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-[10px] bg-[#f5f5fa] px-4 py-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                Library
+              </span>
+              <FlakeSelect
+                ariaLabel="Board filter"
+                value={boardFilter}
+                onChange={setBoardFilter}
+                variant="bordered"
+                isActive={boardFilter !== "all"}
+                options={[
+                  { value: "all", label: "Boards: All" },
+                  ...boards.map((b) => ({ value: b.id, label: b.name })),
+                ]}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                Lifecycle
+              </span>
+              <FlakeSelect
+                ariaLabel="Status filter"
+                value={statusFilter}
+                onChange={(v) =>
+                  setStatusFilter(v as "all" | "active" | "inactive")
+                }
+                variant="bordered"
+                isActive={statusFilter !== "all"}
+                options={[
+                  { value: "all", label: "Status: All" },
+                  { value: "active", label: "Status: Active" },
+                  { value: "inactive", label: "Status: Inactive" },
+                ]}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[12.5px] font-medium text-[#64748B]">
+                Creative
+              </span>
+              <FlakeSelect
+                ariaLabel="Saved ad format"
+                value={formatFilter}
+                onChange={(v) =>
+                  setFormatFilter(v as "all" | "video" | "image" | "carousel")
+                }
+                variant="bordered"
+                isActive={formatFilter !== "all"}
+                options={[
+                  { value: "all", label: "Format: All" },
+                  { value: "video", label: "Format: Video" },
+                  { value: "image", label: "Format: Image" },
+                  { value: "carousel", label: "Format: Carousel" },
+                ]}
+              />
+            </div>
           </div>
-          <h2 className="mt-4 font-display text-lg font-bold text-[#0F172A]">
+        )}
+      </div>
+
+      {/* GRID OR OPEN EMPTY STATE ON #f5f5fa CANVAS */}
+      {savedAds.length === 0 ? (
+        <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+          <Bookmark className="h-12 w-12 stroke-[1.5] text-[#94A3B8]" />
+          <h2 className="mt-4 font-sans text-[18px] font-bold text-[#0F172A]">
             You haven&apos;t saved any ads
           </h2>
-          <p className="mt-1 max-w-md text-sm text-[#64748B]">
-            Bookmark winning ads from Discovery or upload your own creatives to build swipe folders.
+          <p className="mt-1.5 max-w-md text-[13.5px] leading-relaxed text-[#475569]">
+            Bookmark winning ads from Discovery or upload your own creatives to
+            organize them into boards.
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
             <button
               type="button"
+              data-no-glass="true"
               onClick={onBrowseAds}
-              className="adtrack-btn-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold text-white"
+              className="inline-flex h-9 items-center justify-center rounded-[8px] bg-[#0027eb] px-5 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
             >
               Browse ads
-              <ArrowUpRight className="h-3.5 w-3.5" />
             </button>
             {onOpenUpload && (
               <button
                 type="button"
                 data-no-glass="true"
                 onClick={onOpenUpload}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#E6E9F0] bg-white px-4 py-2.5 text-xs font-semibold text-[#0F172A] hover:bg-[#F7F8FB]"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-4 text-[13px] font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
               >
-                <Upload className="h-3.5 w-3.5" />
-                Upload ad
+                <Upload className="h-3.5 w-3.5 text-[#475569]" />
+                <span>Upload ad</span>
               </button>
             )}
           </div>
         </div>
       ) : filteredAds.length === 0 ? (
-        <div className="rounded-2xl border border-[#E6E9F0] bg-white px-6 py-12 text-center">
-          <p className="font-display text-sm font-semibold text-[#0F172A]">
+        <div className="mt-5 rounded-[12px] border border-[#ebebf3] bg-white px-6 py-12 text-center">
+          <p className="font-sans text-sm font-semibold text-[#0F172A]">
             No saved ads match your current filters
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-5 grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredAds.map((ad) => (
             <AdCard
               key={ad.id}

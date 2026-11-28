@@ -6,12 +6,17 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Clock,
+  CircleDollarSign,
+  Copy,
+  ExternalLink,
   Film,
   Layers,
+  MoreHorizontal,
   Play,
   Plus,
   Sparkles,
+  Store,
+  Users,
 } from "lucide-react";
 import type { Ad, Board } from "@/lib/types";
 import { formatReach, getActiveDays } from "@/lib/url-parser";
@@ -24,6 +29,7 @@ interface AdCardProps {
   boards: Board[];
   rank?: number;
   compact?: boolean;
+  assumedCpm?: number;
   onOpen: (ad: Ad) => void;
   onToggleBoard: (adId: string, boardId: string) => void;
   onOpenBrand?: (brandId: string) => void;
@@ -32,6 +38,30 @@ interface AdCardProps {
   onToggleFollow?: (brandId: string) => void;
 }
 
+const COUNTRY_META: Record<string, { flag: string; name: string }> = {
+  US: { flag: "🇺🇸", name: "United States" },
+  CA: { flag: "🇨🇦", name: "Canada" },
+  GB: { flag: "🇬🇧", name: "United Kingdom" },
+  UK: { flag: "🇬🇧", name: "United Kingdom" },
+  DE: { flag: "🇩🇪", name: "Germany" },
+  FR: { flag: "🇫🇷", name: "France" },
+  IT: { flag: "🇮🇹", name: "Italy" },
+  ES: { flag: "🇪🇸", name: "Spain" },
+  NL: { flag: "🇳🇱", name: "Netherlands" },
+  PL: { flag: "🇵🇱", name: "Poland" },
+  SE: { flag: "🇸🇪", name: "Sweden" },
+  BE: { flag: "🇧🇪", name: "Belgium" },
+  IE: { flag: "🇮🇪", name: "Ireland" },
+  AT: { flag: "🇦🇹", name: "Austria" },
+  DK: { flag: "🇩🇰", name: "Denmark" },
+  NO: { flag: "🇳🇴", name: "Norway" },
+  FI: { flag: "🇫🇮", name: "Finland" },
+  AU: { flag: "🇦🇺", name: "Australia" },
+  NZ: { flag: "🇳🇿", name: "New Zealand" },
+  EU: { flag: "🇪🇺", name: "Europe" },
+  GLOBAL: { flag: "🌍", name: "Global" },
+};
+
 function formatVideoDuration(seconds?: number): string {
   if (!seconds || seconds <= 0) return "";
   const mins = Math.floor(seconds / 60);
@@ -39,19 +69,50 @@ function formatVideoDuration(seconds?: number): string {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+function formatCompactSpend(amount: number): string {
+  if (amount >= 1_000_000) {
+    return `$${(amount / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (amount >= 1_000) {
+    return `$${(amount / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  }
+  return `$${Math.max(1, Math.round(amount))}`;
+}
+
 function extractDisplayDomain(url?: string, fallbackHandle?: string): string {
   if (url) {
     try {
-      return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(
-        /^www\./i,
-        ""
-      );
+      return new URL(url.startsWith("http") ? url : `https://${url}`).hostname
+        .replace(/^www\./i, "")
+        .toLowerCase();
     } catch {
       // fall through to handle fallback
     }
   }
-  const cleanHandle = (fallbackHandle || "").replace(/^@/, "").trim();
+  const cleanHandle = (fallbackHandle || "").replace(/^@/, "").trim().toLowerCase();
   return cleanHandle ? `${cleanHandle}.com` : "shop.store";
+}
+
+function resolvePrimaryCountry(ad: Ad): { flag: string; name: string } {
+  const firstTargeted =
+    Array.isArray(ad.targeted_countries) && ad.targeted_countries.length > 0
+      ? ad.targeted_countries[0].toUpperCase()
+      : null;
+  if (firstTargeted && COUNTRY_META[firstTargeted]) {
+    return COUNTRY_META[firstTargeted];
+  }
+  if (
+    Array.isArray(ad.audience_breakdown) &&
+    ad.audience_breakdown.length > 0
+  ) {
+    const topBreakdown = [...ad.audience_breakdown].sort(
+      (a, b) => (b.total_reach || 0) - (a.total_reach || 0)
+    )[0];
+    const code = topBreakdown?.country?.toUpperCase();
+    if (code && COUNTRY_META[code]) return COUNTRY_META[code];
+  }
+  const marketKey = (ad.market || "US").toUpperCase();
+  return COUNTRY_META[marketKey] || { flag: "🌍", name: "Global" };
 }
 
 export const AdCard = React.memo(function AdCard({
@@ -59,6 +120,7 @@ export const AdCard = React.memo(function AdCard({
   boards,
   rank,
   compact = false,
+  assumedCpm = 9,
   onOpen,
   onToggleBoard,
   onOpenBrand,
@@ -67,6 +129,7 @@ export const AdCard = React.memo(function AdCard({
   onToggleFollow,
 }: AdCardProps) {
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [copyExpanded, setCopyExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
@@ -78,6 +141,7 @@ export const AdCard = React.memo(function AdCard({
   const didSwipeRef = useRef(false);
   const cardRef = useRef<HTMLElement | null>(null);
   const folderBtnRef = useRef<HTMLButtonElement | null>(null);
+  const moreBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const carouselSlides =
     Array.isArray(ad.carousel_cards) && ad.carousel_cards.length >= 2
@@ -91,28 +155,41 @@ export const AdCard = React.memo(function AdCard({
   const activeMediaUrl = activeSlide ? activeSlide.media_url : ad.media_url;
   const activeMediaType = activeSlide ? activeSlide.media_type : ad.media_type;
 
+  // CRITICAL PRESERVATION: robust .mp4 / video detection for Supabase & Meta CDN media
   const isVideoFile =
     /\.(mp4|webm|mov)(\?|$)/i.test(activeMediaUrl) ||
-    (activeMediaType === "video" && activeMediaUrl.includes("video") && activeMediaUrl.includes("fbcdn"));
+    (activeMediaType === "video" &&
+      activeMediaUrl.includes("video") &&
+      activeMediaUrl.includes("fbcdn"));
 
   const primaryImg = imgFailed
     ? ad.fallback_image_url || ""
     : activeSlide
-      ? activeSlide.thumbnail_url || (!isVideoFile ? activeSlide.media_url : "") || ad.thumbnail_url || ""
-      : ad.thumbnail_url || ad.fallback_image_url || (!isVideoFile ? ad.media_url : "") || "";
+      ? activeSlide.thumbnail_url ||
+        (!isVideoFile ? activeSlide.media_url : "") ||
+        ad.thumbnail_url ||
+        ""
+      : ad.thumbnail_url ||
+        ad.fallback_image_url ||
+        (!isVideoFile ? ad.media_url : "") ||
+        "";
 
   const stepSlide = (delta: number) => {
     if (!carouselSlides) return;
     setImgFailed(false);
-    setSlideIdx((prev) => (prev + delta + carouselSlides.length) % carouselSlides.length);
+    setSlideIdx(
+      (prev) => (prev + delta + carouselSlides.length) % carouselSlides.length
+    );
   };
 
-  // Instagram/TikTok-style predictive lookahead: warm poster + video ~1200px before entering viewport
+  // Predictive lookahead: warm poster + video ~1200px before entering viewport
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
     const scrollCandidate = el.closest("[data-scroll-root]") as HTMLElement | null;
-    const overflowY = scrollCandidate ? window.getComputedStyle(scrollCandidate).overflowY : "";
+    const overflowY = scrollCandidate
+      ? window.getComputedStyle(scrollCandidate).overflowY
+      : "";
     const scrollRoot =
       scrollCandidate && (overflowY === "auto" || overflowY === "scroll")
         ? scrollCandidate
@@ -137,7 +214,8 @@ export const AdCard = React.memo(function AdCard({
     ad.source_type === "manual" ||
     ad.tags.includes("custom-import") ||
     ad.tags.includes("custom-upload");
-  const isInstagram = ad.source_type === "instagram" || ad.tags.includes("instagram");
+  const isInstagram =
+    ad.source_type === "instagram" || ad.tags.includes("instagram");
 
   const activeDays = getActiveDays(ad.started_running_at);
   const inFolders = ad.board_ids.length > 0;
@@ -147,10 +225,10 @@ export const AdCard = React.memo(function AdCard({
 
   const rankBadgeStyle =
     rank === 1
-      ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#CA8A04] text-[#5C3404] ring-[1.5px] ring-[#854D0E] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(133,77,14,0.28)]"
+      ? "bg-gradient-to-b from-[#FEF08A] via-[#EAB308] to-[#CA8A04] text-[#5C3404] ring-[1.5px] ring-[#854D0E]"
       : rank === 2
-        ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#94A3B8] text-[#1E293B] ring-[1.5px] ring-[#475569] shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_1px_2px_rgba(71,85,105,0.24)]"
-        : "bg-gradient-to-b from-[#FDE6CE] via-[#D9823B] to-[#A85319] text-[#4A1D06] ring-[1.5px] ring-[#6B2D0B] shadow-[inset_0_1px_1px_rgba(255,255,255,0.65),0_1px_2px_rgba(107,45,11,0.28)]";
+        ? "bg-gradient-to-b from-[#FFFFFF] via-[#CBD5E1] to-[#94A3B8] text-[#1E293B] ring-[1.5px] ring-[#475569]"
+        : "bg-gradient-to-b from-[#FDE6CE] via-[#D9823B] to-[#A85319] text-[#4A1D06] ring-[1.5px] ring-[#6B2D0B]";
 
   // Clamp extreme outlier banners only; 9:16 (0.56), 4:5 (0.8), 1:1 (1.0), 16:9 (1.78) all show 100% uncropped
   const clampedRatio = naturalRatio
@@ -165,34 +243,28 @@ export const AdCard = React.memo(function AdCard({
         : 0.85;
 
   const copyText = (ad.primary_text || "").trim();
-  const hasLongCopy = copyText.length > 105;
+  const hasLongCopy = copyText.length > 90;
   const durationLabel = formatVideoDuration(ad.duration_seconds);
   const displayDomain = extractDisplayDomain(ad.landing_page_url, ad.brand_handle);
   const displayHeadline = (ad.headline || "").trim() || ad.brand_name;
   const ctaLabel = (ad.cta_text || "").trim() || "Shop Now";
   const duplicatedCount = ad.duplicated_count ?? 1;
-  const formatLabel =
-    ad.media_type === "carousel"
-      ? "Carousel"
-      : ad.media_type === "video"
-        ? "Video"
-        : "Image";
-  const metaSummaryParts = [
-    formatLabel,
-    ad.eu_reach ? `Reach ${formatReach(ad.eu_reach)}` : "",
-    ad.ai_angle || ad.hook_category || ad.platforms[0] || "",
-  ].filter(Boolean);
+  const primaryCountry = resolvePrimaryCountry(ad);
+  const hasReach = typeof ad.eu_reach === "number" && ad.eu_reach > 0;
+  const estimatedSpendVal = hasReach
+    ? ad.estimated_spend && ad.estimated_spend > 0
+      ? ad.estimated_spend
+      : Math.round(((ad.eu_reach || 0) / 1000) * assumedCpm)
+    : null;
 
   return (
     <article
       ref={cardRef}
-      className="cv-ad-card group relative flex flex-col rounded-[14px] border border-[#EAECEF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#D8DEE9] hover:shadow-[0_10px_28px_-8px_rgba(15,23,42,0.09)]"
+      className="cv-ad-card group relative flex flex-col rounded-[12px] border border-[#ebebf3] bg-white shadow-none transition-colors duration-150 hover:border-[#d6d6e0]"
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-      }}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 1. ATRIA DISCOVERY CARD HEADER: 32x32 Avatar + Brand Name + Active Days + Reuse + Quick Actions */}
+      {/* 1. ATRIA CARD HEADER: 40x40 Avatar + Bold Brand Name + Green Active Dot & Reuse + Borderless Bookmark / ... */}
       <div className="flex items-start justify-between gap-2 px-3 pt-3">
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <button
@@ -208,11 +280,11 @@ export const AdCard = React.memo(function AdCard({
               <img
                 src={ad.brand_logo_url}
                 alt={ad.brand_name}
-                className="h-8 w-8 rounded-full border border-[#ECEFF5] bg-white object-contain p-0.5"
+                className="h-10 w-10 rounded-full border border-[#ebebf3] bg-black/[0.04] object-contain p-0.5"
               />
             ) : (
               <span
-                className="flex h-8 w-8 items-center justify-center rounded-full font-display text-[11px] font-bold text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ebebf3] font-display text-[12px] font-bold text-white"
                 style={{ backgroundColor: ad.brand_avatar_color || "#0F172A" }}
               >
                 {ad.brand_avatar_initials}
@@ -220,7 +292,7 @@ export const AdCard = React.memo(function AdCard({
             )}
             {!isOrganic && rank && rank <= 3 && (
               <span
-                className={`absolute -left-1.5 -top-1.5 inline-flex h-[18px] w-[18px] shrink-0 aspect-square items-center justify-center rounded-full text-center font-sans text-[10px] font-bold leading-none tabular-nums ${rankBadgeStyle}`}
+                className={`absolute -left-1 -top-1 inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full font-sans text-[9.5px] font-bold leading-none tabular-nums ${rankBadgeStyle}`}
               >
                 {rank}
               </span>
@@ -235,56 +307,38 @@ export const AdCard = React.memo(function AdCard({
                 onClick={() =>
                   !isOrganic && onOpenBrand ? onOpenBrand(ad.brand_id) : onOpen(ad)
                 }
-                className="truncate text-left font-display text-[13px] font-semibold leading-tight text-[#0F172A] hover:text-[#0027eb]"
+                className="truncate text-left font-sans text-[14.5px] font-bold leading-tight text-[#0F172A] hover:underline"
               >
                 {ad.brand_name}
               </button>
-
-              {onToggleFollow && !isOrganic && (
-                <button
-                  type="button"
-                  data-no-glass="true"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFollow(ad.brand_id);
-                  }}
-                  title={isFollowed ? "Unfollow brand" : "Follow brand"}
-                  className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
-                    isFollowed
-                      ? "bg-[#EEF2FF] text-[#0027eb]"
-                      : "bg-[#F7F8FB] text-[#64748B] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
-                  }`}
-                >
-                  {isFollowed ? (
-                    <Check className="h-2.5 w-2.5" />
-                  ) : (
-                    <Plus className="h-2.5 w-2.5" />
-                  )}
-                  {isFollowed ? "Following" : "Follow"}
-                </button>
-              )}
             </div>
 
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               {isOrganic ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#64748B]">
+                <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#64748B]">
                   {isInstagram ? (
                     <>
-                      <InstagramColorIcon className="h-3 w-3 shrink-0" />
+                      <InstagramColorIcon className="h-3.5 w-3.5 shrink-0" />
                       Reel
                     </>
                   ) : (
                     <>
-                      <Film className="h-3 w-3 shrink-0 text-[#64748B]" />
+                      <Film className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
                       Video
                     </>
                   )}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 font-mono-num text-[11px] font-medium text-[#475569]">
+                <span
+                  className={`inline-flex items-center gap-1.5 font-mono-num text-[12.5px] font-semibold ${
+                    ad.is_active ? "text-[#2e5400]" : "text-[#64748B]"
+                  }`}
+                >
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      ad.is_active ? "bg-[#22C55E]" : "bg-[#94A3B8]"
+                    className={`h-2 w-2 rounded-full ${
+                      ad.is_active
+                        ? "bg-[#5daa1e] ring-[3px] ring-[#e7ffd3]"
+                        : "bg-[#94A3B8]"
                     }`}
                   />
                   {activeDays}d
@@ -292,7 +346,8 @@ export const AdCard = React.memo(function AdCard({
               )}
 
               {duplicatedCount > 1 && (
-                <span className="inline-flex items-center rounded bg-[#EEF2FF] px-1.5 py-0.2 font-mono-num text-[10.5px] font-semibold text-[#0027eb]">
+                <span className="inline-flex items-center gap-0.5 font-mono-num text-[12.5px] font-semibold text-[#475569]">
+                  <Copy className="h-3 w-3 text-[#64748B]" />
                   &times;{duplicatedCount}
                 </span>
               )}
@@ -300,24 +355,11 @@ export const AdCard = React.memo(function AdCard({
           </div>
         </div>
 
-        {/* Top-Right Quick Actions: Clone (Sparkles) + Bookmark */}
+        {/* Top-Right Borderless Monochrome Actions: Bookmark + ... Menu */}
         <div
-          className="relative flex shrink-0 items-center gap-1"
+          className="relative flex shrink-0 items-center gap-0.5"
           onClick={(e) => e.stopPropagation()}
         >
-          {onCloneAd && !isOrganic && (
-            <button
-              type="button"
-              data-no-glass="true"
-              title="Clone ad to Studio"
-              aria-label="Clone ad to Studio"
-              onClick={() => onCloneAd(ad)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EAECEF] bg-white text-[#475569] transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF] hover:text-[#0027eb]"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-            </button>
-          )}
-
           <button
             ref={folderBtnRef}
             type="button"
@@ -327,22 +369,39 @@ export const AdCard = React.memo(function AdCard({
                 ? savedBoardName
                   ? `Saved in ${savedBoardName}`
                   : `Saved in ${ad.board_ids.length} folders`
-                : "Save to folder"
+                : "Save to board"
             }
-            aria-label="Save to folder"
-            onClick={() => setFolderMenuOpen((v) => !v)}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${
-              inFolders
-                ? "border-[#0027eb]/30 bg-[#EEF2FF] text-[#0027eb]"
-                : "border-[#EAECEF] bg-white text-[#475569] hover:border-[#CBD5E1] hover:text-[#0F172A]"
-            }`}
+            aria-label="Save to board"
+            onClick={() => {
+              setMoreMenuOpen(false);
+              setFolderMenuOpen((v) => !v);
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded-[6px] text-[#64748B] transition-colors hover:bg-black/[0.04] hover:text-[#0F172A]"
           >
             <Bookmark
-              className="h-3.5 w-3.5"
+              className={`h-[18px] w-[18px] ${
+                inFolders ? "text-[#0F172A]" : "text-[#64748B]"
+              }`}
               fill={inFolders ? "currentColor" : "none"}
             />
           </button>
 
+          <button
+            ref={moreBtnRef}
+            type="button"
+            data-no-glass="true"
+            title="More options"
+            aria-label="More options"
+            onClick={() => {
+              setFolderMenuOpen(false);
+              setMoreMenuOpen((v) => !v);
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded-[6px] text-[#64748B] transition-colors hover:bg-black/[0.04] hover:text-[#0F172A]"
+          >
+            <MoreHorizontal className="h-[18px] w-[18px] text-[#64748B]" />
+          </button>
+
+          {/* Save to Board Popover */}
           <FlakePopover
             open={folderMenuOpen}
             onOpenChange={setFolderMenuOpen}
@@ -353,12 +412,12 @@ export const AdCard = React.memo(function AdCard({
             maxHeight={260}
           >
             <div className="workspace-scroll overflow-y-auto overscroll-contain p-1.5">
-              <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                Save to folder
+              <p className="px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B]">
+                Save to board
               </p>
               {boards.length === 0 ? (
                 <p className="px-2.5 py-2 text-xs text-[#94A3B8]">
-                  Create a folder in the sidebar first.
+                  Create a board in the sidebar first.
                 </p>
               ) : (
                 boards.map((board) => {
@@ -369,10 +428,10 @@ export const AdCard = React.memo(function AdCard({
                       type="button"
                       data-no-glass="true"
                       onClick={() => onToggleBoard(ad.id, board.id)}
-                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-colors ${
+                      className={`flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-[12.5px] transition-colors ${
                         selected
-                          ? "bg-[#0027eb]/[0.08] font-semibold text-[#0027eb] hover:bg-[#0027eb]/[0.12]"
-                          : "font-medium text-[#0F172A] hover:bg-[#F3F5F9]"
+                          ? "bg-[#f5f5fa] font-semibold text-[#0F172A]"
+                          : "font-medium text-[#0F172A] hover:bg-[#f5f5fa]"
                       }`}
                     >
                       <span className="flex min-w-0 items-center gap-2">
@@ -383,7 +442,7 @@ export const AdCard = React.memo(function AdCard({
                         <span className="truncate">{board.name}</span>
                       </span>
                       {selected && (
-                        <Check className="h-3.5 w-3.5 shrink-0 text-[#0027eb]" />
+                        <Check className="h-3.5 w-3.5 shrink-0 text-[#0F172A]" />
                       )}
                     </button>
                   );
@@ -391,51 +450,154 @@ export const AdCard = React.memo(function AdCard({
               )}
             </div>
           </FlakePopover>
+
+          {/* More (...) Action Menu */}
+          <FlakePopover
+            open={moreMenuOpen}
+            onOpenChange={setMoreMenuOpen}
+            anchorRef={moreBtnRef}
+            align="right"
+            preferredPlacement="bottom"
+            minWidth={196}
+            maxHeight={260}
+          >
+            <div className="p-1.5">
+              {onCloneAd && !isOrganic && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onCloneAd(ad);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-[#475569]" />
+                  <span>Clone ad to Ad Maker</span>
+                </button>
+              )}
+
+              {onToggleFollow && !isOrganic && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onToggleFollow(ad.brand_id);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+                >
+                  {isFollowed ? (
+                    <Check className="h-3.5 w-3.5 text-[#475569]" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5 text-[#475569]" />
+                  )}
+                  <span>{isFollowed ? "Unfollow brand" : "Follow brand"}</span>
+                </button>
+              )}
+
+              {onOpenBrand && !isOrganic && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onOpenBrand(ad.brand_id);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+                >
+                  <Store className="h-3.5 w-3.5 text-[#475569]" />
+                  <span>View brand profile</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  onOpen(ad);
+                }}
+                className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[12.5px] font-medium text-[#0F172A] transition-colors hover:bg-[#f5f5fa]"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-[#475569]" />
+                <span>Open ad details</span>
+              </button>
+            </div>
+          </FlakePopover>
         </div>
       </div>
 
-      {/* Clean Meta Pill */}
-      <div className="px-3">
-        <div className="mt-1.5 truncate rounded-md bg-[#F7F8FB] px-2.5 py-1 text-[11px] font-medium text-[#475569]">
-          {metaSummaryParts.join(" · ")}
-        </div>
+      {/* 2. ATRIA STATS STRIP: Reach + Est. Spend + Country Flag (or Primary Market Country) */}
+      <div className="mx-3 mb-1.5 mt-2 flex items-center justify-between gap-2 rounded-[6px] bg-black/[0.025] px-2.5 py-1.5 text-[12px] font-semibold text-[#0F172A]">
+        {hasReach ? (
+          <>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex items-center gap-1 font-mono-num">
+                <Users className="h-3.5 w-3.5 shrink-0 text-[#475569]" />
+                {formatReach(ad.eu_reach)}
+              </span>
+              {estimatedSpendVal !== null && (
+                <span className="inline-flex items-center gap-1 font-mono-num">
+                  <CircleDollarSign className="h-3.5 w-3.5 shrink-0 text-[#475569]" />
+                  {formatCompactSpend(estimatedSpendVal)}
+                </span>
+              )}
+            </div>
+            <span
+              title={primaryCountry.name}
+              className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[13px] leading-none"
+            >
+              {primaryCountry.flag}
+            </span>
+          </>
+        ) : (
+          <div className="flex min-w-0 items-center gap-1.5 truncate">
+            <span className="text-[13px] leading-none">
+              {primaryCountry.flag}
+            </span>
+            <span className="truncate font-medium text-[#0F172A]">
+              {primaryCountry.name}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* 2. AD COPY PREVIEW WITH GRADIENT FADE + FLOATING "See more" PILL */}
+      {/* 3. AD COPY PREVIEW (Atria 2-line clean clamp + subtle expand) */}
       {!compact && copyText && (
-        <div className="relative px-3 pb-2.5 pt-2">
+        <div className="relative px-3 pb-2.5 pt-0.5">
           <p
             onClick={() => onOpen(ad)}
-            className={`cursor-pointer whitespace-pre-line text-[12.5px] leading-[1.45] text-[#334155] ${
-              copyExpanded ? "" : "line-clamp-3"
+            className={`cursor-pointer whitespace-pre-line text-[13px] leading-[1.42] text-[#0F172A]/85 ${
+              copyExpanded ? "" : "line-clamp-2"
             }`}
           >
             {copyText}
           </p>
 
           {hasLongCopy && !copyExpanded && (
-            <div className="pointer-events-none absolute inset-x-3 bottom-1.5 flex items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pt-5">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCopyExpanded(true);
-                }}
-                className="pointer-events-auto rounded-full border border-[#E6E9F0] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#0F172A] shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition-colors hover:bg-[#F8FAFC]"
-              >
-                See more
-              </button>
-            </div>
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCopyExpanded(true);
+              }}
+              className="mt-0.5 text-[11.5px] font-medium text-[#64748B] transition-colors hover:text-[#0F172A]"
+            >
+              See more
+            </button>
           )}
 
           {hasLongCopy && copyExpanded && (
             <button
               type="button"
+              data-no-glass="true"
               onClick={(e) => {
                 e.stopPropagation();
                 setCopyExpanded(false);
               }}
-              className="mt-1 text-[11px] font-medium text-[#64748B] hover:text-[#0F172A]"
+              className="mt-0.5 text-[11.5px] font-medium text-[#64748B] transition-colors hover:text-[#0F172A]"
             >
               See less
             </button>
@@ -443,8 +605,8 @@ export const AdCard = React.memo(function AdCard({
         </div>
       )}
 
-      {/* 3. TRUE-ASPECT CREATIVE MEDIA VIEWPORT (never crops 1:1, 4:5, or 9:16) */}
-      <div className={`px-2 ${compact || !copyText ? "pt-2" : ""}`}>
+      {/* 4. TRUE-ASPECT FULL-WIDTH CREATIVE MEDIA VIEWPORT (never crops 1:1, 4:5, or 9:16) */}
+      <div className={compact || !copyText ? "mt-1" : ""}>
         <div
           role="button"
           tabIndex={0}
@@ -490,7 +652,7 @@ export const AdCard = React.memo(function AdCard({
                 ? String(clampedRatio ?? fallbackRatio)
                 : "1 / 1",
           }}
-          className="relative w-full cursor-pointer overflow-hidden rounded-[10px] bg-[#F3F5F9]"
+          className="relative w-full cursor-pointer overflow-hidden bg-[#f5f5fa]"
         >
           {isVideoFile && (isHovered || !primaryImg) && !imgFailed ? (
             <video
@@ -514,7 +676,10 @@ export const AdCard = React.memo(function AdCard({
           ) : primaryImg ? (
             <>
               {!imgLoaded && (
-                <div className="skeleton-shimmer absolute inset-0" aria-hidden="true" />
+                <div
+                  className="skeleton-shimmer absolute inset-0"
+                  aria-hidden="true"
+                />
               )}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -533,13 +698,13 @@ export const AdCard = React.memo(function AdCard({
                   setImgLoaded(true);
                   if (!imgFailed) setImgFailed(true);
                 }}
-                className={`h-full w-full object-contain transition-all duration-300 ease-out group-hover:scale-[1.02] ${
+                className={`h-full w-full object-contain transition-all duration-300 ease-out group-hover:scale-[1.015] ${
                   imgLoaded ? "opacity-100" : "opacity-0"
                 }`}
               />
             </>
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#F5F7FA] p-5 text-center">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#f5f5fa] p-5 text-center">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0F172A] font-display text-xs font-bold text-white">
                 {ad.brand_avatar_initials}
               </span>
@@ -549,21 +714,20 @@ export const AdCard = React.memo(function AdCard({
             </div>
           )}
 
-          {/* Top-Left Video Duration Pill */}
+          {/* Top-Left Light Frosted Video Duration Pill (Atria exact style, no Clock icon) */}
           {activeMediaType === "video" && (
-            <div className="pointer-events-none absolute left-2 top-2 z-10">
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-[#050811]/70 px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white shadow-sm backdrop-blur-md">
-                <Clock className="h-2.5 w-2.5" />
+            <div className="pointer-events-none absolute left-2.5 top-2.5 z-10">
+              <span className="inline-flex items-center rounded-[4px] bg-white/85 px-1.5 py-0.5 font-mono-num text-[11px] font-semibold text-[#0F172A] backdrop-blur-sm">
                 {durationLabel || "00:24"}
               </span>
             </div>
           )}
 
-          {/* Frosted Translucent Circular Play Button */}
-          {activeMediaType === "video" && (
+          {/* Atria Circular Play Button (52x52, dark -> crisp white on hover) */}
+          {activeMediaType === "video" && !isHovered && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white shadow-md backdrop-blur-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-black/55">
-                <Play className="ml-0.5 h-4 w-4 fill-current" />
+              <span className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-black/45 text-white transition-all duration-200 group-hover:bg-white/95 group-hover:text-[#0F172A]">
+                <Play className="ml-0.5 h-5 w-5 fill-current" />
               </span>
             </div>
           )}
@@ -571,9 +735,9 @@ export const AdCard = React.memo(function AdCard({
           {/* Interactive Carousel Controls (Arrows + Slide Counter + Dots) */}
           {carouselSlides && (
             <>
-              <div className="pointer-events-none absolute right-2 top-2">
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/55 px-2 py-0.5 font-mono-num text-[10.5px] font-semibold text-white shadow-sm backdrop-blur-md">
-                  <Layers className="h-3 w-3" />
+              <div className="pointer-events-none absolute right-2.5 top-2.5">
+                <span className="inline-flex items-center gap-1 rounded-[4px] bg-white/85 px-1.5 py-0.5 font-mono-num text-[11px] font-semibold text-[#0F172A] backdrop-blur-sm">
+                  <Layers className="h-3 w-3 text-[#475569]" />
                   {safeSlideIdx + 1}/{carouselSlides.length}
                 </span>
               </div>
@@ -586,9 +750,9 @@ export const AdCard = React.memo(function AdCard({
                   e.stopPropagation();
                   stepSlide(-1);
                 }}
-                className="absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-sm backdrop-blur-md transition-all hover:bg-black/75 sm:opacity-0 sm:group-hover:opacity-100"
+                className="absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0F172A] shadow-xs transition-all hover:bg-white sm:opacity-0 sm:group-hover:opacity-100"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 text-[#0F172A]" />
               </button>
 
               <button
@@ -599,9 +763,9 @@ export const AdCard = React.memo(function AdCard({
                   e.stopPropagation();
                   stepSlide(1);
                 }}
-                className="absolute right-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-sm backdrop-blur-md transition-all hover:bg-black/75 sm:opacity-0 sm:group-hover:opacity-100"
+                className="absolute right-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0F172A] shadow-xs transition-all hover:bg-white sm:opacity-0 sm:group-hover:opacity-100"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 text-[#0F172A]" />
               </button>
 
               <div
@@ -621,7 +785,7 @@ export const AdCard = React.memo(function AdCard({
                     className={`h-1.5 rounded-full transition-all ${
                       idx === safeSlideIdx
                         ? "w-4 bg-white shadow-xs"
-                        : "w-1.5 bg-white/55 hover:bg-white/85"
+                        : "w-1.5 bg-white/60 hover:bg-white/90"
                     }`}
                   />
                 ))}
@@ -631,16 +795,16 @@ export const AdCard = React.memo(function AdCard({
         </div>
       </div>
 
-      {/* 4. BOTTOM DOMAIN + HEADLINE + CTA FOOTER STRIP */}
+      {/* 5. ATRIA BOTTOM DOMAIN + HEADLINE + BORDERLESS NEUTRAL CTA FOOTER */}
       <div
         onClick={() => onOpen(ad)}
-        className="mt-2 flex cursor-pointer items-center justify-between gap-2.5 rounded-b-[14px] border-t border-[#EAECEF] bg-[#F7F8FB]/80 px-3 py-2.5 transition-colors hover:bg-[#F1F4F9]"
+        className="flex cursor-pointer items-center justify-between gap-2 rounded-b-[12px] border-t border-[#f1f3f7] bg-white px-3 py-2.5 transition-colors hover:bg-[#FAFBFD]"
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[10.5px] font-medium uppercase tracking-wide text-[#64748B]">
+          <p className="truncate text-[12px] font-normal text-[#64748B]">
             {displayDomain}
           </p>
-          <p className="truncate text-[12px] font-semibold text-[#0F172A]">
+          <p className="truncate text-[13px] font-semibold text-[#0F172A]">
             {displayHeadline}
           </p>
         </div>
@@ -652,7 +816,7 @@ export const AdCard = React.memo(function AdCard({
             e.stopPropagation();
             onOpen(ad);
           }}
-          className="shrink-0 rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+          className="max-w-[110px] shrink-0 truncate rounded-[6px] bg-black/[0.04] px-2.5 py-1.5 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:bg-black/[0.08]"
         >
           {ctaLabel}
         </button>
