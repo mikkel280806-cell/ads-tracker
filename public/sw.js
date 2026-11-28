@@ -1,5 +1,5 @@
 // Minimal Service Worker for Flake PWA installability
-const CACHE_NAME = "flake-shell-v85-atria-1to1-swarm";
+const CACHE_NAME = "flake-shell-v86-atria-qa-clean";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
