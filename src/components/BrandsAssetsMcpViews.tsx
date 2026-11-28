@@ -1,43 +1,47 @@
 "use client";
 
-import React, {
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  useEffect,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Activity,
   ArrowRight,
+  ArrowUpDown,
   ArrowUpRight,
   BarChart3,
-  Bot,
+  Briefcase,
   Building2,
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Code2,
   Copy,
+  Crown,
   ExternalLink,
+  Eye,
   FileText,
   Film,
   Filter,
-  FolderOpen,
+  FlaskConical,
   Globe,
   Image as ImageIcon,
   Layers,
+  LayoutGrid,
+  Lightbulb,
+  LineChart,
   Link2,
   Loader2,
+  Megaphone,
+  MoreHorizontal,
   Package,
-  Palette,
   Pencil,
+  Plug,
   Plus,
   RefreshCw,
+  Rocket,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
-  Tag,
   Terminal,
   Trash2,
   Type,
@@ -46,6 +50,7 @@ import {
   Video,
   Wand2,
   X,
+  Zap,
 } from "lucide-react";
 import {
   ATRIA_BRAND_PERSONAS,
@@ -59,6 +64,64 @@ import type { BrandMemory, CreativeProject } from "@/lib/studio-types";
 import type { Ad, Brand, ProductPreview } from "@/lib/types";
 import { formatProductPriceDkk } from "@/lib/audience-insights";
 import { SnowMark } from "./SnowMascot";
+
+/* ============================================================================
+   OFFICIAL THIRD-PARTY BRAND LOGOS (FULL COLOR, NON-LUCIDE)
+   ============================================================================ */
+
+function GoogleDriveColorIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M8.5 3.5h7l6.5 11.2h-7L8.5 3.5z" fill="#FFC107" />
+      <path d="M2 14.7L8.5 3.5l3.5 6.1-6.5 11.2L2 14.7z" fill="#0F9D58" />
+      <path d="M5.5 20.8l3.5-6.1h13l-3.5 6.1h-13z" fill="#4285F4" />
+    </svg>
+  );
+}
+
+function ClaudeBrandIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <g stroke="#D97757" strokeWidth="2.1" strokeLinecap="round">
+        <line x1="12" y1="3" x2="12" y2="21" />
+        <line x1="3" y1="12" x2="21" y2="12" />
+        <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" />
+        <line x1="18.4" y1="5.6" x2="5.6" y2="18.4" />
+        <line x1="8.2" y1="3.8" x2="15.8" y2="20.2" strokeWidth="1.5" />
+        <line x1="20.2" y1="8.2" x2="3.8" y2="15.8" strokeWidth="1.5" />
+      </g>
+    </svg>
+  );
+}
+
+function ChatGptBrandIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5.5" fill="#74AA9C" />
+      <circle cx="12" cy="12" r="4.5" stroke="#FFFFFF" strokeWidth="1.6" />
+      <path
+        d="M12 6.5v11M7.2 9.25l9.6 5.5M16.8 9.25l-9.6 5.5"
+        stroke="#FFFFFF"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CursorBrandIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 2.5L20.5 7.4v9.2L12 21.5 3.5 16.6V7.4L12 2.5z"
+        fill="#0F172A"
+      />
+      <path d="M12 2.5L20.5 7.4 12 12.2 3.5 7.4 12 2.5z" fill="#334155" />
+      <path d="M12 12.2l8.5-4.8v9.2L12 21.5v-9.3z" fill="#1E293B" />
+      <path d="M12 6.5l5 5.5-5 3.2V6.5z" fill="#FFFFFF" />
+    </svg>
+  );
+}
 
 /* ============================================================================
    SHARED SMALL HELPERS
@@ -106,10 +169,10 @@ function BrandContextRing({ score = 85 }: { score?: number }) {
   return (
     <div
       data-no-glass="true"
-      className="inline-flex items-center gap-2 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3 py-1.5 text-xs font-semibold text-[#0027eb]"
+      className="inline-flex items-center gap-2 rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-1 text-[12px] font-semibold text-[#0027eb]"
     >
-      <div className="relative flex h-7 w-7 items-center justify-center">
-        <svg className="h-7 w-7 -rotate-90" viewBox="0 0 28 28">
+      <div className="relative flex h-6 w-6 items-center justify-center">
+        <svg className="h-6 w-6 -rotate-90" viewBox="0 0 28 28">
           <circle
             cx="14"
             cy="14"
@@ -130,7 +193,7 @@ function BrandContextRing({ score = 85 }: { score?: number }) {
             strokeDashoffset={dashOffset}
           />
         </svg>
-        <span className="font-mono-num absolute text-[9.5px] font-bold text-[#0027eb]">
+        <span className="font-mono-num absolute text-[9px] font-bold text-[#0027eb]">
           {clamped}
         </span>
       </div>
@@ -164,20 +227,20 @@ function EditableChipGroup({
 
   const pillClass =
     tone === "cobalt"
-      ? "border border-[#DCE4FF] bg-[#EEF2FF] text-[#0027eb]"
+      ? "border border-[#C7D2FE] bg-[#EEF2FF] text-[#0027eb]"
       : tone === "amber"
         ? "border border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]"
-        : "border border-[#E6E9F0] bg-[#F7F8FB] text-[#0F172A]";
+        : "border border-[#ebebf3] bg-[#f5f5fa] text-[#0F172A]";
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {items.length === 0 && !editing && (
-        <span className="text-xs text-[#94A3B8]">None added yet</span>
+        <span className="text-[12.5px] text-[#94A3B8]">None added yet</span>
       )}
       {items.map((item, idx) => (
         <span
           key={`${item}-${idx}`}
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${pillClass}`}
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium ${pillClass}`}
         >
           <span>{item}</span>
           {editing && (
@@ -186,9 +249,9 @@ function EditableChipGroup({
               data-no-glass="true"
               onClick={() => onChange(items.filter((_, i) => i !== idx))}
               aria-label={`Remove ${item}`}
-              className="rounded-full p-0.5 opacity-70 transition-opacity hover:opacity-100"
+              className="rounded-full p-0.5 text-[#475569] opacity-75 transition-opacity hover:opacity-100"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3 text-[#475569]" />
             </button>
           )}
         </span>
@@ -206,15 +269,15 @@ function EditableChipGroup({
               }
             }}
             placeholder={placeholder}
-            className="w-40 rounded-full border border-[#DCE4FF] bg-white px-3 py-1 text-xs text-[#0F172A] outline-none focus:border-[#0027eb]"
+            className="w-40 rounded-full border border-[#d6d6e0] bg-white px-3 py-1 text-[12px] text-[#0F172A] outline-none focus:border-[#0027eb]"
           />
           <button
             type="button"
             data-no-glass="true"
             onClick={addChip}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#DCE4FF] bg-[#EEF2FF] text-[#0027eb] hover:bg-[#0027eb] hover:text-white"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#d6d6e0] bg-white text-[#0F172A] hover:border-[#0027eb]"
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3 w-3 text-[#0F172A]" />
           </button>
         </div>
       )}
@@ -276,6 +339,7 @@ export function BrandsWorkspaceView({
   >("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
 
   // Guidelines local interactive preferences
   const [logoOnSnowImages, setLogoOnSnowImages] = useState(true);
@@ -310,7 +374,9 @@ export function BrandsWorkspaceView({
   const [newProductImageUrl, setNewProductImageUrl] = useState("");
 
   const trackedCompetitors = useMemo(() => {
-    const tracked = brands.filter((b) => b.is_tracked && b.id !== "custom-media");
+    const tracked = brands.filter(
+      (b) => b.is_tracked && b.id !== "custom-media"
+    );
     return tracked.length > 0
       ? tracked
       : brands.filter((b) => b.id !== "custom-media");
@@ -432,294 +498,274 @@ export function BrandsWorkspaceView({
   };
 
   /* --------------------------------------------------------------------------
-     LIST VIEW
+     LIST VIEW (1:1 ATRIA BRANDS PAGE + CONTEXT FEATURE BANNER + LIMIT MODAL)
      -------------------------------------------------------------------------- */
   if (subView === "list") {
+    const profileCount = 1;
+
     return (
-      <div className="animate-view-in mx-auto w-full max-w-[1280px] space-y-6 px-4 py-6 sm:px-7">
-        {/* Top Page Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-[26px] font-bold tracking-tight text-[#0F172A]">
-              Brands
-            </h1>
-            <p className="mt-1 text-sm text-[#64748B]">
-              Manage brand memory profiles, audience scenarios, products, and tracked competitors.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onOpenBrandScanner}
-            className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Create a brand
-          </button>
+      <div className="min-h-full bg-[#f5f5fa]">
+        {/* Sticky White Page Header */}
+        <div className="sticky top-0 z-10 border-b border-[#ebebf3] bg-white px-6 py-4">
+          <h1 className="font-display text-[20px] font-bold tracking-tight text-[#0F172A]">
+            Brands ({profileCount})
+          </h1>
         </div>
 
-        {/* Hero Card */}
-        <section className="overflow-hidden rounded-3xl border border-[#DCE4FF] bg-white shadow-xs">
-          <div className="border-b border-[#EEF2FF] bg-gradient-to-br from-[#F7F8FB] via-[#FFFFFF] to-[#EEF2FF]/70 px-6 py-6 sm:px-8">
-            <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-              <div className="max-w-2xl space-y-2.5">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3 py-1 text-[11px] font-semibold text-[#0027eb]">
-                  <SnowMark className="h-3.5 w-3.5 text-[#0027eb]" />
-                  <span>Brand Memory Engine</span>
-                </div>
-                <h2 className="font-display text-xl font-bold tracking-tight text-[#0F172A] sm:text-2xl">
+        <div className="space-y-4 p-4">
+          {/* Context Feature Banner Card */}
+          <section className="grid grid-cols-1 items-center gap-6 rounded-[12px] border border-[#ebebf3] bg-white p-6 lg:grid-cols-[310px_1fr]">
+            <div>
+              <div className="flex items-start gap-2.5">
+                <SnowMark className="mt-0.5 h-6 w-6 shrink-0 text-[#0027eb]" />
+                <h2 className="font-display text-[17px] font-bold leading-snug tracking-tight text-[#0F172A]">
                   Give Snow the context it works from
                 </h2>
-                <p className="text-sm leading-relaxed text-[#475569]">
-                  Scan any storefront URL to extract positioning, USPs, customer objections, brand
-                  colors, and live product feeds so every ad Snow creates feels unmistakably yours.
+              </div>
+              <p className="mt-2.5 text-[13px] leading-relaxed text-[#475569]">
+                Snow can generate ad creatives right now — but without a brand,
+                Snow is working in the dark. A brand profile tells Snow who you
+                are, so every output actually sounds like you.
+              </p>
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setLimitModalOpen(true)}
+                className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
+              >
+                <Plus className="h-4 w-4 text-white" />
+                Create a brand
+              </button>
+            </div>
+
+            {/* 3 Soft Slate Feature Tiles (Strict Monochrome Icons) */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-[10px] bg-[#f5f5fa] p-4">
+                <Wand2 className="mb-2.5 h-4 w-4 text-[#475569]" />
+                <h3 className="text-[13.5px] font-bold text-[#0F172A]">
+                  On-brand output
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-[#475569]">
+                  Snow writes copy and generates creatives that match your
+                  voice, tone, and visual style.
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => onSubViewChange("overview")}
-                  data-no-glass="true"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-4 py-2.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb]/30 hover:text-[#0027eb]"
-                >
-                  Open {activeMemory.brandName}
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenBrandScanner}
-                  className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold text-white"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create a brand
-                </button>
+              <div className="rounded-[10px] bg-[#f5f5fa] p-4">
+                <Users className="mb-2.5 h-4 w-4 text-[#475569]" />
+                <h3 className="text-[13.5px] font-bold text-[#0F172A]">
+                  Audience precision
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-[#475569]">
+                  Snow targets the right scenarios and personas instead of
+                  guessing who you&apos;re speaking to.
+                </p>
+              </div>
+              <div className="rounded-[10px] bg-[#f5f5fa] p-4">
+                <Eye className="mb-2.5 h-4 w-4 text-[#475569]" />
+                <h3 className="text-[13.5px] font-bold text-[#0F172A]">
+                  Competitor awareness
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-[#475569]">
+                  Snow monitors your competitors and factors their moves into
+                  your ad strategy.
+                </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* 3 Benefit Columns */}
-          <div className="grid grid-cols-1 divide-y divide-[#ECEFF5] bg-white md:grid-cols-3 md:divide-x md:divide-y-0">
-            <div className="p-6">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#0027eb]">
-                <Palette className="h-4 w-4" />
-              </div>
-              <h3 className="font-display text-sm font-bold text-[#0F172A]">
-                On-brand output
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-[#64748B]">
-                Locks in your logos, hex palette, fonts, and tone of voice across every video brief
-                and static ad layout.
-              </p>
-            </div>
-            <div className="p-6">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#0027eb]">
-                <Users className="h-4 w-4" />
-              </div>
-              <h3 className="font-display text-sm font-bold text-[#0F172A]">
-                Audience precision
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-[#64748B]">
-                Maps real buyer scenarios, ICP personas, pain points, and objections directly into
-                scroll-stopping hooks.
-              </p>
-            </div>
-            <div className="p-6">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#0027eb]">
-                <Activity className="h-4 w-4" />
-              </div>
-              <h3 className="font-display text-sm font-bold text-[#0F172A]">
-                Competitor awareness
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-[#64748B]">
-                Tracks competitor ad volume, active creative formats, and landing funnels alongside
-                your own brand catalog.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Brands Table */}
-        <section className="overflow-hidden rounded-3xl border border-[#ECEFF5] bg-white shadow-xs">
-          <div className="flex items-center justify-between border-b border-[#ECEFF5] px-6 py-4">
-            <div className="flex items-center gap-2.5">
-              <h2 className="font-display text-sm font-bold text-[#0F172A]">
-                Your Brand Workspaces & Tracked Shops
-              </h2>
-              <span className="font-mono-num rounded-full bg-[#F3F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#475569]">
-                {1 + trackedCompetitors.length}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onSubViewChange("competitors")}
-              data-no-glass="true"
-              className="text-xs font-semibold text-[#0027eb] hover:underline"
-            >
-              Manage competitors
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-[#ECEFF5] bg-[#FAFBFD] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  <th className="px-6 py-3">Brand</th>
-                  <th className="px-4 py-3">Industry</th>
-                  <th className="px-4 py-3">Ad accounts</th>
-                  <th className="px-4 py-3">Scenarios</th>
-                  <th className="px-4 py-3">Personas</th>
-                  <th className="px-4 py-3">Products</th>
-                  <th className="px-6 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#ECEFF5] text-sm">
-                {/* Active / Demo Brand Memory Row */}
-                <tr className="bg-[#EEF2FF]/35 transition-colors hover:bg-[#EEF2FF]/60">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#DCE4FF] bg-white p-1.5">
-                        {activeMemory.logoUrl ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={activeMemory.logoUrl}
-                            alt={activeMemory.brandName}
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <span className="font-display text-xs font-bold text-[#0F172A]">
-                            {activeMemory.brandName.slice(0, 2).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-display font-bold text-[#0F172A]">
+          {/* Brands Table Card (Exact Atria 6-Column Black Header Layout) */}
+          <section className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[740px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-[#ebebf3] bg-white text-[13px] font-semibold text-[#0F172A]">
+                    <th className="px-5 py-3.5">Brand</th>
+                    <th className="px-4 py-3.5">Ad accounts</th>
+                    <th className="px-4 py-3.5">Scenarios</th>
+                    <th className="px-4 py-3.5">Personas</th>
+                    <th className="px-4 py-3.5">Competitors</th>
+                    <th className="px-5 py-3.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#ebebf3] text-[13.5px]">
+                  {/* Primary Brand Profile Row */}
+                  <tr className="transition-colors hover:bg-[#f5f5fa]/50">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-[#f5f5fa] p-1.5">
+                          {activeMemory.logoUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={activeMemory.logoUrl}
+                              alt={activeMemory.brandName}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <span className="font-display text-[11px] font-bold text-[#0F172A]">
+                              {activeMemory.brandName.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#0F172A]">
                             {activeMemory.brandName}
-                          </span>
-                          <span className="rounded-full bg-[#0027eb] px-2 py-0.5 text-[10px] font-semibold text-white">
-                            {brandMemory ? "Active Brand" : "Demo Profile"}
-                          </span>
+                          </p>
+                          <p className="truncate text-[12.5px] text-[#64748B]">
+                            {activeMemory.category} · {activeMemory.domain}
+                          </p>
                         </div>
-                        <p className="font-mono-num text-xs text-[#64748B]">
-                          {activeMemory.domain}
-                        </p>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="inline-flex rounded-full border border-[#DCE4FF] bg-white px-2.5 py-1 text-xs font-medium text-[#0027eb]">
-                      {activeMemory.category}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0F172A]">
-                      <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
-                      Meta Ads · Connected
-                    </span>
-                  </td>
-                  <td className="font-mono-num px-4 py-4 text-xs font-semibold text-[#0F172A]">
-                    Scenarios: {allScenarios.length}
-                  </td>
-                  <td className="font-mono-num px-4 py-4 text-xs font-semibold text-[#0F172A]">
-                    Personas: {ATRIA_BRAND_PERSONAS.length}
-                  </td>
-                  <td className="font-mono-num px-4 py-4 text-xs font-semibold text-[#0F172A]">
-                    {activeMemory.products.length}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onSubViewChange("overview")}
-                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white"
-                    >
-                      View details
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
+                    </td>
+                    <td className="font-mono-num px-4 py-4 text-[13px] text-[#64748B]">
+                      {brandMemory ? "1" : "—"}
+                    </td>
+                    <td className="font-mono-num px-4 py-4 text-[13px] font-medium text-[#0F172A]">
+                      {allScenarios.length}
+                    </td>
+                    <td className="font-mono-num px-4 py-4 text-[13px] font-medium text-[#0F172A]">
+                      {ATRIA_BRAND_PERSONAS.length}
+                    </td>
+                    <td className="font-mono-num px-4 py-4 text-[13px] text-[#64748B]">
+                      {trackedCompetitors.length > 0
+                        ? trackedCompetitors.length
+                        : "—"}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => onSubViewChange("overview")}
+                        className="inline-flex h-8 items-center rounded-[6px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
+                      >
+                        View details
+                      </button>
+                    </td>
+                  </tr>
 
-                {/* Tracked Competitor Brands */}
-                {trackedCompetitors.slice(0, 8).map((brand) => {
-                  const liveCount =
-                    brand.active_ads_count ?? adCountByBrand.get(brand.id) ?? 0;
-                  const prodCount =
-                    brand.top_products?.length || brand.products_count || 0;
-                  return (
-                    <tr
-                      key={brand.id}
-                      className="transition-colors hover:bg-[#F7F8FB]"
-                    >
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E6E9F0] bg-white p-1"
-                          >
-                            {brand.logo_url ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={brand.logo_url}
-                                alt={brand.name}
-                                className="h-full w-full rounded-full object-contain"
-                              />
-                            ) : (
-                              <span className="font-display text-xs font-bold text-[#0F172A]">
-                                {brand.avatar_initials}
-                              </span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-[#0F172A]">
-                                {brand.name}
-                              </span>
-                              <span className="rounded-full bg-[#F3F5F9] px-2 py-0.5 text-[10px] font-medium text-[#64748B]">
-                                Tracked
-                              </span>
+                  {/* Tracked Competitor Brands (Compact Atria Rows) */}
+                  {trackedCompetitors.slice(0, 6).map((brand) => {
+                    const liveCount =
+                      brand.active_ads_count ?? adCountByBrand.get(brand.id) ?? 0;
+                    return (
+                      <tr
+                        key={brand.id}
+                        className="transition-colors hover:bg-[#f5f5fa]/50"
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-white p-1">
+                              {brand.logo_url ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={brand.logo_url}
+                                  alt={brand.name}
+                                  className="h-full w-full rounded-full object-contain"
+                                />
+                              ) : (
+                                <span className="font-display text-[11px] font-bold text-[#0F172A]">
+                                  {brand.avatar_initials}
+                                </span>
+                              )}
                             </div>
-                            <p className="font-mono-num truncate text-xs text-[#64748B]">
-                              {brand.website_url.replace(/^https?:\/\//, "")}
-                            </p>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-[#0F172A]">
+                                  {brand.name}
+                                </span>
+                                <span className="rounded-[4px] bg-[#f5f5fa] px-1.5 py-0.5 text-[10.5px] font-medium text-[#64748B]">
+                                  Tracked
+                                </span>
+                              </div>
+                              <p className="truncate text-[12px] text-[#64748B]">
+                                {brand.category} ·{" "}
+                                {brand.website_url.replace(/^https?:\/\//, "")}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="inline-flex rounded-full border border-[#E6E9F0] bg-[#F7F8FB] px-2.5 py-1 text-xs font-medium text-[#334155]">
-                          {brand.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-[#64748B]">
-                        <span className="font-mono-num font-medium text-[#0F172A]">
-                          {liveCount}
-                        </span>{" "}
-                        live Meta ads
-                      </td>
-                      <td className="font-mono-num px-4 py-3.5 text-xs text-[#64748B]">
-                        Scenarios: 3
-                      </td>
-                      <td className="font-mono-num px-4 py-3.5 text-xs text-[#64748B]">
-                        Personas: 3
-                      </td>
-                      <td className="font-mono-num px-4 py-3.5 text-xs font-medium text-[#0F172A]">
-                        {prodCount}
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <div className="inline-flex items-center gap-2">
+                        </td>
+                        <td className="font-mono-num px-4 py-3.5 text-[12.5px] text-[#64748B]">
+                          {liveCount > 0 ? `${liveCount} ads` : "—"}
+                        </td>
+                        <td className="font-mono-num px-4 py-3.5 text-[13px] text-[#64748B]">
+                          3
+                        </td>
+                        <td className="font-mono-num px-4 py-3.5 text-[13px] text-[#64748B]">
+                          3
+                        </td>
+                        <td className="font-mono-num px-4 py-3.5 text-[13px] text-[#64748B]">
+                          —
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
                           <button
                             type="button"
                             data-no-glass="true"
                             onClick={() => onOpenCompetitorBrand(brand.id)}
-                            className="inline-flex items-center gap-1 rounded-full border border-[#E6E9F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb]/30 hover:text-[#0027eb]"
+                            className="inline-flex h-8 items-center rounded-[6px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb] hover:text-[#0027eb]"
                           >
                             View details
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        {/* PROFILE LIMIT MODAL (1:1 ATRIA STEP 69 REPLICA) */}
+        {limitModalOpen &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              className="fixed inset-0 z-[95] flex items-center justify-center bg-[#050811]/55 p-4"
+              onClick={() => setLimitModalOpen(false)}
+            >
+              <div
+                className="w-full max-w-[409px] rounded-[12px] border border-[#ebebf3] bg-white p-6 shadow-[0_8px_28px_rgba(15,23,42,0.16)]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F59E0B] text-[13px] font-bold text-white">
+                    !
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-display text-[15.5px] font-bold text-[#0F172A]">
+                      You&apos;ve reached brand profile limit
+                    </h2>
+                    <p className="mt-2 text-[13.5px] leading-relaxed text-[#475569]">
+                      Up to 1 brand profile can be created in your workspace.
+                      You can upgrade the plan to expand the limit.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setLimitModalOpen(false)}
+                    className="h-8 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0F172A]/40"
+                  >
+                    Got it
+                  </button>
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => {
+                      setLimitModalOpen(false);
+                      onOpenBrandScanner();
+                    }}
+                    className="h-8 rounded-[8px] bg-[#0027eb] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
+                  >
+                    Upgrade plan
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
       </div>
     );
   }
@@ -732,35 +778,35 @@ export function BrandsWorkspaceView({
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
-        className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-[#64748B]"
+        className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-medium text-[#64748B]"
       >
         <button
           type="button"
           data-no-glass="true"
           onClick={() => onSubViewChange("list")}
-          className="transition-colors hover:text-[#0027eb]"
+          className="transition-colors hover:text-[#0F172A]"
         >
           Brands
         </button>
-        <ChevronRight className="h-3.5 w-3.5 text-[#CBD5E1]" />
+        <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
         <button
           type="button"
           data-no-glass="true"
           onClick={() => onSubViewChange("overview")}
-          className="transition-colors hover:text-[#0027eb]"
+          className="transition-colors hover:text-[#0F172A]"
         >
           {activeMemory.brandName}
         </button>
-        <ChevronRight className="h-3.5 w-3.5 text-[#CBD5E1]" />
+        <ChevronRight className="h-3.5 w-3.5 text-[#94A3B8]" />
         <span className="font-semibold text-[#0F172A]">
           {subSectionLabel[subView]}
         </span>
       </nav>
 
       {/* Brand Identity Bar */}
-      <div className="flex flex-col justify-between gap-4 rounded-3xl border border-[#ECEFF5] bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:px-6">
+      <div className="flex flex-col justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white p-5 sm:flex-row sm:items-center sm:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E6E9F0] bg-white p-2 shadow-xs">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-[#f5f5fa] p-2">
             {activeMemory.logoUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
@@ -769,45 +815,37 @@ export function BrandsWorkspaceView({
                 className="h-full w-full object-contain"
               />
             ) : (
-              <span className="font-display text-lg font-bold text-[#0F172A]">
+              <span className="font-display text-base font-bold text-[#0F172A]">
                 {activeMemory.brandName.slice(0, 2).toUpperCase()}
               </span>
             )}
           </div>
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="font-display truncate text-xl font-bold tracking-tight text-[#0F172A] sm:text-2xl">
+              <h1 className="font-display truncate text-[20px] font-bold tracking-tight text-[#0F172A]">
                 {activeMemory.brandName}
               </h1>
               <BrandContextRing score={85} />
               {savedNotice && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF3] px-2.5 py-0.5 text-[11px] font-semibold text-[#15803D]">
-                  <Check className="h-3 w-3" />
+                  <Check className="h-3 w-3 text-[#475569]" />
                   Saved
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-[#64748B]">
+            <div className="flex flex-wrap items-center gap-2.5 text-[12.5px] text-[#64748B]">
               <a
                 href={activeMemory.websiteUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="font-mono-num inline-flex items-center gap-1 hover:text-[#0027eb]"
               >
-                <Globe className="h-3.5 w-3.5" />
+                <Globe className="h-3.5 w-3.5 text-[#64748B]" />
                 {activeMemory.domain}
-                <ExternalLink className="h-3 w-3 opacity-60" />
+                <ExternalLink className="h-3 w-3 text-[#94A3B8]" />
               </a>
               <span>·</span>
               <span>{activeMemory.category}</span>
-              {!brandMemory && (
-                <>
-                  <span>·</span>
-                  <span className="font-medium text-[#0027eb]">
-                    Demo Brand Context (click Rescan URL to load yours)
-                  </span>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -817,21 +855,22 @@ export function BrandsWorkspaceView({
             type="button"
             data-no-glass="true"
             onClick={onOpenBrandScanner}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb]/30 hover:text-[#0027eb]"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className="h-3.5 w-3.5 text-[#475569]" />
             Rescan URL
           </button>
           <button
             type="button"
+            data-no-glass="true"
             onClick={() => {
               onSubViewChange("overview");
               setOverviewTab("profile");
               setIsEditingProfile((v) => !v);
             }}
-            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-3.5 w-3.5 text-white" />
             {isEditingProfile && subView === "overview"
               ? "Done editing"
               : "Edit profile"}
@@ -840,12 +879,15 @@ export function BrandsWorkspaceView({
       </div>
 
       {/* Sub-view Nav Pills */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-[#ECEFF5] bg-[#F7F8FB] p-1.5">
+      <div className="flex flex-wrap items-center gap-1 rounded-[10px] border border-[#ebebf3] bg-white p-1">
         {(
           [
             { id: "overview", label: "Overview" },
             { id: "audience", label: "Audience" },
-            { id: "products", label: `Products (${activeMemory.products.length})` },
+            {
+              id: "products",
+              label: `Products (${activeMemory.products.length})`,
+            },
             {
               id: "competitors",
               label: `Competitors (${trackedCompetitors.length})`,
@@ -859,10 +901,10 @@ export function BrandsWorkspaceView({
               type="button"
               data-no-glass="true"
               onClick={() => onSubViewChange(item.id)}
-              className={`rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+              className={`rounded-[8px] px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${
                 active
-                  ? "bg-[#0F172A] text-white shadow-xs"
-                  : "text-[#475569] hover:bg-white hover:text-[#0F172A]"
+                  ? "bg-[#0F172A] text-white"
+                  : "text-[#475569] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
               }`}
             >
               {item.label}
@@ -878,798 +920,789 @@ export function BrandsWorkspaceView({
      -------------------------------------------------------------------------- */
   if (subView === "overview") {
     return (
-      <div className="animate-view-in mx-auto w-full max-w-[1280px] space-y-6 px-4 py-6 sm:px-7">
-        {renderDetailHeader()}
+      <div className="min-h-full bg-[#f5f5fa]">
+        <div className="mx-auto w-full max-w-[1240px] space-y-5 px-6 py-6">
+          {renderDetailHeader()}
 
-        {/* 5 Summary Stat Cards */}
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
-          {/* 1. Ad accounts */}
-          <div className="rounded-2xl border border-[#ECEFF5] bg-white p-4 shadow-xs">
-            <div className="flex items-center justify-between text-xs font-medium text-[#64748B]">
-              <span>Ad accounts</span>
-              <Building2 className="h-3.5 w-3.5 text-[#0027eb]" />
+          {/* 5 Summary Stat Cards */}
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-[12px] border border-[#ebebf3] bg-white p-4">
+              <div className="flex items-center justify-between text-[12px] font-medium text-[#64748B]">
+                <span>Ad accounts</span>
+                <Building2 className="h-3.5 w-3.5 text-[#64748B]" />
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-mono-num text-xl font-bold text-[#0F172A]">
+                  1
+                </span>
+                <span className="text-[12px] font-medium text-[#15803D]">
+                  Meta Ads active
+                </span>
+              </div>
+              <p className="mt-2 truncate text-[11.5px] text-[#64748B]">
+                {activeMemory.pixels?.join(" · ") || "Meta Pixel synced"}
+              </p>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="font-mono-num text-xl font-bold text-[#0F172A]">
-                1
-              </span>
-              <span className="text-xs font-medium text-[#16A34A]">
-                Meta Ads active
-              </span>
-            </div>
-            <p className="mt-2 truncate text-[11px] text-[#64748B]">
-              {activeMemory.pixels?.join(" · ") || "Meta Pixel synced"}
-            </p>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => {
+                setAudienceMode("scenarios");
+                onSubViewChange("audience");
+              }}
+              className="group rounded-[12px] border border-[#ebebf3] bg-white p-4 text-left transition-colors hover:border-[#d6d6e0]"
+            >
+              <div className="flex items-center justify-between text-[12px] font-medium text-[#64748B]">
+                <span>Scenarios</span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#64748B] transition-colors group-hover:text-[#0F172A]" />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="font-mono-num text-lg font-bold text-[#0F172A]">
+                  {allScenarios.length} Scenarios
+                </span>
+                <div className="flex -space-x-2">
+                  {ATRIA_BRAND_SCENARIOS.slice(0, 3).map((scn) => (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={scn.id}
+                      src={scn.imageUrl}
+                      alt={scn.title}
+                      className="h-7 w-7 rounded-[6px] border-2 border-white object-cover"
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="mt-2 truncate text-[11.5px] text-[#64748B]">
+                Angles &amp; lifestyle use cases
+              </p>
+            </button>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => {
+                setAudienceMode("personas");
+                onSubViewChange("audience");
+              }}
+              className="group rounded-[12px] border border-[#ebebf3] bg-white p-4 text-left transition-colors hover:border-[#d6d6e0]"
+            >
+              <div className="flex items-center justify-between text-[12px] font-medium text-[#64748B]">
+                <span>Personas</span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#64748B] transition-colors group-hover:text-[#0F172A]" />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="font-mono-num text-lg font-bold text-[#0F172A]">
+                  {ATRIA_BRAND_PERSONAS.length} Personas
+                </span>
+                <div className="flex -space-x-2">
+                  {ATRIA_BRAND_PERSONAS.slice(0, 3).map((per) => (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={per.id}
+                      src={per.avatarUrl}
+                      alt={per.name}
+                      className="h-7 w-7 rounded-full border-2 border-white object-cover"
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="mt-2 truncate text-[11.5px] text-[#64748B]">
+                Target customer profiles
+              </p>
+            </button>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => onSubViewChange("products")}
+              className="group rounded-[12px] border border-[#ebebf3] bg-white p-4 text-left transition-colors hover:border-[#d6d6e0]"
+            >
+              <div className="flex items-center justify-between text-[12px] font-medium text-[#64748B]">
+                <span>Products</span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#64748B] transition-colors group-hover:text-[#0F172A]" />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="font-mono-num text-lg font-bold text-[#0F172A]">
+                  {activeMemory.products.length}{" "}
+                  {activeMemory.products.length === 1 ? "Product" : "Products"}
+                </span>
+                {activeMemory.products[0]?.image_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={activeMemory.products[0].image_url}
+                    alt={activeMemory.products[0].title}
+                    className="h-8 w-8 rounded-[6px] border border-[#ebebf3] object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#f5f5fa]">
+                    <Package className="h-4 w-4 text-[#64748B]" />
+                  </div>
+                )}
+              </div>
+              <p className="mt-2 truncate text-[11.5px] text-[#64748B]">
+                {activeMemory.products[0]?.title || "Product catalog"}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => onSubViewChange("competitors")}
+              className="group rounded-[12px] border border-[#ebebf3] bg-white p-4 text-left transition-colors hover:border-[#d6d6e0]"
+            >
+              <div className="flex items-center justify-between text-[12px] font-medium text-[#64748B]">
+                <span>Competitors</span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#64748B] transition-colors group-hover:text-[#0F172A]" />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="font-mono-num text-lg font-bold text-[#0F172A]">
+                  {trackedCompetitors.length} Competitors
+                </span>
+              </div>
+              <p className="mt-2 truncate text-[11.5px] text-[#64748B]">
+                Live ad benchmarks tracked
+              </p>
+            </button>
           </div>
 
-          {/* 2. 3 Scenarios */}
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => {
-              setAudienceMode("scenarios");
-              onSubViewChange("audience");
-            }}
-            className="group rounded-2xl border border-[#ECEFF5] bg-white p-4 text-left shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-          >
-            <div className="flex items-center justify-between text-xs font-medium text-[#64748B]">
-              <span>Scenarios</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-[#94A3B8] transition-colors group-hover:text-[#0027eb]" />
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="font-mono-num text-lg font-bold text-[#0F172A]">
-                {allScenarios.length} Scenarios
-              </span>
-              <div className="flex -space-x-2">
-                {ATRIA_BRAND_SCENARIOS.slice(0, 3).map((scn) => (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    key={scn.id}
-                    src={scn.imageUrl}
-                    alt={scn.title}
-                    className="h-7 w-7 rounded-lg border-2 border-white object-cover shadow-xs"
-                  />
-                ))}
+          {/* Overview 3 Horizontal Section Tabs */}
+          <section className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ebebf3] px-6 pt-3">
+              <div className="flex items-center gap-6">
+                {(
+                  [
+                    { id: "profile", label: "Brand profile" },
+                    { id: "guidelines", label: "Brand guidelines" },
+                    {
+                      id: "context_files",
+                      label: `Context files (${contextFiles.length})`,
+                    },
+                  ] as const
+                ).map((tab) => {
+                  const active = overviewTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setOverviewTab(tab.id)}
+                      className={`border-b-2 pt-1 pb-3 text-[13px] font-semibold transition-colors ${
+                        active
+                          ? "border-[#0027eb] text-[#0027eb]"
+                          : "border-transparent text-[#64748B] hover:text-[#0F172A]"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
-            </div>
-            <p className="mt-2 truncate text-[11px] text-[#64748B]">
-              Angles & lifestyle use cases
-            </p>
-          </button>
 
-          {/* 3. 3 Personas */}
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => {
-              setAudienceMode("personas");
-              onSubViewChange("audience");
-            }}
-            className="group rounded-2xl border border-[#ECEFF5] bg-white p-4 text-left shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-          >
-            <div className="flex items-center justify-between text-xs font-medium text-[#64748B]">
-              <span>Personas</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-[#94A3B8] transition-colors group-hover:text-[#0027eb]" />
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="font-mono-num text-lg font-bold text-[#0F172A]">
-                {ATRIA_BRAND_PERSONAS.length} Personas
-              </span>
-              <div className="flex -space-x-2">
-                {ATRIA_BRAND_PERSONAS.slice(0, 3).map((per) => (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    key={per.id}
-                    src={per.avatarUrl}
-                    alt={per.name}
-                    className="h-7 w-7 rounded-full border-2 border-white object-cover shadow-xs"
-                  />
-                ))}
-              </div>
-            </div>
-            <p className="mt-2 truncate text-[11px] text-[#64748B]">
-              Target customer profiles
-            </p>
-          </button>
-
-          {/* 4. Products */}
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => onSubViewChange("products")}
-            className="group rounded-2xl border border-[#ECEFF5] bg-white p-4 text-left shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-          >
-            <div className="flex items-center justify-between text-xs font-medium text-[#64748B]">
-              <span>Products</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-[#94A3B8] transition-colors group-hover:text-[#0027eb]" />
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="font-mono-num text-lg font-bold text-[#0F172A]">
-                {activeMemory.products.length}{" "}
-                {activeMemory.products.length === 1 ? "Product" : "Products"}
-              </span>
-              {activeMemory.products[0]?.image_url ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={activeMemory.products[0].image_url}
-                  alt={activeMemory.products[0].title}
-                  className="h-8 w-8 rounded-lg border border-[#E6E9F0] object-cover"
-                />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F7F8FB] text-[#94A3B8]">
-                  <Package className="h-4 w-4" />
+              {overviewTab === "profile" && (
+                <div className="mb-2 flex items-center gap-2">
+                  {isEditingProfile ? (
+                    <>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => {
+                          setEditedMemory(null);
+                          setIsEditingProfile(false);
+                        }}
+                        className="h-8 rounded-[8px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#475569] hover:text-[#0F172A]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => {
+                          commitMemory(draftMemory);
+                          setIsEditingProfile(false);
+                        }}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 text-[12.5px] font-semibold text-white hover:bg-[#001fc2]"
+                      >
+                        <Check className="h-3.5 w-3.5 text-white" />
+                        Save changes
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] hover:border-[#0027eb]"
+                    >
+                      <Pencil className="h-3 w-3 text-[#475569]" />
+                      Edit fields
+                    </button>
+                  )}
                 </div>
               )}
             </div>
-            <p className="mt-2 truncate text-[11px] text-[#64748B]">
-              {activeMemory.products[0]?.title || "Product catalog"}
-            </p>
-          </button>
 
-          {/* 5. Competitors */}
-          <button
-            type="button"
-            data-no-glass="true"
-            onClick={() => onSubViewChange("competitors")}
-            className="group rounded-2xl border border-[#ECEFF5] bg-white p-4 text-left shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-          >
-            <div className="flex items-center justify-between text-xs font-medium text-[#64748B]">
-              <span>Competitors</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-[#94A3B8] transition-colors group-hover:text-[#0027eb]" />
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="font-mono-num text-lg font-bold text-[#0F172A]">
-                {trackedCompetitors.length} Competitors
-              </span>
-            </div>
-            <p className="mt-2 truncate text-[11px] text-[#64748B]">
-              Live ad benchmarks tracked
-            </p>
-          </button>
-        </div>
-
-        {/* Overview 3 Horizontal Section Tabs */}
-        <section className="overflow-hidden rounded-3xl border border-[#ECEFF5] bg-white shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ECEFF5] px-6 pt-3">
-            <div className="flex items-center gap-6">
-              {(
-                [
-                  { id: "profile", label: "Brand profile" },
-                  { id: "guidelines", label: "Brand guidelines" },
-                  {
-                    id: "context_files",
-                    label: `Context files (${contextFiles.length})`,
-                  },
-                ] as const
-              ).map((tab) => {
-                const active = overviewTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => setOverviewTab(tab.id)}
-                    className={`border-b-2 pb-3 pt-1 text-xs font-semibold transition-colors sm:text-sm ${
-                      active
-                        ? "border-[#0027eb] text-[#0027eb]"
-                        : "border-transparent text-[#64748B] hover:text-[#0F172A]"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
+            {/* TAB 1: BRAND PROFILE */}
             {overviewTab === "profile" && (
-              <div className="mb-2 flex items-center gap-2">
-                {isEditingProfile ? (
-                  <>
+              <div className="divide-y divide-[#ebebf3]">
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
+                  <label className="text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Brand name
+                  </label>
+                  <div className="md:col-span-8">
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        value={draftMemory.brandName}
+                        onChange={(e) =>
+                          setDraftMemory({
+                            ...draftMemory,
+                            brandName: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[13.5px] text-[#0F172A] outline-none focus:border-[#0027eb]"
+                      />
+                    ) : (
+                      <p className="text-[13.5px] font-semibold text-[#0F172A]">
+                        {draftMemory.brandName}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
+                  <label className="text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Website
+                  </label>
+                  <div className="md:col-span-8">
+                    {isEditingProfile ? (
+                      <input
+                        type="url"
+                        value={draftMemory.websiteUrl}
+                        onChange={(e) =>
+                          setDraftMemory({
+                            ...draftMemory,
+                            websiteUrl: e.target.value,
+                          })
+                        }
+                        className="font-mono-num w-full rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[13.5px] text-[#0F172A] outline-none focus:border-[#0027eb]"
+                      />
+                    ) : (
+                      <a
+                        href={draftMemory.websiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono-num inline-flex items-center gap-1.5 text-[13.5px] font-medium text-[#0027eb] hover:underline"
+                      >
+                        {draftMemory.websiteUrl}
+                        <ExternalLink className="h-3.5 w-3.5 text-[#64748B]" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
+                  <label className="text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Industry / category
+                  </label>
+                  <div className="md:col-span-8">
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        value={draftMemory.category}
+                        onChange={(e) =>
+                          setDraftMemory({
+                            ...draftMemory,
+                            category: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[13.5px] text-[#0F172A] outline-none focus:border-[#0027eb]"
+                      />
+                    ) : (
+                      <span className="inline-flex rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-1 text-[12px] font-semibold text-[#0027eb]">
+                        {draftMemory.category}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-start">
+                  <label className="pt-1 text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Product / service description
+                  </label>
+                  <div className="md:col-span-8">
+                    {isEditingProfile ? (
+                      <textarea
+                        rows={3}
+                        value={draftMemory.description || ""}
+                        onChange={(e) =>
+                          setDraftMemory({
+                            ...draftMemory,
+                            description: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[13.5px] text-[#0F172A] outline-none focus:border-[#0027eb]"
+                      />
+                    ) : (
+                      <p className="text-[13.5px] leading-relaxed text-[#334155]">
+                        {draftMemory.description || draftMemory.tagline || "—"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-start">
+                  <label className="pt-1 text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Unique value propositions
+                  </label>
+                  <div className="md:col-span-8">
+                    <EditableChipGroup
+                      items={draftMemory.usps}
+                      editing={isEditingProfile}
+                      tone="cobalt"
+                      placeholder="Add USP + Enter"
+                      onChange={(usps) =>
+                        setDraftMemory({ ...draftMemory, usps })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-start">
+                  <label className="pt-1 text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Pain points
+                  </label>
+                  <div className="md:col-span-8">
+                    <EditableChipGroup
+                      items={draftMemory.painPoints}
+                      editing={isEditingProfile}
+                      tone="amber"
+                      placeholder="Add pain point + Enter"
+                      onChange={(painPoints) =>
+                        setDraftMemory({ ...draftMemory, painPoints })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
+                  <label className="text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Target audience
+                  </label>
+                  <div className="md:col-span-8">
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        value={draftMemory.targetAudience}
+                        onChange={(e) =>
+                          setDraftMemory({
+                            ...draftMemory,
+                            targetAudience: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[13.5px] text-[#0F172A] outline-none focus:border-[#0027eb]"
+                      />
+                    ) : (
+                      <p className="text-[13.5px] text-[#0F172A]">
+                        {draftMemory.targetAudience}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
+                  <label className="text-[12.5px] font-semibold text-[#64748B] md:col-span-4">
+                    Primary offer
+                  </label>
+                  <div className="md:col-span-8">
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        value={draftMemory.primaryOffer}
+                        onChange={(e) =>
+                          setDraftMemory({
+                            ...draftMemory,
+                            primaryOffer: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[13.5px] text-[#0F172A] outline-none focus:border-[#0027eb]"
+                      />
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF3] px-3 py-1 text-[12px] font-semibold text-[#15803D]">
+                        <ShieldCheck className="h-3.5 w-3.5 text-[#475569]" />
+                        {draftMemory.primaryOffer}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: BRAND GUIDELINES */}
+            {overviewTab === "guidelines" && (
+              <div className="divide-y divide-[#ebebf3]">
+                <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-start">
+                  <div className="md:col-span-4">
+                    <p className="text-[13px] font-semibold text-[#0F172A]">
+                      Logos
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#64748B]">
+                      Primary mark used in Studio templates and Snow renders.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 md:col-span-8">
+                    <div className="relative flex h-24 w-44 items-center justify-center rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] p-4">
+                      <span className="absolute top-2.5 right-2.5 rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-semibold text-[#0027eb]">
+                        Default
+                      </span>
+                      {draftMemory.logoUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={draftMemory.logoUrl}
+                          alt={draftMemory.brandName}
+                          className="max-h-12 max-w-[110px] object-contain"
+                        />
+                      ) : (
+                        <span className="font-display text-base font-bold text-[#0F172A]">
+                          {draftMemory.brandName}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex h-24 w-44 items-center justify-center rounded-[10px] border border-[#0F172A] bg-[#050811] p-4">
+                      {draftMemory.logoUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={draftMemory.logoUrl}
+                          alt={`${draftMemory.brandName} dark`}
+                          className="max-h-12 max-w-[110px] object-contain brightness-0 invert"
+                        />
+                      ) : (
+                        <span className="font-display text-base font-bold text-white">
+                          {draftMemory.brandName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-start">
+                  <div className="md:col-span-4">
+                    <p className="text-[13px] font-semibold text-[#0F172A]">
+                      Brand colors
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#64748B]">
+                      Click any swatch to adjust its hex code or add a new brand
+                      color.
+                    </p>
+                  </div>
+                  <div className="space-y-3 md:col-span-8">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {draftMemory.brandColors.map((hex, idx) => (
+                        <div
+                          key={`${hex}-${idx}`}
+                          className="group relative overflow-hidden rounded-[10px] border border-[#ebebf3] bg-white p-2"
+                        >
+                          <label className="block cursor-pointer">
+                            <div
+                              className="h-14 w-full rounded-[8px] border border-black/10"
+                              style={{ backgroundColor: hex }}
+                            />
+                            <input
+                              type="color"
+                              value={
+                                /^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : "#0027eb"
+                              }
+                              onChange={(e) =>
+                                handleUpdateColorAt(idx, e.target.value)
+                              }
+                              className="sr-only"
+                            />
+                          </label>
+                          <div className="mt-2 flex items-center justify-between px-1">
+                            <span className="font-mono-num text-[12px] font-semibold text-[#0F172A]">
+                              {hex.toUpperCase()}
+                            </span>
+                            {draftMemory.brandColors.length > 1 && (
+                              <button
+                                type="button"
+                                data-no-glass="true"
+                                onClick={() => handleRemoveColorAt(idx)}
+                                aria-label={`Remove ${hex}`}
+                                className="text-[#64748B] opacity-0 transition-opacity hover:text-[#0F172A] group-hover:opacity-100"
+                              >
+                                <X className="h-3.5 w-3.5 text-[#64748B]" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-[8px] border border-[#d6d6e0] bg-[#f5f5fa] px-3 py-1.5 text-[12px]">
+                        <span
+                          className="h-4 w-4 rounded-full border border-black/10"
+                          style={{ backgroundColor: newColorHex }}
+                        />
+                        <input
+                          type="color"
+                          value={newColorHex}
+                          onChange={(e) => setNewColorHex(e.target.value)}
+                          className="sr-only"
+                        />
+                        <span className="font-mono-num font-semibold text-[#0F172A]">
+                          {newColorHex.toUpperCase()}
+                        </span>
+                      </label>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={handleAddColor}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
+                      >
+                        <Plus className="h-3.5 w-3.5 text-[#475569]" />
+                        Add color swatch
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-start">
+                  <div className="md:col-span-4">
+                    <p className="text-[13px] font-semibold text-[#0F172A]">
+                      Brand fonts
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#64748B]">
+                      Typography pairing applied to static ads and captions.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-8">
+                    <div className="rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                          Primary UI &amp; Display
+                        </span>
+                        <Type className="h-3.5 w-3.5 text-[#475569]" />
+                      </div>
+                      <p className="mt-2 text-lg font-bold text-[#0F172A]">
+                        Geist Sans
+                      </p>
+                      <p className="mt-1 text-[12px] text-[#64748B]">
+                        Aa Bb Cc · Clean modern geometric grotesque
+                      </p>
+                    </div>
+                    <div className="rounded-[10px] border border-[#ebebf3] bg-[#f5f5fa] p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                          Editorial Accent
+                        </span>
+                        <Type className="h-3.5 w-3.5 text-[#475569]" />
+                      </div>
+                      <p className="font-geist-serif mt-2 text-xl font-normal text-[#0F172A]">
+                        Geist Serif
+                      </p>
+                      <p className="mt-1 text-[12px] text-[#64748B]">
+                        Aa Bb Cc · High-trust founder &amp; editorial headlines
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-center">
+                  <div className="md:col-span-4">
+                    <p className="text-[13px] font-semibold text-[#0F172A]">
+                      Tone of voice
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#64748B]">
+                      Guides Snow scriptwriting and headline variations.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 md:col-span-8">
+                    <input
+                      type="text"
+                      value={draftMemory.toneOfVoice}
+                      onChange={(e) =>
+                        setDraftMemory({
+                          ...draftMemory,
+                          toneOfVoice: e.target.value,
+                        })
+                      }
+                      className="flex-1 rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 py-2 text-[13.5px] text-[#0F172A] outline-none focus:border-[#0027eb]"
+                    />
                     <button
                       type="button"
                       data-no-glass="true"
-                      onClick={() => {
-                        setEditedMemory(null);
-                        setIsEditingProfile(false);
-                      }}
-                      className="rounded-full border border-[#E6E9F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F7F8FB]"
+                      onClick={() => commitMemory(draftMemory)}
+                      className="h-9 rounded-[8px] bg-[#0027eb] px-4 text-[12.5px] font-semibold text-white hover:bg-[#001fc2]"
                     >
-                      Cancel
+                      Update
                     </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-center">
+                  <div className="md:col-span-4">
+                    <p className="text-[13px] font-semibold text-[#0F172A]">
+                      Logo on Snow images
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#64748B]">
+                      Automatically watermark or place brand mark on static
+                      outputs.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:col-span-8">
+                    <span className="text-[13.5px] font-medium text-[#0F172A]">
+                      {logoOnSnowImages
+                        ? "On — Snow adds your logo to generated ads"
+                        : "Off — Clean unbranded exports"}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => {
-                        commitMemory(draftMemory);
-                        setIsEditingProfile(false);
-                      }}
-                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-white"
+                      role="switch"
+                      aria-checked={logoOnSnowImages}
+                      data-no-glass="true"
+                      onClick={() => setLogoOnSnowImages((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                        logoOnSnowImages ? "bg-[#0027eb]" : "bg-[#CBD5E1]"
+                      }`}
                     >
-                      <Check className="h-3.5 w-3.5" />
-                      Save changes
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform ${
+                          logoOnSnowImages ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
                     </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => setIsEditingProfile(true)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]/30 hover:text-[#0027eb]"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit fields
-                  </button>
-                )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-center">
+                  <div className="md:col-span-4">
+                    <p className="text-[13px] font-semibold text-[#0F172A]">
+                      Default language
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#64748B]">
+                      Default copywriting and voiceover language in Studio.
+                    </p>
+                  </div>
+                  <div className="md:col-span-8">
+                    <select
+                      value={defaultLanguage}
+                      onChange={(e) => setDefaultLanguage(e.target.value)}
+                      data-no-glass="true"
+                      className="w-full max-w-xs rounded-[8px] border border-[#d6d6e0] bg-white px-3.5 py-2 text-[13.5px] font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                    >
+                      <option value="English (US)">English (US)</option>
+                      <option value="Danish (DA)">Danish (DA)</option>
+                      <option value="Swedish (SV)">Swedish (SV)</option>
+                      <option value="Norwegian (NO)">Norwegian (NO)</option>
+                      <option value="German (DE)">German (DE)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
 
-          {/* TAB 1: BRAND PROFILE */}
-          {overviewTab === "profile" && (
-            <div className="divide-y divide-[#ECEFF5]">
-              {/* Brand name */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
-                <label className="text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Brand name
-                </label>
-                <div className="md:col-span-8">
-                  {isEditingProfile ? (
-                    <input
-                      type="text"
-                      value={draftMemory.brandName}
-                      onChange={(e) =>
-                        setDraftMemory({
-                          ...draftMemory,
-                          brandName: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-xl border border-[#DCE4FF] bg-[#FAFBFD] px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                    />
-                  ) : (
-                    <p className="text-sm font-semibold text-[#0F172A]">
-                      {draftMemory.brandName}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Website */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
-                <label className="text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Website
-                </label>
-                <div className="md:col-span-8">
-                  {isEditingProfile ? (
-                    <input
-                      type="url"
-                      value={draftMemory.websiteUrl}
-                      onChange={(e) =>
-                        setDraftMemory({
-                          ...draftMemory,
-                          websiteUrl: e.target.value,
-                        })
-                      }
-                      className="font-mono-num w-full rounded-xl border border-[#DCE4FF] bg-[#FAFBFD] px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                    />
-                  ) : (
-                    <a
-                      href={draftMemory.websiteUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-mono-num inline-flex items-center gap-1.5 text-sm font-medium text-[#0027eb] hover:underline"
-                    >
-                      {draftMemory.websiteUrl}
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Industry / category */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
-                <label className="text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Industry / category
-                </label>
-                <div className="md:col-span-8">
-                  {isEditingProfile ? (
-                    <input
-                      type="text"
-                      value={draftMemory.category}
-                      onChange={(e) =>
-                        setDraftMemory({
-                          ...draftMemory,
-                          category: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-xl border border-[#DCE4FF] bg-[#FAFBFD] px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                    />
-                  ) : (
-                    <span className="inline-flex rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3 py-1 text-xs font-semibold text-[#0027eb]">
-                      {draftMemory.category}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Product / service description */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-start">
-                <label className="pt-1 text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Product / service description
-                </label>
-                <div className="md:col-span-8">
-                  {isEditingProfile ? (
-                    <textarea
-                      rows={3}
-                      value={draftMemory.description || ""}
-                      onChange={(e) =>
-                        setDraftMemory({
-                          ...draftMemory,
-                          description: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-xl border border-[#DCE4FF] bg-[#FAFBFD] px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                    />
-                  ) : (
-                    <p className="text-sm leading-relaxed text-[#334155]">
-                      {draftMemory.description || draftMemory.tagline || "—"}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Unique value propositions */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-start">
-                <label className="pt-1 text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Unique value propositions
-                </label>
-                <div className="md:col-span-8">
-                  <EditableChipGroup
-                    items={draftMemory.usps}
-                    editing={isEditingProfile}
-                    tone="cobalt"
-                    placeholder="Add USP + Enter"
-                    onChange={(usps) => setDraftMemory({ ...draftMemory, usps })}
-                  />
-                </div>
-              </div>
-
-              {/* Pain points */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-start">
-                <label className="pt-1 text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Pain points
-                </label>
-                <div className="md:col-span-8">
-                  <EditableChipGroup
-                    items={draftMemory.painPoints}
-                    editing={isEditingProfile}
-                    tone="amber"
-                    placeholder="Add pain point + Enter"
-                    onChange={(painPoints) =>
-                      setDraftMemory({ ...draftMemory, painPoints })
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Target audience */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
-                <label className="text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Target audience
-                </label>
-                <div className="md:col-span-8">
-                  {isEditingProfile ? (
-                    <input
-                      type="text"
-                      value={draftMemory.targetAudience}
-                      onChange={(e) =>
-                        setDraftMemory({
-                          ...draftMemory,
-                          targetAudience: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-xl border border-[#DCE4FF] bg-[#FAFBFD] px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                    />
-                  ) : (
-                    <p className="text-sm text-[#0F172A]">
-                      {draftMemory.targetAudience}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Primary offer */}
-              <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-12 md:items-center">
-                <label className="text-xs font-semibold text-[#64748B] md:col-span-4">
-                  Primary offer
-                </label>
-                <div className="md:col-span-8">
-                  {isEditingProfile ? (
-                    <input
-                      type="text"
-                      value={draftMemory.primaryOffer}
-                      onChange={(e) =>
-                        setDraftMemory({
-                          ...draftMemory,
-                          primaryOffer: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-xl border border-[#DCE4FF] bg-[#FAFBFD] px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                    />
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF3] px-3 py-1 text-xs font-semibold text-[#15803D]">
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      {draftMemory.primaryOffer}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: BRAND GUIDELINES */}
-          {overviewTab === "guidelines" && (
-            <div className="divide-y divide-[#ECEFF5]">
-              {/* Logos */}
-              <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-start">
-                <div className="md:col-span-4">
-                  <p className="text-xs font-semibold text-[#0F172A]">Logos</p>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Primary mark used in Studio templates and Snow renders.
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-4 md:col-span-8">
-                  <div className="relative flex h-24 w-44 items-center justify-center rounded-2xl border border-[#DCE4FF] bg-[#FAFBFD] p-4">
-                    <span className="absolute right-2.5 top-2.5 rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-semibold text-[#0027eb]">
-                      Default
-                    </span>
-                    {draftMemory.logoUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={draftMemory.logoUrl}
-                        alt={draftMemory.brandName}
-                        className="max-h-12 max-w-[110px] object-contain"
-                      />
-                    ) : (
-                      <span className="font-display text-base font-bold text-[#0F172A]">
-                        {draftMemory.brandName}
-                      </span>
-                    )}
+            {/* TAB 3: CONTEXT FILES */}
+            {overviewTab === "context_files" && (
+              <div className="space-y-5 p-6">
+                <input
+                  ref={contextFileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleContextFilesSelected(e.target.files)}
+                />
+                <div
+                  onClick={() => contextFileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleContextFilesSelected(e.dataTransfer.files);
+                  }}
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-[12px] border border-dashed border-[#d6d6e0] bg-[#f5f5fa]/60 px-6 py-8 text-center transition-colors hover:border-[#0027eb]"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-[#ebebf3] bg-white">
+                    <Upload className="h-5 w-5 text-[#475569]" />
                   </div>
-                  <div className="flex h-24 w-44 items-center justify-center rounded-2xl border border-[#0F172A] bg-[#050811] p-4">
-                    {draftMemory.logoUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={draftMemory.logoUrl}
-                        alt={`${draftMemory.brandName} dark`}
-                        className="max-h-12 max-w-[110px] object-contain brightness-0 invert"
-                      />
-                    ) : (
-                      <span className="font-display text-base font-bold text-white">
-                        {draftMemory.brandName}
-                      </span>
-                    )}
-                  </div>
+                  <p className="mt-3 text-[13.5px] font-semibold text-[#0F172A]">
+                    Drop brand PDFs, review exports, or creative guidelines
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#64748B]">
+                    Supports PDF, CSV, TXT, DOCX, and Markdown context files
+                  </p>
+                  <span className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[12.5px] font-semibold text-white">
+                    <Plus className="h-3.5 w-3.5 text-white" />
+                    Select files
+                  </span>
                 </div>
-              </div>
 
-              {/* Brand colors */}
-              <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-start">
-                <div className="md:col-span-4">
-                  <p className="text-xs font-semibold text-[#0F172A]">
-                    Brand colors
-                  </p>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Click any swatch to adjust its hex code or add a new brand color.
-                  </p>
-                </div>
-                <div className="space-y-3 md:col-span-8">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {draftMemory.brandColors.map((hex, idx) => (
-                      <div
-                        key={`${hex}-${idx}`}
-                        className="group relative overflow-hidden rounded-2xl border border-[#E6E9F0] bg-white p-2 shadow-xs"
-                      >
-                        <label className="block cursor-pointer">
-                          <div
-                            className="h-14 w-full rounded-xl border border-black/10"
-                            style={{ backgroundColor: hex }}
-                          />
-                          <input
-                            type="color"
-                            value={/^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : "#0027eb"}
-                            onChange={(e) =>
-                              handleUpdateColorAt(idx, e.target.value)
-                            }
-                            className="sr-only"
-                          />
-                        </label>
-                        <div className="mt-2 flex items-center justify-between px-1">
-                          <span className="font-mono-num text-xs font-semibold text-[#0F172A]">
-                            {hex.toUpperCase()}
-                          </span>
-                          {draftMemory.brandColors.length > 1 && (
+                <div className="overflow-hidden rounded-[10px] border border-[#ebebf3]">
+                  <table className="w-full border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-[#ebebf3] bg-white text-[12.5px] font-semibold text-[#0F172A]">
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Topic tags</th>
+                        <th className="px-4 py-3">Added</th>
+                        <th className="px-4 py-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#ebebf3] text-[12.5px]">
+                      {contextFiles.map((file) => (
+                        <tr key={file.id} className="hover:bg-[#f5f5fa]/50">
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#f5f5fa]">
+                                <FileText className="h-4 w-4 text-[#475569]" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-[#0F172A]">
+                                  {file.name}
+                                </p>
+                                <p className="font-mono-num text-[11px] text-[#64748B]">
+                                  {file.sizeLabel}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex flex-wrap gap-1.5">
+                              {file.topics.map((t) => (
+                                <span
+                                  key={t}
+                                  className="rounded-full border border-[#ebebf3] bg-[#f5f5fa] px-2.5 py-0.5 text-[11px] font-medium text-[#475569]"
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="font-mono-num px-4 py-3.5 text-[#64748B]">
+                            {file.addedAt}
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
                             <button
                               type="button"
                               data-no-glass="true"
-                              onClick={() => handleRemoveColorAt(idx)}
-                              aria-label={`Remove ${hex}`}
-                              className="text-[#94A3B8] opacity-0 transition-opacity hover:text-[#0F172A] group-hover:opacity-100"
+                              onClick={() =>
+                                setContextFiles((prev) =>
+                                  prev.filter((f) => f.id !== file.id)
+                                )
+                              }
+                              aria-label={`Delete ${file.name}`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-[#64748B] hover:bg-[#f5f5fa] hover:text-[#0F172A]"
                             >
-                              <X className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5 text-[#64748B]" />
                             </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Add Swatch */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-1.5 text-xs">
-                      <span
-                        className="h-4 w-4 rounded-full border border-black/10"
-                        style={{ backgroundColor: newColorHex }}
-                      />
-                      <input
-                        type="color"
-                        value={newColorHex}
-                        onChange={(e) => setNewColorHex(e.target.value)}
-                        className="sr-only"
-                      />
-                      <span className="font-mono-num font-semibold text-[#0F172A]">
-                        {newColorHex.toUpperCase()}
-                      </span>
-                    </label>
-                    <button
-                      type="button"
-                      data-no-glass="true"
-                      onClick={handleAddColor}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3.5 py-1.5 text-xs font-semibold text-[#0027eb] transition-colors hover:bg-[#0027eb] hover:text-white"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add color swatch
-                    </button>
-                  </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-
-              {/* Brand fonts */}
-              <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-start">
-                <div className="md:col-span-4">
-                  <p className="text-xs font-semibold text-[#0F172A]">
-                    Brand fonts
-                  </p>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Typography pairing applied to static ads and captions.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-8">
-                  <div className="rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                        Primary UI & Display
-                      </span>
-                      <Type className="h-3.5 w-3.5 text-[#0027eb]" />
-                    </div>
-                    <p className="mt-2 text-lg font-bold text-[#0F172A]">
-                      Geist Sans
-                    </p>
-                    <p className="mt-1 text-xs text-[#64748B]">
-                      Aa Bb Cc · Clean modern geometric grotesque
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                        Editorial Accent
-                      </span>
-                      <Type className="h-3.5 w-3.5 text-[#0F172A]" />
-                    </div>
-                    <p className="font-geist-serif mt-2 text-xl font-normal text-[#0F172A]">
-                      Geist Serif
-                    </p>
-                    <p className="mt-1 text-xs text-[#64748B]">
-                      Aa Bb Cc · High-trust founder & editorial headlines
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tone of voice */}
-              <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-center">
-                <div className="md:col-span-4">
-                  <p className="text-xs font-semibold text-[#0F172A]">
-                    Tone of voice
-                  </p>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Guides Snow scriptwriting and headline variations.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 md:col-span-8">
-                  <input
-                    type="text"
-                    value={draftMemory.toneOfVoice}
-                    onChange={(e) =>
-                      setDraftMemory({
-                        ...draftMemory,
-                        toneOfVoice: e.target.value,
-                      })
-                    }
-                    className="flex-1 rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                  />
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => commitMemory(draftMemory)}
-                    className="rounded-xl border border-[#DCE4FF] bg-[#EEF2FF] px-3.5 py-2 text-xs font-semibold text-[#0027eb] hover:bg-[#0027eb] hover:text-white"
-                  >
-                    Update
-                  </button>
-                </div>
-              </div>
-
-              {/* Logo on Snow images toggle */}
-              <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-center">
-                <div className="md:col-span-4">
-                  <p className="text-xs font-semibold text-[#0F172A]">
-                    Logo on Snow images
-                  </p>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Automatically watermark or place brand mark on static outputs.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between gap-3 md:col-span-8">
-                  <span className="text-sm font-medium text-[#0F172A]">
-                    {logoOnSnowImages
-                      ? "On — Snow adds your logo to generated ads"
-                      : "Off — Clean unbranded exports"}
-                  </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={logoOnSnowImages}
-                    data-no-glass="true"
-                    onClick={() => setLogoOnSnowImages((v) => !v)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                      logoOnSnowImages ? "bg-[#0027eb]" : "bg-[#CBD5E1]"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform ${
-                        logoOnSnowImages ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Default language */}
-              <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-12 md:items-center">
-                <div className="md:col-span-4">
-                  <p className="text-xs font-semibold text-[#0F172A]">
-                    Default language
-                  </p>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Default copywriting and voiceover language in Studio.
-                  </p>
-                </div>
-                <div className="md:col-span-8">
-                  <select
-                    value={defaultLanguage}
-                    onChange={(e) => setDefaultLanguage(e.target.value)}
-                    data-no-glass="true"
-                    className="w-full max-w-xs rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3.5 py-2 text-sm font-medium text-[#0F172A] outline-none focus:border-[#0027eb] focus:bg-white"
-                  >
-                    <option value="English (US)">English (US)</option>
-                    <option value="Danish (DA)">Danish (DA)</option>
-                    <option value="Swedish (SV)">Swedish (SV)</option>
-                    <option value="Norwegian (NO)">Norwegian (NO)</option>
-                    <option value="German (DE)">German (DE)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: CONTEXT FILES */}
-          {overviewTab === "context_files" && (
-            <div className="space-y-5 p-6">
-              <input
-                ref={contextFileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => handleContextFilesSelected(e.target.files)}
-              />
-              <div
-                onClick={() => contextFileInputRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  handleContextFilesSelected(e.dataTransfer.files);
-                }}
-                className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#C2D0FF] bg-[#EEF2FF]/35 px-6 py-8 text-center transition-colors hover:border-[#0027eb] hover:bg-[#EEF2FF]/60"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#0027eb] shadow-xs">
-                  <Upload className="h-5 w-5" />
-                </div>
-                <p className="mt-3 text-sm font-semibold text-[#0F172A]">
-                  Drop brand PDFs, review exports, or creative guidelines
-                </p>
-                <p className="mt-1 text-xs text-[#64748B]">
-                  Supports PDF, CSV, TXT, DOCX, and Markdown context files
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#0027eb] px-4 py-1.5 text-xs font-semibold text-white">
-                  <Plus className="h-3.5 w-3.5" />
-                  Select files
-                </span>
-              </div>
-
-              <div className="overflow-hidden rounded-2xl border border-[#ECEFF5]">
-                <table className="w-full border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-[#ECEFF5] bg-[#FAFBFD] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Topic tags</th>
-                      <th className="px-4 py-3">Added</th>
-                      <th className="px-4 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#ECEFF5] text-xs">
-                    {contextFiles.map((file) => (
-                      <tr key={file.id} className="hover:bg-[#F7F8FB]">
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] text-[#0027eb]">
-                              <FileText className="h-4 w-4" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-[#0F172A]">
-                                {file.name}
-                              </p>
-                              <p className="font-mono-num text-[11px] text-[#64748B]">
-                                {file.sizeLabel}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex flex-wrap gap-1.5">
-                            {file.topics.map((t) => (
-                              <span
-                                key={t}
-                                className="rounded-full border border-[#E6E9F0] bg-[#F7F8FB] px-2.5 py-0.5 text-[11px] font-medium text-[#334155]"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="font-mono-num px-4 py-3.5 text-[#64748B]">
-                          {file.addedAt}
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <button
-                            type="button"
-                            data-no-glass="true"
-                            onClick={() =>
-                              setContextFiles((prev) =>
-                                prev.filter((f) => f.id !== file.id)
-                              )
-                            }
-                            aria-label={`Delete ${file.name}`}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#F3F5F9] hover:text-[#0F172A]"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        </div>
       </div>
     );
   }
@@ -1679,222 +1712,225 @@ export function BrandsWorkspaceView({
      -------------------------------------------------------------------------- */
   if (subView === "audience") {
     return (
-      <div className="animate-view-in mx-auto w-full max-w-[1280px] space-y-6 px-4 py-6 sm:px-7">
-        {renderDetailHeader()}
+      <div className="min-h-full bg-[#f5f5fa]">
+        <div className="mx-auto w-full max-w-[1240px] space-y-5 px-6 py-6">
+          {renderDetailHeader()}
 
-        {/* Toggle Cards + Add Scenario CTA */}
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="grid grid-cols-2 gap-3 sm:w-[420px]">
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setAudienceMode("scenarios")}
-              className={`rounded-2xl border p-3.5 text-left transition-all ${
-                audienceMode === "scenarios"
-                  ? "border-[#0027eb] bg-[#EEF2FF]/60 shadow-xs"
-                  : "border-[#ECEFF5] bg-white hover:border-[#DCE4FF]"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#0F172A]">
-                  Scenarios
-                </span>
-                <span className="font-mono-num rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-[#0027eb]">
-                  {allScenarios.length}
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-[#64748B]">
-                Real-world buying moments
-              </p>
-            </button>
-
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setAudienceMode("personas")}
-              className={`rounded-2xl border p-3.5 text-left transition-all ${
-                audienceMode === "personas"
-                  ? "border-[#0027eb] bg-[#EEF2FF]/60 shadow-xs"
-                  : "border-[#ECEFF5] bg-white hover:border-[#DCE4FF]"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#0F172A]">
-                  Personas
-                </span>
-                <span className="font-mono-num rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-[#0027eb]">
-                  {ATRIA_BRAND_PERSONAS.length}
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-[#64748B]">
-                Core customer archetypes
-              </p>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setAudienceMode("scenarios");
-              setShowAddScenario((v) => !v);
-            }}
-            className="adtrack-btn-primary inline-flex items-center gap-1.5 self-start rounded-full px-4 py-2.5 text-xs font-semibold text-white sm:self-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Add scenario
-          </button>
-        </div>
-
-        {/* Inline Add Scenario Form */}
-        {showAddScenario && (
-          <form
-            onSubmit={handleCreateScenario}
-            className="grid grid-cols-1 gap-3 rounded-2xl border border-[#DCE4FF] bg-[#EEF2FF]/40 p-4 md:grid-cols-12"
-          >
-            <input
-              type="text"
-              required
-              value={newScenarioTitle}
-              onChange={(e) => setNewScenarioTitle(e.target.value)}
-              placeholder="Scenario title (e.g. Morning Studio Setup)"
-              className="rounded-xl border border-[#DCE4FF] bg-white px-3.5 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-4"
-            />
-            <input
-              type="text"
-              value={newScenarioHook}
-              onChange={(e) => setNewScenarioHook(e.target.value)}
-              placeholder="Hook angle (e.g. Problem -> Demo)"
-              className="rounded-xl border border-[#DCE4FF] bg-white px-3.5 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
-            />
-            <input
-              type="text"
-              value={newScenarioSummary}
-              onChange={(e) => setNewScenarioSummary(e.target.value)}
-              placeholder="Short scenario summary"
-              className="rounded-xl border border-[#DCE4FF] bg-white px-3.5 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
-            />
-            <div className="flex items-center justify-end gap-2 md:col-span-2">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="grid grid-cols-2 gap-3 sm:w-[420px]">
               <button
                 type="button"
                 data-no-glass="true"
-                onClick={() => setShowAddScenario(false)}
-                className="rounded-full border border-[#E6E9F0] bg-white px-3 py-2 text-xs font-semibold text-[#475569]"
+                onClick={() => setAudienceMode("scenarios")}
+                className={`rounded-[12px] border p-3.5 text-left transition-colors ${
+                  audienceMode === "scenarios"
+                    ? "border-[#0027eb] bg-[#EEF2FF]/60"
+                    : "border-[#ebebf3] bg-white hover:border-[#d6d6e0]"
+                }`}
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="adtrack-btn-primary rounded-full px-4 py-2 text-xs font-semibold text-white"
-              >
-                Save
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* 2-Column Grid */}
-        {audienceMode === "scenarios" ? (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {allScenarios.map((scn) => (
-              <div
-                key={scn.id}
-                className="group overflow-hidden rounded-3xl border border-[#ECEFF5] bg-white shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-              >
-                <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#F7F8FB]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={scn.imageUrl}
-                    alt={scn.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                  <span className="absolute left-3.5 top-3.5 rounded-full bg-[#050811]/85 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-xs">
-                    {scn.hookAngle}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-bold text-[#0F172A]">
+                    Scenarios
+                  </span>
+                  <span className="font-mono-num rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-[#0027eb]">
+                    {allScenarios.length}
                   </span>
                 </div>
-                <div className="space-y-3 p-5">
-                  <div>
-                    <h3 className="font-display text-base font-bold text-[#0F172A]">
-                      {scn.title}
-                    </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-[#475569]">
-                      {scn.summary}
-                    </p>
+                <p className="mt-1 text-[11.5px] text-[#64748B]">
+                  Real-world buying moments
+                </p>
+              </button>
+
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setAudienceMode("personas")}
+                className={`rounded-[12px] border p-3.5 text-left transition-colors ${
+                  audienceMode === "personas"
+                    ? "border-[#0027eb] bg-[#EEF2FF]/60"
+                    : "border-[#ebebf3] bg-white hover:border-[#d6d6e0]"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-bold text-[#0F172A]">
+                    Personas
+                  </span>
+                  <span className="font-mono-num rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-[#0027eb]">
+                    {ATRIA_BRAND_PERSONAS.length}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11.5px] text-[#64748B]">
+                  Core customer archetypes
+                </p>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => {
+                setAudienceMode("scenarios");
+                setShowAddScenario((v) => !v);
+              }}
+              className="inline-flex h-9 items-center gap-1.5 self-start rounded-[8px] bg-[#0027eb] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2] sm:self-auto"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              Add scenario
+            </button>
+          </div>
+
+          {showAddScenario && (
+            <form
+              onSubmit={handleCreateScenario}
+              className="grid grid-cols-1 gap-3 rounded-[12px] border border-[#C7D2FE] bg-[#EEF2FF]/45 p-4 md:grid-cols-12"
+            >
+              <input
+                type="text"
+                required
+                value={newScenarioTitle}
+                onChange={(e) => setNewScenarioTitle(e.target.value)}
+                placeholder="Scenario title (e.g. Morning Studio Setup)"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[12.5px] text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-4"
+              />
+              <input
+                type="text"
+                value={newScenarioHook}
+                onChange={(e) => setNewScenarioHook(e.target.value)}
+                placeholder="Hook angle (e.g. Problem -> Demo)"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[12.5px] text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
+              />
+              <input
+                type="text"
+                value={newScenarioSummary}
+                onChange={(e) => setNewScenarioSummary(e.target.value)}
+                placeholder="Short scenario summary"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[12.5px] text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
+              />
+              <div className="flex items-center justify-end gap-2 md:col-span-2">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setShowAddScenario(false)}
+                  className="h-8 rounded-[8px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#475569]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  data-no-glass="true"
+                  className="h-8 rounded-[8px] bg-[#0027eb] px-4 text-[12.5px] font-semibold text-white"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          )}
+
+          {audienceMode === "scenarios" ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {allScenarios.map((scn) => (
+                <div
+                  key={scn.id}
+                  className="group overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white transition-colors hover:border-[#d6d6e0]"
+                >
+                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#f5f5fa]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={scn.imageUrl}
+                      alt={scn.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                    <span className="absolute top-3 left-3 rounded-full bg-[#050811]/85 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-xs">
+                      {scn.hookAngle}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-[#ECEFF5] pt-3">
-                    <span className="text-[11px] font-medium text-[#64748B]">
-                      Ready for Video & Static Studio
+                  <div className="space-y-3 p-5">
+                    <div>
+                      <h3 className="font-display text-[15px] font-bold text-[#0F172A]">
+                        {scn.title}
+                      </h3>
+                      <p className="mt-1 text-[12.5px] leading-relaxed text-[#475569]">
+                        {scn.summary}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[#ebebf3] pt-3">
+                      <span className="text-[11.5px] font-medium text-[#64748B]">
+                        Ready for Video &amp; Static Studio
+                      </span>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() =>
+                          onCreateAdFromProduct(
+                            `${
+                              activeMemory.products[0]?.title ||
+                              activeMemory.brandName
+                            } (${scn.title})`
+                          )
+                        }
+                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 text-[12.5px] font-semibold text-white hover:bg-[#001fc2]"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-white" />
+                        Create Ad with Scenario
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {ATRIA_BRAND_PERSONAS.map((persona) => (
+                <div
+                  key={persona.id}
+                  className="flex flex-col justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white p-5 transition-colors hover:border-[#d6d6e0]"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={persona.avatarUrl}
+                      alt={persona.name}
+                      className="h-16 w-16 shrink-0 rounded-[10px] border border-[#ebebf3] object-cover"
+                    />
+                    <div className="min-w-0 space-y-1.5">
+                      <span className="inline-flex rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
+                        {persona.role}
+                      </span>
+                      <h3 className="font-display text-[15px] font-bold text-[#0F172A]">
+                        {persona.name}
+                      </h3>
+                      <p className="text-[12.5px] leading-relaxed text-[#475569]">
+                        {persona.desire}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-[#ebebf3] pt-3">
+                    <span className="text-[11.5px] font-medium text-[#64748B]">
+                      ICP Persona · {activeMemory.brandName}
                     </span>
                     <button
                       type="button"
+                      data-no-glass="true"
                       onClick={() =>
                         onCreateAdFromProduct(
                           `${
                             activeMemory.products[0]?.title ||
                             activeMemory.brandName
-                          } (${scn.title})`
+                          } (${persona.name.split("—")[0].trim()})`
                         )
                       }
-                      className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 text-[12.5px] font-semibold text-white hover:bg-[#001fc2]"
                     >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Create Ad with Scenario
+                      <Sparkles className="h-3.5 w-3.5 text-white" />
+                      Create Ad for Persona
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {ATRIA_BRAND_PERSONAS.map((persona) => (
-              <div
-                key={persona.id}
-                className="flex flex-col justify-between gap-4 rounded-3xl border border-[#ECEFF5] bg-white p-5 shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-              >
-                <div className="flex items-start gap-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={persona.avatarUrl}
-                    alt={persona.name}
-                    className="h-16 w-16 shrink-0 rounded-2xl border border-[#E6E9F0] object-cover"
-                  />
-                  <div className="min-w-0 space-y-1.5">
-                    <span className="inline-flex rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
-                      {persona.role}
-                    </span>
-                    <h3 className="font-display text-base font-bold text-[#0F172A]">
-                      {persona.name}
-                    </h3>
-                    <p className="text-xs leading-relaxed text-[#475569]">
-                      {persona.desire}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-[#ECEFF5] pt-3">
-                  <span className="text-[11px] font-medium text-[#64748B]">
-                    ICP Persona · {activeMemory.brandName}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onCreateAdFromProduct(
-                        `${
-                          activeMemory.products[0]?.title ||
-                          activeMemory.brandName
-                        } (${persona.name.split("—")[0].trim()})`
-                      )
-                    }
-                    className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Create Ad for Persona
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -1904,167 +1940,175 @@ export function BrandsWorkspaceView({
      -------------------------------------------------------------------------- */
   if (subView === "products") {
     return (
-      <div className="animate-view-in mx-auto w-full max-w-[1280px] space-y-6 px-4 py-6 sm:px-7">
-        {renderDetailHeader()}
+      <div className="min-h-full bg-[#f5f5fa]">
+        <div className="mx-auto w-full max-w-[1240px] space-y-5 px-6 py-6">
+          {renderDetailHeader()}
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-display text-lg font-bold text-[#0F172A]">
-              Product Catalog
-            </h2>
-            <p className="text-xs text-[#64748B]">
-              Launch new video or static creatives directly from any synced product.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowAddProduct((v) => !v)}
-            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Add product
-          </button>
-        </div>
-
-        {showAddProduct && (
-          <form
-            onSubmit={handleCreateProduct}
-            className="grid grid-cols-1 gap-3 rounded-2xl border border-[#DCE4FF] bg-[#EEF2FF]/40 p-4 md:grid-cols-12"
-          >
-            <input
-              type="text"
-              required
-              value={newProductTitle}
-              onChange={(e) => setNewProductTitle(e.target.value)}
-              placeholder="Product title"
-              className="rounded-xl border border-[#DCE4FF] bg-white px-3.5 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
-            />
-            <input
-              type="text"
-              value={newProductPrice}
-              onChange={(e) => setNewProductPrice(e.target.value)}
-              placeholder="Price (e.g. 799)"
-              className="rounded-xl border border-[#DCE4FF] bg-white px-3.5 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-2"
-            />
-            <input
-              type="url"
-              value={newProductUrl}
-              onChange={(e) => setNewProductUrl(e.target.value)}
-              placeholder="Product URL"
-              className="rounded-xl border border-[#DCE4FF] bg-white px-3.5 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
-            />
-            <input
-              type="url"
-              value={newProductImageUrl}
-              onChange={(e) => setNewProductImageUrl(e.target.value)}
-              placeholder="Image URL (optional)"
-              className="rounded-xl border border-[#DCE4FF] bg-white px-3.5 py-2 text-xs text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-2"
-            />
-            <div className="flex items-center justify-end gap-2 md:col-span-2">
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={() => setShowAddProduct(false)}
-                className="rounded-full border border-[#E6E9F0] bg-white px-3 py-2 text-xs font-semibold text-[#475569]"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="adtrack-btn-primary rounded-full px-4 py-2 text-xs font-semibold text-white"
-              >
-                Save
-              </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-[17px] font-bold text-[#0F172A]">
+                Product Catalog
+              </h2>
+              <p className="text-[12.5px] text-[#64748B]">
+                Launch new video or static creatives directly from any synced
+                product.
+              </p>
             </div>
-          </form>
-        )}
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setShowAddProduct((v) => !v)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[13px] font-semibold text-white hover:bg-[#001fc2]"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              Add product
+            </button>
+          </div>
 
-        <div className="overflow-hidden rounded-3xl border border-[#ECEFF5] bg-white shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-[#ECEFF5] bg-[#FAFBFD] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  <th className="px-6 py-3">Product</th>
-                  <th className="px-4 py-3">Price</th>
-                  <th className="px-4 py-3">URL</th>
-                  <th className="px-6 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#ECEFF5] text-sm">
-                {activeMemory.products.map((p, idx) => {
-                  const formattedPrice =
-                    formatProductPriceDkk(
-                      p.price,
-                      p.currency || activeMemory.currency
-                    ) || "—";
-                  return (
-                    <tr
-                      key={`${p.title}-${idx}`}
-                      className="transition-colors hover:bg-[#F7F8FB]"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3.5">
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#E6E9F0] bg-[#FAFBFD]">
-                            {p.image_url ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={p.image_url}
-                                alt={p.title}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
-                                <Package className="h-5 w-5" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-[#0F172A]">
-                              {p.title}
-                            </p>
-                            {p.product_type && (
-                              <p className="text-xs text-[#64748B]">
-                                {p.product_type}
+          {showAddProduct && (
+            <form
+              onSubmit={handleCreateProduct}
+              className="grid grid-cols-1 gap-3 rounded-[12px] border border-[#C7D2FE] bg-[#EEF2FF]/45 p-4 md:grid-cols-12"
+            >
+              <input
+                type="text"
+                required
+                value={newProductTitle}
+                onChange={(e) => setNewProductTitle(e.target.value)}
+                placeholder="Product title"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[12.5px] text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
+              />
+              <input
+                type="text"
+                value={newProductPrice}
+                onChange={(e) => setNewProductPrice(e.target.value)}
+                placeholder="Price (e.g. 799)"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[12.5px] text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-2"
+              />
+              <input
+                type="url"
+                value={newProductUrl}
+                onChange={(e) => setNewProductUrl(e.target.value)}
+                placeholder="Product URL"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[12.5px] text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-3"
+              />
+              <input
+                type="url"
+                value={newProductImageUrl}
+                onChange={(e) => setNewProductImageUrl(e.target.value)}
+                placeholder="Image URL (optional)"
+                className="rounded-[8px] border border-[#d6d6e0] bg-white px-3 py-2 text-[12.5px] text-[#0F172A] outline-none focus:border-[#0027eb] md:col-span-2"
+              />
+              <div className="flex items-center justify-end gap-2 md:col-span-2">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setShowAddProduct(false)}
+                  className="h-8 rounded-[8px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#475569]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  data-no-glass="true"
+                  className="h-8 rounded-[8px] bg-[#0027eb] px-4 text-[12.5px] font-semibold text-white"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-[#ebebf3] bg-white text-[13px] font-semibold text-[#0F172A]">
+                    <th className="px-6 py-3.5">Product</th>
+                    <th className="px-4 py-3.5">Price</th>
+                    <th className="px-4 py-3.5">URL</th>
+                    <th className="px-6 py-3.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#ebebf3] text-[13.5px]">
+                  {activeMemory.products.map((p, idx) => {
+                    const formattedPrice =
+                      formatProductPriceDkk(
+                        p.price,
+                        p.currency || activeMemory.currency
+                      ) || "—";
+                    return (
+                      <tr
+                        key={`${p.title}-${idx}`}
+                        className="transition-colors hover:bg-[#f5f5fa]/50"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3.5">
+                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa]">
+                              {p.image_url ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={p.image_url}
+                                  alt={p.title}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center">
+                                  <Package className="h-5 w-5 text-[#64748B]" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-[#0F172A]">
+                                {p.title}
                               </p>
-                            )}
+                              {p.product_type && (
+                                <p className="text-[12px] text-[#64748B]">
+                                  {p.product_type}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="font-mono-num px-4 py-4 text-sm font-semibold text-[#0F172A]">
-                        {formattedPrice}
-                      </td>
-                      <td className="px-4 py-4">
-                        {p.url ? (
-                          <a
-                            href={p.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-mono-num inline-flex max-w-[260px] items-center gap-1 truncate text-xs text-[#0027eb] hover:underline"
-                          >
-                            <span className="truncate">
-                              {p.url.replace(/^https?:\/\//, "")}
+                        </td>
+                        <td className="font-mono-num px-4 py-4 font-semibold text-[#0F172A]">
+                          {formattedPrice}
+                        </td>
+                        <td className="px-4 py-4">
+                          {p.url ? (
+                            <a
+                              href={p.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-mono-num inline-flex max-w-[260px] items-center gap-1 truncate text-[12.5px] text-[#0027eb] hover:underline"
+                            >
+                              <span className="truncate">
+                                {p.url.replace(/^https?:\/\//, "")}
+                              </span>
+                              <ExternalLink className="h-3 w-3 shrink-0 text-[#64748B]" />
+                            </a>
+                          ) : (
+                            <span className="text-[12.5px] text-[#94A3B8]">
+                              —
                             </span>
-                            <ExternalLink className="h-3 w-3 shrink-0" />
-                          </a>
-                        ) : (
-                          <span className="text-xs text-[#94A3B8]">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => onCreateAdFromProduct(p.title)}
-                          className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
-                        >
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Create Ad
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            type="button"
+                            data-no-glass="true"
+                            onClick={() => onCreateAdFromProduct(p.title)}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-3.5 text-[12.5px] font-semibold text-white hover:bg-[#001fc2]"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 text-white" />
+                            Create Ad
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -2075,93 +2119,94 @@ export function BrandsWorkspaceView({
      COMPETITORS SUB-VIEW
      -------------------------------------------------------------------------- */
   return (
-    <div className="animate-view-in mx-auto w-full max-w-[1280px] space-y-6 px-4 py-6 sm:px-7">
-      {renderDetailHeader()}
+    <div className="min-h-full bg-[#f5f5fa]">
+      <div className="mx-auto w-full max-w-[1240px] space-y-5 px-6 py-6">
+        {renderDetailHeader()}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg font-bold text-[#0F172A]">
+          <h2 className="font-display text-[17px] font-bold text-[#0F172A]">
             Tracked Competitors
           </h2>
-          <p className="text-xs text-[#64748B]">
-            Monitor active Meta creative volume, traffic velocity, and offer structures.
+          <p className="text-[12.5px] text-[#64748B]">
+            Monitor active Meta creative volume, traffic velocity, and offer
+            structures.
           </p>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {trackedCompetitors.map((brand) => {
-          const activeCount =
-            brand.active_ads_count ?? adCountByBrand.get(brand.id) ?? 0;
-          return (
-            <div
-              key={brand.id}
-              className="flex flex-col justify-between gap-4 rounded-3xl border border-[#ECEFF5] bg-white p-5 shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E6E9F0] bg-white p-1.5">
-                    {brand.logo_url ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={brand.logo_url}
-                        alt={brand.name}
-                        className="h-full w-full rounded-full object-contain"
-                      />
-                    ) : (
-                      <span className="font-display text-sm font-bold text-[#0F172A]">
-                        {brand.avatar_initials}
-                      </span>
-                    )}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {trackedCompetitors.map((brand) => {
+            const activeCount =
+              brand.active_ads_count ?? adCountByBrand.get(brand.id) ?? 0;
+            return (
+              <div
+                key={brand.id}
+                className="flex flex-col justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white p-5 transition-colors hover:border-[#d6d6e0]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ebebf3] bg-white p-1.5">
+                      {brand.logo_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={brand.logo_url}
+                          alt={brand.name}
+                          className="h-full w-full rounded-full object-contain"
+                        />
+                      ) : (
+                        <span className="font-display text-[13px] font-bold text-[#0F172A]">
+                          {brand.avatar_initials}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-display truncate text-[15px] font-bold text-[#0F172A]">
+                        {brand.name}
+                      </h3>
+                      <p className="font-mono-num truncate text-[12px] text-[#64748B]">
+                        {brand.website_url.replace(/^https?:\/\//, "")}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-display truncate text-base font-bold text-[#0F172A]">
-                      {brand.name}
-                    </h3>
-                    <p className="font-mono-num truncate text-xs text-[#64748B]">
-                      {brand.website_url.replace(/^https?:\/\//, "")}
+                  <span className="shrink-0 rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
+                    {brand.market}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 rounded-[10px] bg-[#f5f5fa] p-3">
+                  <div>
+                    <p className="text-[11px] text-[#64748B]">Active ads</p>
+                    <p className="font-mono-num mt-0.5 text-base font-bold text-[#0F172A]">
+                      {activeCount}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-[#64748B]">Category</p>
+                    <p className="mt-0.5 truncate text-[12.5px] font-semibold text-[#0F172A]">
+                      {brand.category}
                     </p>
                   </div>
                 </div>
-                <span className="shrink-0 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
-                  {brand.market}
-                </span>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2.5 rounded-2xl bg-[#F7F8FB] p-3">
-                <div>
-                  <p className="text-[11px] text-[#64748B]">Active ads</p>
-                  <p className="font-mono-num mt-0.5 text-base font-bold text-[#0F172A]">
-                    {activeCount}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-[#64748B]">Category</p>
-                  <p className="mt-0.5 truncate text-xs font-semibold text-[#0F172A]">
-                    {brand.category}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => onOpenCompetitorBrand(brand.id)}
+                  className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[8px] bg-[#0F172A] px-4 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#1E293B]"
+                >
+                  <BarChart3 className="h-3.5 w-3.5 text-white" />
+                  Inspect Analytics
+                </button>
               </div>
-
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={() => onOpenCompetitorBrand(brand.id)}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#0F172A] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#1E293B]"
-              >
-                <BarChart3 className="h-3.5 w-3.5" />
-                Inspect Analytics
-              </button>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
 /* ============================================================================
-   2. ASSETS WORKSPACE VIEW
+   2. ASSETS WORKSPACE VIEW (1:1 ATRIA STEP 63 REPLICA)
    ============================================================================ */
 
 export interface AssetsWorkspaceViewProps {
@@ -2178,7 +2223,7 @@ export function AssetsWorkspaceView({
   onNavigateToStudio,
 }: AssetsWorkspaceViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [sortBy, setSortBy] = useState<"recent" | "name" | "format">("recent");
 
   // Filter states: Asset & Clip
@@ -2297,7 +2342,8 @@ export function AssetsWorkspaceView({
         }`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (formatFilter !== "all" && item.mediaType !== formatFilter) return false;
+      if (formatFilter !== "all" && item.mediaType !== formatFilter)
+        return false;
       if (uploaderFilter !== "all" && item.source !== uploaderFilter)
         return false;
       if (creatorFilter !== "all" && item.creator !== creatorFilter)
@@ -2306,7 +2352,8 @@ export function AssetsWorkspaceView({
       if (rollFilter !== "all" && item.rollType !== rollFilter) return false;
       if (captionFilter !== "all" && item.captionState !== captionFilter)
         return false;
-      if (audioFilter !== "all" && item.audioState !== audioFilter) return false;
+      if (audioFilter !== "all" && item.audioState !== audioFilter)
+        return false;
       return true;
     });
 
@@ -2330,6 +2377,16 @@ export function AssetsWorkspaceView({
     sortBy,
   ]);
 
+  const hasActiveFilter =
+    Boolean(searchQuery) ||
+    formatFilter !== "all" ||
+    uploaderFilter !== "all" ||
+    creatorFilter !== "all" ||
+    sceneFilter !== "all" ||
+    rollFilter !== "all" ||
+    captionFilter !== "all" ||
+    audioFilter !== "all";
+
   const resetFilters = () => {
     setSearchQuery("");
     setFormatFilter("all");
@@ -2342,7 +2399,7 @@ export function AssetsWorkspaceView({
   };
 
   return (
-    <div className="animate-view-in mx-auto w-full max-w-[1280px] space-y-5 px-4 py-6 sm:px-7">
+    <div className="flex min-h-full flex-col bg-[#f5f5fa]">
       <input
         ref={fileInputRef}
         type="file"
@@ -2352,77 +2409,68 @@ export function AssetsWorkspaceView({
         onChange={(e) => handleFileUpload(e.target.files)}
       />
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="font-display text-[26px] font-bold tracking-tight text-[#0F172A]">
+      {/* STICKY WHITE HEADER + FILTER DRAWER (EXACT ATRIA LAYOUT) */}
+      <div className="sticky top-0 z-10 border-b border-[#ebebf3] bg-white">
+        {/* Row 1: Title + Search + Add */}
+        <div className="flex flex-wrap items-center justify-between gap-4 px-6 pt-3.5 pb-2.5">
+          <h1 className="font-display shrink-0 text-[20px] font-bold tracking-tight text-[#0F172A]">
             All assets
           </h1>
-          <span className="font-mono-num rounded-full border border-[#E6E9F0] bg-white px-2.5 py-0.5 text-xs font-semibold text-[#475569]">
-            {filteredAssets.length}
-          </span>
-        </div>
 
-        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-full max-w-[520px] flex-1 items-center gap-2 rounded-[8px] border border-[#d6d6e0] bg-white px-3 focus-within:border-[#0027eb]">
+            <Search className="h-4 w-4 shrink-0 text-[#94A3B8]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name/visual element/voice-over/text-overlay"
+              className="w-full bg-transparent text-[13.5px] text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setSearchQuery("")}
+                className="text-[#64748B] hover:text-[#0F172A]"
+              >
+                <X className="h-3.5 w-3.5 text-[#64748B]" />
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             data-no-glass="true"
-            onClick={() => onNavigateToStudio("video")}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] transition-colors hover:border-[#0027eb]/30 hover:text-[#0027eb]"
-          >
-            <Wand2 className="h-3.5 w-3.5" />
-            Open Studio
-          </button>
-          <button
-            type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] bg-[#0027eb] px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 text-white" />
             Add
           </button>
         </div>
-      </div>
 
-      {/* Search + Controls Bar */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="flex flex-1 items-center gap-2.5 rounded-full border border-[#E6E9F0] bg-white px-4 py-2.5 shadow-xs focus-within:border-[#0027eb]">
-          <Search className="h-4 w-4 shrink-0 text-[#94A3B8]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name/visual element/voice-over/text-overlay"
-            className="w-full bg-transparent text-xs text-[#0F172A] outline-none placeholder:text-[#94A3B8] sm:text-sm"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={() => setSearchQuery("")}
-              className="text-[#94A3B8] hover:text-[#0F172A]"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Row 2: Filters Hide + Sort */}
+        <div className="flex flex-wrap items-center gap-2 px-6 pb-2.5">
           <button
             type="button"
             data-no-glass="true"
             onClick={() => setShowFilters((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2.5 text-xs font-semibold transition-colors ${
-              showFilters
-                ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                : "border-[#E6E9F0] bg-white text-[#0F172A] hover:border-[#DCE4FF]"
-            }`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px] font-semibold text-[#0F172A] transition-colors hover:border-[#d6d6e0]"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters {showFilters ? "Hide" : "Show"}
+            <Filter className="h-3.5 w-3.5 text-[#475569]" />
+            <span>Filters</span>
+            <span className="font-normal text-[#64748B]">
+              {showFilters ? "Hide" : "Show"}
+            </span>
+            {showFilters ? (
+              <ChevronUp className="h-3.5 w-3.5 text-[#64748B]" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 text-[#64748B]" />
+            )}
           </button>
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#E6E9F0] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F172A]">
+          <div className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[#ebebf3] bg-white px-3 text-[13px]">
+            <ArrowUpDown className="h-3.5 w-3.5 text-[#64748B]" />
             <span className="text-[#64748B]">Sort:</span>
             <select
               value={sortBy}
@@ -2437,22 +2485,30 @@ export function AssetsWorkspaceView({
               <option value="format">Media format</option>
             </select>
           </div>
-        </div>
-      </div>
 
-      {/* Expanded Filter Bar */}
-      {showFilters && (
-        <div className="grid grid-cols-1 gap-4 rounded-3xl border border-[#ECEFF5] bg-white p-5 shadow-xs lg:grid-cols-2">
-          {/* Asset Filters */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-              <Filter className="h-3.5 w-3.5 text-[#0027eb]" />
-              <span>Asset</span>
-            </div>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-              <label className="space-y-1 text-xs">
-                <span className="font-medium text-[#64748B]">Format</span>
+          {hasActiveFilter && (
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={resetFilters}
+              className="ml-1 text-[12.5px] font-medium text-[#0027eb] hover:underline"
+            >
+              Reset filters
+            </button>
+          )}
+        </div>
+
+        {/* Row 3: Expanded Single-Row #f5f5fa Filter Drawer */}
+        {showFilters && (
+          <div className="px-6 pb-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[10px] bg-[#f5f5fa] px-4 py-2.5">
+              {/* Asset Group */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[12.5px] font-medium text-[#64748B]">
+                  Asset
+                </span>
                 <select
+                  aria-label="Format"
                   value={formatFilter}
                   onChange={(e) =>
                     setFormatFilter(
@@ -2460,17 +2516,19 @@ export function AssetsWorkspaceView({
                     )
                   }
                   data-no-glass="true"
-                  className="w-full rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                  className={`h-7 rounded-[6px] border px-2.5 text-[12.5px] font-medium outline-none ${
+                    formatFilter !== "all"
+                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+                  }`}
                 >
-                  <option value="all">All formats</option>
+                  <option value="all">Format</option>
                   <option value="image">Image</option>
                   <option value="video">Video</option>
                 </select>
-              </label>
 
-              <label className="space-y-1 text-xs">
-                <span className="font-medium text-[#64748B]">Uploader</span>
                 <select
+                  aria-label="Uploader"
                   value={uploaderFilter}
                   onChange={(e) =>
                     setUploaderFilter(
@@ -2482,18 +2540,20 @@ export function AssetsWorkspaceView({
                     )
                   }
                   data-no-glass="true"
-                  className="w-full rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                  className={`h-7 rounded-[6px] border px-2.5 text-[12.5px] font-medium outline-none ${
+                    uploaderFilter !== "all"
+                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+                  }`}
                 >
-                  <option value="all">All sources</option>
+                  <option value="all">Uploader</option>
                   <option value="Uploaded">Uploaded</option>
                   <option value="Brand Memory">Brand Memory</option>
                   <option value="Studio">Studio</option>
                 </select>
-              </label>
 
-              <label className="space-y-1 text-xs">
-                <span className="font-medium text-[#64748B]">Creator</span>
                 <select
+                  aria-label="Creator"
                   value={creatorFilter}
                   onChange={(e) =>
                     setCreatorFilter(
@@ -2501,224 +2561,233 @@ export function AssetsWorkspaceView({
                     )
                   }
                   data-no-glass="true"
-                  className="w-full rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-2 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                  className={`h-7 rounded-[6px] border px-2.5 text-[12.5px] font-medium outline-none ${
+                    creatorFilter !== "all"
+                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+                  }`}
                 >
-                  <option value="all">All creators</option>
+                  <option value="all">Creator</option>
                   <option value="You">You</option>
                   <option value="Snow AI">Snow AI</option>
                 </select>
-              </label>
-            </div>
-          </div>
-
-          {/* Clip Filters */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                <Film className="h-3.5 w-3.5 text-[#0027eb]" />
-                <span>Clip</span>
               </div>
-              <button
-                type="button"
-                data-no-glass="true"
-                onClick={resetFilters}
-                className="text-[11px] font-semibold text-[#0027eb] hover:underline"
-              >
-                Reset all
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              <label className="space-y-1 text-xs">
-                <span className="font-medium text-[#64748B]">Scene</span>
+
+              {/* Clip Group */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[12.5px] font-medium text-[#64748B]">
+                  Clip
+                </span>
                 <select
+                  aria-label="Scene"
                   value={sceneFilter}
                   onChange={(e) => setSceneFilter(e.target.value)}
                   data-no-glass="true"
-                  className="w-full rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-2 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                  className={`h-7 rounded-[6px] border px-2.5 text-[12.5px] font-medium outline-none ${
+                    sceneFilter !== "all"
+                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+                  }`}
                 >
-                  <option value="all">All</option>
+                  <option value="all">Scene</option>
                   <option value="Product Hero">Product Hero</option>
                   <option value="Lifestyle">Lifestyle</option>
                   <option value="UGC Hook">UGC Hook</option>
                   <option value="B-Roll">B-Roll</option>
                 </select>
-              </label>
 
-              <label className="space-y-1 text-xs">
-                <span className="font-medium text-[#64748B]">A-B roll</span>
                 <select
+                  aria-label="A/B-roll"
                   value={rollFilter}
                   onChange={(e) => setRollFilter(e.target.value)}
                   data-no-glass="true"
-                  className="w-full rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-2 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                  className={`h-7 rounded-[6px] border px-2.5 text-[12.5px] font-medium outline-none ${
+                    rollFilter !== "all"
+                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+                  }`}
                 >
-                  <option value="all">All</option>
+                  <option value="all">A/B-roll</option>
                   <option value="A-Roll">A-Roll</option>
                   <option value="B-Roll">B-Roll</option>
                 </select>
-              </label>
 
-              <label className="space-y-1 text-xs">
-                <span className="font-medium text-[#64748B]">Caption</span>
                 <select
+                  aria-label="Caption"
                   value={captionFilter}
                   onChange={(e) => setCaptionFilter(e.target.value)}
                   data-no-glass="true"
-                  className="w-full rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-2 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                  className={`h-7 rounded-[6px] border px-2.5 text-[12.5px] font-medium outline-none ${
+                    captionFilter !== "all"
+                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+                  }`}
                 >
-                  <option value="all">All</option>
+                  <option value="all">Caption</option>
                   <option value="With Captions">With Captions</option>
                   <option value="Clean">Clean</option>
                 </select>
-              </label>
 
-              <label className="space-y-1 text-xs">
-                <span className="font-medium text-[#64748B]">Audio</span>
                 <select
+                  aria-label="Audio"
                   value={audioFilter}
                   onChange={(e) => setAudioFilter(e.target.value)}
                   data-no-glass="true"
-                  className="w-full rounded-xl border border-[#E6E9F0] bg-[#FAFBFD] px-2.5 py-2 text-xs font-medium text-[#0F172A] outline-none focus:border-[#0027eb]"
+                  className={`h-7 rounded-[6px] border px-2.5 text-[12.5px] font-medium outline-none ${
+                    audioFilter !== "all"
+                      ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
+                      : "border-[#ebebf3] bg-white text-[#0F172A] hover:border-[#d6d6e0]"
+                  }`}
                 >
-                  <option value="all">All</option>
+                  <option value="all">Audio</option>
                   <option value="Voiceover">Voiceover</option>
                   <option value="Silent / Visual">Silent / Visual</option>
                 </select>
-              </label>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Asset Grid OR Empty Card */}
-      {filteredAssets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#DCE4FF] bg-white px-6 py-16 text-center shadow-xs">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#0027eb]">
-            <FolderOpen className="h-6 w-6" />
-          </div>
-          <h2 className="font-display mt-4 text-lg font-bold text-[#0F172A]">
-            Upload or import assets
-          </h2>
-          <p className="mt-1.5 max-w-md text-xs leading-relaxed text-[#64748B]">
-            {combinedAssets.length > 0
-              ? "No assets matched your current search or clip filters. Reset filters or upload new footage."
-              : "Upload B-roll clips and product photography, scan your storefront URL, or generate scenes in Studio."}
-          </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="adtrack-btn-primary inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-xs font-semibold text-white"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              Upload files
-            </button>
-            <button
-              type="button"
-              data-no-glass="true"
-              onClick={onOpenBrandScanner}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-white px-4 py-2.5 text-xs font-semibold text-[#0F172A] hover:border-[#0027eb]/30 hover:text-[#0027eb]"
-            >
-              <Globe className="h-3.5 w-3.5" />
-              Import from Brand URL
-            </button>
-            {combinedAssets.length > 0 && (
+      {/* MAIN CANVAS: EMPTY STATE OR ASSET GRID */}
+      <div className="flex-1 px-6 py-6">
+        {filteredAssets.length === 0 ? (
+          <div className="mx-auto flex max-w-[540px] flex-col items-center pt-16 pb-16 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/atria-assets/workspace/cloud-upload.svg"
+              alt="Upload assets"
+              className="mx-auto h-14 w-14"
+            />
+            <h2 className="font-display mt-3 text-[18px] font-bold text-[#0F172A]">
+              Upload or import assets
+            </h2>
+            <ul className="mt-3 inline-block space-y-1.5 text-left text-[13.5px] leading-relaxed text-[#475569]">
+              <li>
+                • Use the buttons below to upload or import files (max 1 GB
+                each).
+              </li>
+              <li>
+                • Images, videos, and audio cost 1 credit each for AI tagging
+                and search.
+              </li>
+              <li>• Other file types can be uploaded without credits.</li>
+            </ul>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
               <button
                 type="button"
                 data-no-glass="true"
-                onClick={resetFilters}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-[#F7F8FB] px-4 py-2.5 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex h-9 items-center gap-2 rounded-[8px] border border-[#d6d6e0] bg-white px-4 text-[13.5px] font-medium text-[#0F172A] transition-colors hover:border-[#0F172A]/40"
               >
-                Clear filters
+                <Upload className="h-4 w-4 text-[#475569]" />
+                Upload assets
               </button>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {filteredAssets.map((asset) => (
-            <div
-              key={asset.id}
-              className="group overflow-hidden rounded-2xl border border-[#ECEFF5] bg-white shadow-xs transition-all hover:border-[#DCE4FF] hover:shadow-md"
-            >
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#050811]">
-                {asset.mediaType === "video" &&
-                asset.source === "Uploaded" ? (
-                  <video
-                    src={asset.url}
-                    muted
-                    playsInline
-                    controls
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={asset.url}
-                    alt={asset.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                )}
-
-                {/* Top Format Badge */}
-                <div className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#050811]/85 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs">
-                    {asset.mediaType === "video" ? (
-                      <Video className="h-3 w-3 text-[#3B66FF]" />
-                    ) : (
-                      <ImageIcon className="h-3 w-3 text-[#3B66FF]" />
-                    )}
-                    {asset.mediaType.toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Source Pill */}
-                <span className="pointer-events-none absolute right-2.5 top-2.5 rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-semibold text-[#0F172A] shadow-xs">
-                  {asset.source}
-                </span>
-              </div>
-
-              <div className="space-y-2.5 p-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-bold text-[#0F172A]">
-                    {asset.name}
-                  </p>
-                  <p className="mt-0.5 truncate text-[11px] text-[#64748B]">
-                    {asset.subtitle || `${asset.scene} · ${asset.rollType}`}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-[#ECEFF5] pt-2.5">
-                  <span className="font-mono-num text-[10.5px] text-[#64748B]">
-                    {asset.addedAt}
-                  </span>
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() =>
-                      onNavigateToStudio(
-                        asset.projectMode === "static_clone"
-                          ? "static"
-                          : "video"
-                      )
-                    }
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0027eb] hover:underline"
-                  >
-                    Use in Studio
-                    <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={onOpenBrandScanner}
+                className="inline-flex h-9 items-center gap-2 rounded-[8px] border border-[#d6d6e0] bg-white px-4 text-[13.5px] font-medium text-[#0F172A] transition-colors hover:border-[#0F172A]/40"
+              >
+                <GoogleDriveColorIcon className="h-4 w-4" />
+                Google Drive
+              </button>
+              {combinedAssets.length > 0 && (
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={resetFilters}
+                  className="inline-flex h-9 items-center rounded-[8px] border border-[#ebebf3] bg-white px-4 text-[13px] font-medium text-[#475569] hover:text-[#0F172A]"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {filteredAssets.map((asset) => (
+              <div
+                key={asset.id}
+                className="group overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white transition-colors hover:border-[#d6d6e0]"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#050811]">
+                  {asset.mediaType === "video" &&
+                  asset.source === "Uploaded" ? (
+                    <video
+                      src={asset.url}
+                      muted
+                      playsInline
+                      controls
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={asset.url}
+                      alt={asset.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                  )}
+
+                  <div className="pointer-events-none absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 rounded-[6px] bg-[#050811]/85 px-2 py-0.5 text-[10.5px] font-semibold text-white backdrop-blur-xs">
+                      {asset.mediaType === "video" ? (
+                        <Video className="h-3 w-3 text-white" />
+                      ) : (
+                        <ImageIcon className="h-3 w-3 text-white" />
+                      )}
+                      {asset.mediaType.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <span className="pointer-events-none absolute top-2.5 right-2.5 rounded-[6px] bg-white/95 px-2 py-0.5 text-[10.5px] font-semibold text-[#0F172A]">
+                    {asset.source}
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 p-3.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-[#0F172A]">
+                      {asset.name}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11.5px] text-[#64748B]">
+                      {asset.subtitle || `${asset.scene} · ${asset.rollType}`}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-[#ebebf3] pt-2.5">
+                    <span className="font-mono-num text-[11px] text-[#64748B]">
+                      {asset.addedAt}
+                    </span>
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() =>
+                        onNavigateToStudio(
+                          asset.projectMode === "static_clone"
+                            ? "static"
+                            : "video"
+                        )
+                      }
+                      className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#0027eb] hover:underline"
+                    >
+                      Use in Studio
+                      <ArrowRight className="h-3 w-3 text-[#475569]" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 /* ============================================================================
-   3. MCP WORKSPACE VIEW
+   3. MCP WORKSPACE VIEW (1:1 ATRIA SETUP WIZARD + OVERVIEW + PROMPT LIBRARY + SKILL HUB)
    ============================================================================ */
 
 export interface McpWorkspaceViewProps {
@@ -2726,129 +2795,246 @@ export interface McpWorkspaceViewProps {
   onSubViewChange: (sub: McpSubView) => void;
 }
 
-const MCP_CAPABILITY_PILLS = [
-  { label: "Ad library", icon: Layers },
-  { label: "Competitor tracking", icon: Activity },
-  { label: "Ad performance", icon: BarChart3 },
-  { label: "Creative analysis", icon: Search },
-  { label: "Image & video generation", icon: Sparkles },
-  { label: "Video ads", icon: Film },
+const MCP_SERVER_URL = "https://api.flake.app/mcp";
+
+const MCP_CAPABILITY_TAGS = [
+  { label: "Ad library", icon: Search },
+  { label: "Competitor tracking", icon: Layers },
+  { label: "Ad performance", icon: LineChart },
+  { label: "Creative analysis", icon: FlaskConical },
+  { label: "Image & video generation", icon: ImageIcon },
+  { label: "Video ads", icon: Video },
+  { label: "Launch ads", icon: Rocket },
 ];
 
-const MCP_ROLES = [
-  "Performance Marketer",
-  "Creative Strategist",
-  "Brand Founder",
-  "Media Buyer",
-  "Agency Lead",
-  "Creative Director",
-  "Growth Engineer",
-  "E-commerce Manager",
+const MCP_WIZARD_ROLES = [
+  { label: "Media buyer", icon: LineChart },
+  { label: "Creative strategist", icon: Lightbulb },
+  { label: "Product researcher", icon: Search },
+  { label: "Designer or content creator", icon: Wand2 },
+  { label: "Marketer", icon: Megaphone },
+  { label: "Founder or business owner", icon: Briefcase },
+  { label: "Developer or engineer", icon: Terminal },
+  { label: "Other", icon: MoreHorizontal },
 ];
 
-const MCP_ASSISTANTS = [
+const MCP_WIZARD_ASSISTANTS = [
   {
     id: "claude",
     label: "Claude",
-    desc: "Claude Desktop & Claude Code",
+    sub: "",
   },
   {
     id: "chatgpt",
     label: "ChatGPT",
-    desc: "OpenAI Desktop & Connectors",
+    sub: "",
   },
   {
     id: "coding_agent",
     label: "Coding agent",
-    desc: "Cursor, Windsurf & Antigravity",
+    sub: "Claude Code, Cursor, Codex...",
   },
   {
     id: "other",
     label: "Something else",
-    desc: "Custom JSON-RPC 2.0 client",
+    sub: "",
   },
 ] as const;
 
-const MCP_GOALS = [
+const MCP_WIZARD_GOALS = [
   {
-    id: "swipe_wins",
-    title: "Find winning competitor hooks",
-    desc: "Query high-reach Meta ads and extract repeatable hook structures.",
+    id: "research_competitors",
+    title: "Research competitor ads",
+    desc: "what's working in your market right now",
+    icon: Search,
   },
   {
-    id: "brand_briefs",
-    title: "Generate on-brand ad briefs",
-    desc: "Turn Brand Memory + active swipe winners into 4-scene shoot briefs.",
+    id: "analyze_performance",
+    title: "Analyze my ad performance",
+    desc: "spend, ROAS, CTR from your connected accounts",
+    icon: BarChart3,
   },
   {
-    id: "funnel_audit",
-    title: "Audit landing funnels & offers",
-    desc: "Inspect Shopify sitemaps, advertorials, and bundle offer stacks.",
+    id: "generate_variations",
+    title: "Generate creative variations",
+    desc: "concepts grounded in reference ads",
+    icon: FlaskConical,
+  },
+  {
+    id: "launch_ads",
+    title: "Launch ads",
+    desc: "publish ads from your brand assets to Meta",
+    icon: Rocket,
+  },
+] as const;
+
+const MCP_OVERVIEW_TABS = [
+  {
+    id: "video_ads",
+    label: "Video ads",
+    icon: Video,
+    leftLabel: "Trending ad",
+    rightLabel: "Your video",
+    title: "Clone a winning video for your product",
+    quote:
+      "“Clone this video ad for our vitamins. Same story, our product, 9:16.”",
+    tag: "Create",
+    tool: "Flake · ad_maker_video_ad_project_create",
+  },
+  {
+    id: "video_hooks",
+    label: "Video hooks",
+    icon: Film,
+    leftLabel: "Winning creative",
+    rightLabel: "3 new hooks",
+    title: "Test new 3-second hooks on your top performer",
+    quote:
+      "“Take my highest-ROAS video and write 3 new visual opening hooks keeping the body identical.”",
+    tag: "Iterate",
+    tool: "Flake · ad_maker_video_hook_variations",
+  },
+  {
+    id: "research_ads",
+    label: "Research ads",
+    icon: Search,
+    leftLabel: "Competitors",
+    rightLabel: "Top hooks",
+    title: "Surface active competitor winners in seconds",
+    quote:
+      "“Find the top 10 longest-running Meta video ads in our niche and break down their hook patterns.”",
+    tag: "Research",
+    tool: "Flake · search_swipe_ads",
+  },
+  {
+    id: "ad_accounts",
+    label: "Ad accounts",
+    icon: LineChart,
+    leftLabel: "Meta account",
+    rightLabel: "Creative report",
+    title: "Audit creative spend, ROAS & fatigue directly in chat",
+    quote:
+      "“Pull my top 25 spenders over 30 days, flag fatigued hooks, and suggest what to scale next.”",
+    tag: "Analyze",
+    tool: "Flake · analytics_creative_breakdown",
+  },
+  {
+    id: "image_ads",
+    label: "Image ads",
+    icon: ImageIcon,
+    leftLabel: "Template",
+    rightLabel: "On-brand static",
+    title: "Generate on-brand static ads from proven layouts",
+    quote:
+      "“Turn this Us vs. Them layout into 4 static ad concepts using our Brand Memory and hero SKU.”",
+    tag: "Create",
+    tool: "Flake · ad_maker_image_ad_create",
+  },
+  {
+    id: "launch_ads",
+    label: "Launch ads",
+    icon: Rocket,
+    leftLabel: "Brand assets",
+    rightLabel: "Meta draft",
+    title: "Draft and launch new Meta ads from your assets",
+    quote:
+      "“Build a paused Meta draft in my Advantage+ campaign from the 3 new videos in Assets.”",
+    tag: "Launch",
+    tool: "Flake · meta_campaign_draft_create",
+  },
+  {
+    id: "workspace",
+    label: "Your workspace",
+    icon: LayoutGrid,
+    leftLabel: "Brand context",
+    rightLabel: "Saved boards",
+    title: "Query Brand Memory, scenarios & saved swipe boards",
+    quote:
+      "“Read our Brand Memory personas and match them to the top 5 saved ads in Default Board.”",
+    tag: "Workspace",
+    tool: "Flake · workspace_brand_context_read",
+  },
+] as const;
+
+const MCP_TODAY_PROMPTS = [
+  {
+    id: "today-1",
+    icon: Video,
+    title: "Clone a trending video ad for your product",
+    meta: "Video ads · May consume credits",
+    prompt:
+      "Using Flake, find a high-performing trending video ad in our category and clone its pacing and shot structure for our hero product in 9:16 using our Brand Memory tone of voice.",
+  },
+  {
+    id: "today-2",
+    icon: Video,
+    title: "Test new hooks on your best video",
+    meta: "Video ads · May consume credits",
+    prompt:
+      "Pull our top spending video creative from the last 14 days via Flake, analyze its 3s thumbstop rate, and generate 3 fresh opening hook scripts we can film tomorrow.",
+  },
+  {
+    id: "today-3",
+    icon: Rocket,
+    title: "Launch new ads from your brand assets",
+    meta: "Launch ads",
+    prompt:
+      "Using Flake, check my Meta ad account is ready to launch, list its campaigns and help me pick an existing ad set that can take new ads. Then build a draft from the images or videos I name in my brand's assets. Keep it as a draft. Show me the draft, the number of ads, and copy before publishing.",
+  },
+  {
+    id: "today-4",
+    icon: Search,
+    title: "Extract top 10 active competitor hooks",
+    meta: "Competitor research",
+    prompt:
+      "Use Flake MCP to call list_tracked_shops and search_swipe_ads for our top competitors. Rank the top 10 video ads by EU reach and active runtime, and break down each ad's 3-second verbal hook and CTA.",
   },
 ];
 
-const MCP_PROMPT_LIBRARY = [
+const MCP_OVERVIEW_SKILLS = [
   {
-    id: "pr-1",
-    category: "Competitor Research",
-    title: "Extract Top 10 Active Hooks in My Niche",
-    tools: ["search_swipe_ads", "list_tracked_shops"],
-    prompt:
-      "Use Flake MCP to call list_tracked_shops and search_swipe_ads for our top competitors. Rank the top 10 video ads by EU reach and active runtime, and break down each ad's 3-second verbal hook, visual pattern interrupt, and CTA.",
-  },
-  {
-    id: "pr-2",
-    category: "Funnel & Offer Audit",
-    title: "Map Competitor Advertorials & Landing Funnels",
-    tools: ["list_tracked_shops", "get_shop_funnels"],
-    prompt:
-      "Call get_shop_funnels for the top 3 highest-traffic shops from list_tracked_shops. Categorize their discovered landing pages into Advertorials, Listicles, Quizzes, and Offer Pages, and tell me which offer angle we should test next.",
-  },
-  {
-    id: "pr-3",
-    category: "Brief Generation",
-    title: "Write a 4-Scene UGC Script from Brand Memory",
+    id: "sk-ad-writer",
+    slug: "ad-writer",
+    icon: LayoutGrid,
+    summary:
+      "Write or revise finished hooks, on-ramps, copy, taglines and video/UGC scripts, including static-to-video adaptations.",
     tools: ["search_swipe_ads", "create_clone_brief"],
-    prompt:
-      "Find the highest-reach UGC video ad using search_swipe_ads, then call create_clone_brief with stylePresetId='iphone_ugc' to adapt that winning pacing to my hero product with 5 fresh hooks and 4 chronological scenes.",
+    instruction: `# Flake Skill: ad-writer\n1. Read active Brand Memory profile and tone of voice.\n2. Pull top-performing hooks via search_swipe_ads.\n3. Draft 5 hooks, on-ramps, body copy, and UGC/static-to-video scripts.`,
   },
   {
-    id: "pr-4",
-    category: "Creative Strategy",
-    title: "Weekly Creative Sprint Matrix (3 Angles x 2 Formats)",
-    tools: ["search_swipe_ads", "create_clone_brief"],
-    prompt:
-      "Using Flake MCP, build a 6-ad creative sprint matrix combining 3 proven angles from search_swipe_ads across iphone_ugc and claymation_moa presets via create_clone_brief.",
-  },
-];
-
-const MCP_SKILL_HUB = [
-  {
-    id: "sk-1",
-    title: "Competitor Ad Teardown",
-    badge: "Research Skill",
+    id: "sk-competitive-landscape",
+    slug: "competitive-landscape",
+    icon: LayoutGrid,
+    summary:
+      "Compare multiple competitors in Flake's ad library for long-running ads, saturated angles/hooks, share of format, and offer gaps.",
     tools: ["list_tracked_shops", "search_swipe_ads"],
-    summary:
-      "Automated teardown of a rival DTC brand's live Meta creative mix, hook distribution, and dominant formats.",
-    instruction: `# Flake Skill: Competitor Ad Teardown\n1. Call list_tracked_shops to resolve the target competitor.\n2. Call search_swipe_ads with the competitor brand name.\n3. Group ads by mediaType and summarize winning hooks, active days, and landing pages.`,
+    instruction: `# Flake Skill: competitive-landscape\n1. Call list_tracked_shops to resolve target competitors.\n2. Pull active ads via search_swipe_ads and group by angle, runtime, and format.\n3. Highlight under-served hook angles and white-space opportunities.`,
   },
   {
-    id: "sk-2",
-    title: "Shopify Funnel & Offer Audit",
-    badge: "Conversion Skill",
-    tools: ["get_shop_funnels", "list_tracked_shops"],
+    id: "sk-creative-breakdown",
+    slug: "creative-breakdown",
+    icon: LayoutGrid,
     summary:
-      "Inspects discovered advertorials, quizzes, and bundle pages to uncover high-converting AOV levers.",
-    instruction: `# Flake Skill: Shopify Funnel & Offer Audit\n1. Call get_shop_funnels(brandQuery).\n2. Classify URLs by funnel type (Advertorial / Listicle / Quiz / Offer LP).\n3. Recommend 2 landing page experiments tailored to our offer.`,
+      "Analyze one connected account's top 25 spenders over 30 days, deduped by creative, into a Creative Breakdown with scale/kill calls.",
+    tools: ["analytics_creative_breakdown", "list_tracked_shops"],
+    instruction: `# Flake Skill: creative-breakdown\n1. Fetch top 25 spenders over the last 30 days deduped by creative.\n2. Rank by ROAS, CPA, 3s thumbstop, and 15s hold rate.\n3. Output Scale / Iterate / Pause recommendations.`,
   },
   {
-    id: "sk-3",
-    title: "Clone-to-Brief Factory",
-    badge: "Production Skill",
-    tools: ["search_swipe_ads", "create_clone_brief"],
+    id: "sk-video-ad-edit",
+    slug: "video-ad-edit",
+    icon: LayoutGrid,
     summary:
-      "Turns any winning swipe reference into a 5-hook, 4-scene production brief ready for Studio.",
-    instruction: `# Flake Skill: Clone-to-Brief Factory\n1. Pull top swipe winners via search_swipe_ads.\n2. Call create_clone_brief with brandName, productTitle, stylePresetId, and angle.\n3. Output shooting checklist, on-screen captions, and primary copy.`,
+      "Make a bounded generative edit of a short existing video advertisement with private planning and optional hook/CTA swaps.",
+    tools: ["ad_maker_video_ad_project_create", "create_clone_brief"],
+    instruction: `# Flake Skill: video-ad-edit\n1. Inspect source video scenes and timing.\n2. Plan bounded edit (new opening hook or localized CTA).\n3. Submit render project to Flake Ad Maker.`,
+  },
+  {
+    id: "sk-video-ad-references",
+    slug: "video-ad-references",
+    icon: LineChart,
+    summary:
+      "Find product-relevant video ad references from both connected ad accounts and the ad library, comparing pacing and retention.",
+    tools: ["search_swipe_ads", "get_shop_funnels"],
+    instruction: `# Flake Skill: video-ad-references\n1. Query Flake ad library for product-relevant video winners.\n2. Cross-reference with top-retaining creatives in connected accounts.\n3. Return ranked reference shortlist with scene timings.`,
   },
 ];
 
@@ -2862,36 +3048,34 @@ interface McpProbeResult {
   error?: string;
 }
 
-const noopSubscribe = () => () => {};
-
 export function McpWorkspaceView({
   subView,
   onSubViewChange,
 }: McpWorkspaceViewProps) {
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [selectedRole, setSelectedRole] = useState<string>(MCP_ROLES[0]);
+  const [completedSteps, setCompletedSteps] = useState(0);
+  const [selectedRole, setSelectedRole] = useState<string>("Media buyer");
   const [selectedAssistant, setSelectedAssistant] =
-    useState<(typeof MCP_ASSISTANTS)[number]["id"]>("claude");
-  const [selectedGoal, setSelectedGoal] = useState<string>(MCP_GOALS[0].id);
-  const origin = useSyncExternalStore(
-    noopSubscribe,
-    () => window.location.origin,
-    () => "https://flake.studio"
-  );
+    useState<(typeof MCP_WIZARD_ASSISTANTS)[number]["id"]>("claude");
+  const [selectedGoal, setSelectedGoal] =
+    useState<(typeof MCP_WIZARD_GOALS)[number]["id"]>("research_competitors");
+
+  const [activeCapTab, setActiveCapTab] =
+    useState<(typeof MCP_OVERVIEW_TABS)[number]["id"]>("video_ads");
+  const [clientScope, setClientScope] = useState<"mine" | "workspace">("mine");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [testingMcp, setTestingMcp] = useState(false);
   const [probeResult, setProbeResult] = useState<McpProbeResult | null>(null);
-
-  const mcpEndpoint = `${origin}/api/mcp`;
 
   const mcpConfigJson = useMemo(
     () =>
       JSON.stringify(
         {
           mcpServers: {
-            "flake-creative-mcp": {
-              url: mcpEndpoint,
+            "flake-mcp": {
+              url: MCP_SERVER_URL,
               transport: "http",
               headers: {
                 "Content-Type": "application/json",
@@ -2902,7 +3086,7 @@ export function McpWorkspaceView({
         null,
         2
       ),
-    [mcpEndpoint]
+    []
   );
 
   const copyText = async (id: string, text: string) => {
@@ -2948,270 +3132,298 @@ export function McpWorkspaceView({
     }
   };
 
-  return (
-    <div className="animate-view-in mx-auto w-full max-w-[1160px] space-y-6 px-4 py-6 sm:px-7">
-      {/* Header Section */}
-      <div className="space-y-4 rounded-3xl border border-[#ECEFF5] bg-white p-6 shadow-xs sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3 py-1 text-[11px] font-semibold text-[#0027eb]">
-            <Terminal className="h-3.5 w-3.5" />
-            Model Context Protocol · Live Endpoint
-          </span>
+  const activeTabSpec =
+    MCP_OVERVIEW_TABS.find((t) => t.id === activeCapTab) ||
+    MCP_OVERVIEW_TABS[0];
 
-          {/* Sub-view Nav */}
-          <div className="flex items-center gap-1 rounded-full border border-[#ECEFF5] bg-[#F7F8FB] p-1">
-            {(
-              [
-                { id: "overview", label: "Setup" },
-                { id: "prompts", label: "Prompt Library" },
-                { id: "skills", label: "Skill Hub" },
-              ] as Array<{ id: McpSubView; label: string }>
-            ).map((tab) => {
-              const active = subView === tab.id;
+  const renderServerFooter = () => (
+    <footer className="mt-6 flex flex-wrap items-center gap-3 border-t border-[#ebebf3] pt-5 text-[13px] text-[#64748B]">
+      <span className="font-mono text-[12.5px] text-[#64748B]">
+        Server: {MCP_SERVER_URL}
+      </span>
+      <button
+        type="button"
+        data-no-glass="true"
+        onClick={() => void copyText("footer-server-url", MCP_SERVER_URL)}
+        aria-label="Copy MCP server URL"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-[6px] text-[#475569] transition-colors hover:bg-black/[0.05] hover:text-[#0F172A]"
+      >
+        {copiedId === "footer-server-url" ? (
+          <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+        ) : (
+          <Copy className="h-3.5 w-3.5 text-[#475569]" />
+        )}
+      </button>
+      <button
+        type="button"
+        data-no-glass="true"
+        onClick={() => {
+          onSubViewChange("overview");
+          setStep(2);
+          setWizardOpen(true);
+        }}
+        className="font-medium text-[#0027eb] hover:underline"
+      >
+        Documentation
+      </button>
+    </footer>
+  );
+
+  /* --------------------------------------------------------------------------
+     SETUP WIZARD MODE (1:1 ATRIA STEP 71 REPLICA)
+     -------------------------------------------------------------------------- */
+  if (subView === "overview" && wizardOpen) {
+    return (
+      <div className="min-h-full bg-[#f5f5fa] px-6 pt-8 pb-20">
+        <div className="mx-auto max-w-[1040px]">
+          {/* Top Header Row */}
+          <div className="flex flex-wrap items-baseline justify-between gap-4">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h1 className="font-display text-[22px] font-bold tracking-tight text-[#0F172A]">
+                Set up Flake MCP
+              </h1>
+              <p className="text-[13.5px] text-[#475569]">
+                Bring your Flake data into the AI assistant you already use.
+              </p>
+            </div>
+            <button
+              type="button"
+              data-no-glass="true"
+              onClick={() => setWizardOpen(false)}
+              className="text-[13.5px] font-medium text-[#0F172A] transition-colors hover:text-[#0027eb]"
+            >
+              Skip for now
+            </button>
+          </div>
+
+          {/* 7 Capability Tag Pills */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {MCP_CAPABILITY_TAGS.map((cap) => {
+              const Icon = cap.icon;
               return (
-                <button
-                  key={tab.id}
-                  type="button"
+                <span
+                  key={cap.label}
                   data-no-glass="true"
-                  onClick={() => onSubViewChange(tab.id)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                    active
-                      ? "bg-[#0F172A] text-white shadow-xs"
-                      : "text-[#475569] hover:text-[#0F172A]"
-                  }`}
+                  className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#EEF2FF]/80 px-2.5 py-1 text-[12px] font-medium text-[#475569]"
                 >
-                  {tab.label}
-                </button>
+                  <Icon className="h-3.5 w-3.5 text-[#64748B]" />
+                  {cap.label}
+                </span>
               );
             })}
           </div>
-        </div>
 
-        <div className="max-w-2xl space-y-2">
-          <h1 className="font-geist-serif text-[32px] font-normal leading-tight tracking-tight text-[#0F172A]">
-            Set up Flake MCP
-          </h1>
-          <p className="text-sm leading-relaxed text-[#475569]">
-            Bring your Flake ad library, brand memory, and analytics into the AI assistant you
-            already use.
-          </p>
-        </div>
-
-        {/* 6 Capability Pills */}
-        <div className="flex flex-wrap gap-2 pt-1">
-          {MCP_CAPABILITY_PILLS.map((cap) => {
-            const Icon = cap.icon;
-            return (
-              <span
-                key={cap.label}
-                data-no-glass="true"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E9F0] bg-[#FAFBFD] px-3 py-1.5 text-xs font-medium text-[#0F172A]"
-              >
-                <Icon className="h-3.5 w-3.5 text-[#0027eb]" />
-                {cap.label}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* OVERVIEW: 3-STEP HORIZONTAL STEPPER */}
-      {subView === "overview" && (
-        <div className="space-y-6">
-          {/* Stepper Header */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {/* 3-Step Horizontal Stepper */}
+          <div className="mt-6 flex max-w-[520px] items-center gap-3">
             {(
               [
                 { num: 1, label: "About you" },
                 { num: 2, label: "Connect" },
                 { num: 3, label: "Try it" },
               ] as const
-            ).map((s) => {
+            ).map((s, idx) => {
               const active = step === s.num;
-              const completed = step > s.num;
+              const done = step > s.num;
               return (
-                <button
-                  key={s.num}
-                  type="button"
-                  data-no-glass="true"
-                  onClick={() => setStep(s.num)}
-                  className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-all ${
-                    active
-                      ? "border-[#0027eb] bg-[#EEF2FF]/70 shadow-xs"
-                      : completed
-                        ? "border-[#DCE4FF] bg-white"
-                        : "border-[#ECEFF5] bg-white hover:border-[#DCE4FF]"
-                  }`}
-                >
-                  <span
-                    className={`font-mono-num flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      active
-                        ? "bg-[#0027eb] text-white"
-                        : completed
-                          ? "bg-[#0F172A] text-white"
-                          : "bg-[#F3F5F9] text-[#64748B]"
-                    }`}
+                <React.Fragment key={s.num}>
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setStep(s.num)}
+                    className="inline-flex shrink-0 items-center gap-2 text-[13px]"
                   >
-                    {completed ? <Check className="h-3.5 w-3.5" /> : s.num}
-                  </span>
-                  <div>
-                    <p className="text-[11px] font-medium text-[#64748B]">
-                      Step {s.num}
-                    </p>
-                    <p className="text-sm font-bold text-[#0F172A]">
-                      {s.num} {s.label}
-                    </p>
-                  </div>
-                </button>
+                    <span
+                      className={`font-mono-num flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-bold ${
+                        active
+                          ? "bg-[#0027eb] text-white"
+                          : done
+                            ? "bg-[#0F172A] text-white"
+                            : "bg-[#ECEFF4] text-[#64748B]"
+                      }`}
+                    >
+                      {done ? (
+                        <Check className="h-3.5 w-3.5 text-white" />
+                      ) : (
+                        s.num
+                      )}
+                    </span>
+                    <span
+                      className={
+                        active
+                          ? "font-semibold text-[#0F172A]"
+                          : "font-medium text-[#64748B]"
+                      }
+                    >
+                      {s.label}
+                    </span>
+                  </button>
+                  {idx < 2 && <div className="h-px flex-1 bg-[#d6d6e0]" />}
+                </React.Fragment>
               );
             })}
           </div>
 
-          {/* STEP 1: ABOUT YOU */}
+          {/* STEP 1: TELL US A LITTLE ABOUT YOU */}
           {step === 1 && (
-            <div className="space-y-7 rounded-3xl border border-[#ECEFF5] bg-white p-6 shadow-xs sm:p-8">
-              {/* 01 Role */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono-num rounded-md bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-bold text-[#0027eb]">
-                    01
-                  </span>
-                  <h2 className="font-display text-sm font-bold text-[#0F172A]">
-                    What best describes your role?
-                  </h2>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  {MCP_ROLES.map((role) => {
-                    const selected = selectedRole === role;
-                    return (
-                      <button
-                        key={role}
-                        type="button"
-                        data-no-glass="true"
-                        onClick={() => setSelectedRole(role)}
-                        className={`rounded-2xl border px-3.5 py-3 text-left text-xs font-semibold transition-all ${
-                          selected
-                            ? "border-[#0027eb] bg-[#EEF2FF] text-[#0027eb]"
-                            : "border-[#E6E9F0] bg-[#FAFBFD] text-[#0F172A] hover:border-[#DCE4FF] hover:bg-white"
-                        }`}
-                      >
-                        {role}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="mt-5 rounded-[12px] border border-[#d6d6e0] bg-white px-8 py-8 sm:px-10 sm:py-9">
+              <h2 className="font-display mb-6 text-[22px] font-bold tracking-tight text-[#0F172A]">
+                Tell us a little about you
+              </h2>
 
-              {/* 02 AI Assistant */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono-num rounded-md bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-bold text-[#0027eb]">
-                    02
-                  </span>
-                  <h2 className="font-display text-sm font-bold text-[#0F172A]">
-                    Which AI assistant do you use most?
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                  {MCP_ASSISTANTS.map((assistant) => {
-                    const selected = selectedAssistant === assistant.id;
-                    return (
-                      <button
-                        key={assistant.id}
-                        type="button"
-                        data-no-glass="true"
-                        onClick={() => setSelectedAssistant(assistant.id)}
-                        className={`rounded-2xl border p-3.5 text-left transition-all ${
-                          selected
-                            ? "border-[#0027eb] bg-[#EEF2FF]"
-                            : "border-[#E6E9F0] bg-[#FAFBFD] hover:border-[#DCE4FF] hover:bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`text-xs font-bold ${
-                              selected ? "text-[#0027eb]" : "text-[#0F172A]"
-                            }`}
-                          >
-                            {assistant.label}
-                          </span>
-                          <Bot
-                            className={`h-4 w-4 ${
-                              selected ? "text-[#0027eb]" : "text-[#94A3B8]"
-                            }`}
-                          />
-                        </div>
-                        <p className="mt-1 text-[11px] text-[#64748B]">
-                          {assistant.desc}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 03 First Goal */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono-num rounded-md bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-bold text-[#0027eb]">
-                    03
-                  </span>
-                  <h2 className="font-display text-sm font-bold text-[#0F172A]">
-                    What do you want to do first?
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  {MCP_GOALS.map((goal) => {
-                    const selected = selectedGoal === goal.id;
-                    return (
-                      <button
-                        key={goal.id}
-                        type="button"
-                        data-no-glass="true"
-                        onClick={() => setSelectedGoal(goal.id)}
-                        className={`rounded-2xl border p-4 text-left transition-all ${
-                          selected
-                            ? "border-[#0027eb] bg-[#EEF2FF]"
-                            : "border-[#E6E9F0] bg-[#FAFBFD] hover:border-[#DCE4FF] hover:bg-white"
-                        }`}
-                      >
-                        <p
-                          className={`text-xs font-bold ${
-                            selected ? "text-[#0027eb]" : "text-[#0F172A]"
+              <div className="space-y-7">
+                {/* 01 Role (4x2 Grid) */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-[13.5px]">
+                    <span className="font-mono-num font-semibold text-[#64748B]">
+                      01
+                    </span>
+                    <span className="font-semibold text-[#0F172A]">
+                      What best describes your role?
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                    {MCP_WIZARD_ROLES.map((role) => {
+                      const Icon = role.icon;
+                      const selected = selectedRole === role.label;
+                      return (
+                        <button
+                          key={role.label}
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => setSelectedRole(role.label)}
+                          className={`flex items-center gap-3 rounded-[10px] border px-3.5 py-3 text-left transition-colors ${
+                            selected
+                              ? "border-[#0027eb] bg-[#EEF2FF]"
+                              : "border-transparent bg-[#f5f5fa] hover:border-[#d6d6e0]"
                           }`}
                         >
-                          {goal.title}
-                        </p>
-                        <p className="mt-1 text-[11px] leading-relaxed text-[#64748B]">
-                          {goal.desc}
-                        </p>
-                      </button>
-                    );
-                  })}
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+                            <Icon className="h-4 w-4 text-[#475569]" />
+                          </span>
+                          <span className="text-[13px] font-semibold leading-snug text-[#0F172A]">
+                            {role.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 02 AI Assistant (4 Cards) */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-[13.5px]">
+                    <span className="font-mono-num font-semibold text-[#64748B]">
+                      02
+                    </span>
+                    <span className="font-semibold text-[#0F172A]">
+                      Which AI assistant do you use most?
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                    {MCP_WIZARD_ASSISTANTS.map((assistant) => {
+                      const selected = selectedAssistant === assistant.id;
+                      return (
+                        <button
+                          key={assistant.id}
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => setSelectedAssistant(assistant.id)}
+                          className={`flex items-center gap-3 rounded-[10px] border px-3.5 py-3.5 text-left transition-colors ${
+                            selected
+                              ? "border-[#0027eb] bg-[#EEF2FF]"
+                              : "border-transparent bg-[#f5f5fa] hover:border-[#d6d6e0]"
+                          }`}
+                        >
+                          {assistant.id === "claude" && (
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+                              <ClaudeBrandIcon className="h-5 w-5" />
+                            </span>
+                          )}
+                          {assistant.id === "chatgpt" && (
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+                              <ChatGptBrandIcon className="h-5 w-5" />
+                            </span>
+                          )}
+                          {assistant.id === "coding_agent" && (
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#0F172A]">
+                              <Terminal className="h-4 w-4 text-white" />
+                            </span>
+                          )}
+                          {assistant.id === "other" && (
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+                              <Plug className="h-4 w-4 text-[#475569]" />
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-semibold text-[#0F172A]">
+                              {assistant.label}
+                            </p>
+                            {assistant.sub && (
+                              <p className="mt-0.5 text-[11.5px] leading-snug text-[#64748B]">
+                                {assistant.sub}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 03 First Goal (3+1 Grid) */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-[13.5px]">
+                    <span className="font-mono-num font-semibold text-[#64748B]">
+                      03
+                    </span>
+                    <span className="font-semibold text-[#0F172A]">
+                      What do you want to do first?
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    {MCP_WIZARD_GOALS.map((goal) => {
+                      const Icon = goal.icon;
+                      const selected = selectedGoal === goal.id;
+                      return (
+                        <button
+                          key={goal.id}
+                          type="button"
+                          data-no-glass="true"
+                          onClick={() => setSelectedGoal(goal.id)}
+                          className={`rounded-[10px] border p-4 text-left transition-colors ${
+                            selected
+                              ? "border-[#0027eb] bg-[#EEF2FF]"
+                              : "border-transparent bg-[#f5f5fa] hover:border-[#d6d6e0]"
+                          }`}
+                        >
+                          <span className="mb-3 flex h-7 w-7 items-center justify-center rounded-[6px] bg-white">
+                            <Icon className="h-3.5 w-3.5 text-[#475569]" />
+                          </span>
+                          <p className="text-[13.5px] font-bold text-[#0F172A]">
+                            {goal.title}
+                          </p>
+                          <p className="mt-1 text-[12px] leading-relaxed text-[#64748B]">
+                            {goal.desc}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-[#ECEFF5] pt-5">
-                <p className="text-xs text-[#64748B]">
-                  Tailored for{" "}
-                  <span className="font-semibold text-[#0F172A]">
-                    {selectedRole}
-                  </span>{" "}
-                  on{" "}
-                  <span className="font-semibold text-[#0F172A]">
-                    {
-                      MCP_ASSISTANTS.find((a) => a.id === selectedAssistant)
-                        ?.label
-                    }
-                  </span>
-                </p>
+              <div className="mt-7 flex items-center justify-start">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
-                  className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-xs font-semibold text-white"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setCompletedSteps((prev) => Math.max(prev, 1));
+                    setStep(2);
+                  }}
+                  className="inline-flex h-11 min-w-[220px] items-center justify-center gap-2 rounded-[10px] bg-[#0027eb] px-6 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
                 >
                   Continue
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 text-white" />
                 </button>
               </div>
             </div>
@@ -3219,104 +3431,100 @@ export function McpWorkspaceView({
 
           {/* STEP 2: CONNECT */}
           {step === 2 && (
-            <div className="space-y-6 rounded-3xl border border-[#ECEFF5] bg-white p-6 shadow-xs sm:p-8">
+            <div className="mt-5 space-y-6 rounded-[12px] border border-[#d6d6e0] bg-white px-8 py-8 sm:px-10 sm:py-9">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-lg font-bold text-[#0F172A]">
+                  <h2 className="font-display text-[20px] font-bold text-[#0F172A]">
                     Connect{" "}
                     {
-                      MCP_ASSISTANTS.find((a) => a.id === selectedAssistant)
-                        ?.label
+                      MCP_WIZARD_ASSISTANTS.find(
+                        (a) => a.id === selectedAssistant
+                      )?.label
                     }{" "}
                     to Flake MCP
                   </h2>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Paste this server configuration into your MCP settings file, then verify live
-                    connectivity below.
+                  <p className="mt-1 text-[13px] text-[#475569]">
+                    Paste this server URL or JSON configuration into your MCP
+                    client, then verify live connectivity below.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => void runLiveMcpTest()}
-                    disabled={testingMcp}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#0F172A] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1E293B] disabled:opacity-60"
-                  >
-                    {testingMcp ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Activity className="h-3.5 w-3.5 text-[#3B66FF]" />
-                    )}
-                    Test MCP Connection
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => void runLiveMcpTest()}
+                  disabled={testingMcp}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-[#0F172A] px-4 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#1E293B] disabled:opacity-60"
+                >
+                  {testingMcp ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                  ) : (
+                    <Activity className="h-3.5 w-3.5 text-white" />
+                  )}
+                  Test MCP Connection
+                </button>
               </div>
 
-              {/* Endpoint Pill */}
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#DCE4FF] bg-[#EEF2FF]/50 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[#C7D2FE] bg-[#EEF2FF]/60 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <Link2 className="h-4 w-4 shrink-0 text-[#0027eb]" />
-                  <code className="font-mono-num truncate text-xs font-semibold text-[#0F172A]">
-                    {mcpEndpoint}
+                  <Link2 className="h-4 w-4 shrink-0 text-[#475569]" />
+                  <code className="font-mono truncate text-[12.5px] font-semibold text-[#0F172A]">
+                    {MCP_SERVER_URL}
                   </code>
                 </div>
                 <button
                   type="button"
                   data-no-glass="true"
-                  onClick={() => void copyText("endpoint", mcpEndpoint)}
-                  className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#0027eb] shadow-xs"
+                  onClick={() => void copyText("endpoint", MCP_SERVER_URL)}
+                  className="inline-flex h-7 items-center gap-1.5 rounded-[6px] border border-[#d6d6e0] bg-white px-3 text-[12px] font-medium text-[#0F172A]"
                 >
                   {copiedId === "endpoint" ? (
                     <>
-                      <Check className="h-3 w-3" />
+                      <Check className="h-3 w-3 text-[#0F172A]" />
                       Copied
                     </>
                   ) : (
                     <>
-                      <Copy className="h-3 w-3" />
+                      <Copy className="h-3 w-3 text-[#475569]" />
                       Copy URL
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Copyable JSON Config */}
-              <div className="overflow-hidden rounded-2xl border border-[#0F172A] bg-[#050811] text-white">
+              <div className="overflow-hidden rounded-[10px] border border-[#0F172A] bg-[#050811] text-white">
                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-                  <div className="flex items-center gap-2 text-xs font-medium text-white/75">
-                    <Code2 className="h-3.5 w-3.5 text-[#3B66FF]" />
+                  <div className="flex items-center gap-2 text-[12px] font-medium text-white/75">
+                    <Code2 className="h-3.5 w-3.5 text-white/80" />
                     <span>mcp_config.json</span>
                   </div>
                   <button
                     type="button"
                     data-no-glass="true"
                     onClick={() => void copyText("config-json", mcpConfigJson)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-white/20"
+                    className="inline-flex items-center gap-1.5 rounded-[6px] bg-white/10 px-3 py-1 text-[11.5px] font-medium text-white transition-colors hover:bg-white/20"
                   >
                     {copiedId === "config-json" ? (
                       <>
-                        <Check className="h-3 w-3 text-[#4ADE80]" />
+                        <Check className="h-3 w-3 text-white" />
                         Copied config
                       </>
                     ) : (
                       <>
-                        <Copy className="h-3 w-3" />
+                        <Copy className="h-3 w-3 text-white" />
                         Copy JSON
                       </>
                     )}
                   </button>
                 </div>
-                <pre className="workspace-scroll overflow-x-auto p-4 font-mono text-xs leading-relaxed text-[#E2E8F0]">
+                <pre className="workspace-scroll overflow-x-auto p-4 font-mono text-[12px] leading-relaxed text-[#E2E8F0]">
                   {mcpConfigJson}
                 </pre>
               </div>
 
-              {/* Live Test MCP Connection Result */}
               {probeResult && (
                 <div
-                  className={`rounded-2xl border p-4 ${
+                  className={`rounded-[10px] border p-4 ${
                     probeResult.ok
                       ? "border-[#BBF7D0] bg-[#ECFDF3]"
                       : "border-[#FDE68A] bg-[#FFFBEB]"
@@ -3329,7 +3537,7 @@ export function McpWorkspaceView({
                           probeResult.ok ? "bg-[#16A34A]" : "bg-[#D97706]"
                         }`}
                       />
-                      <span className="text-xs font-bold text-[#0F172A]">
+                      <span className="text-[13px] font-bold text-[#0F172A]">
                         {probeResult.ok
                           ? `Connected · ${probeResult.serverName} v${probeResult.version}`
                           : `Connection check returned HTTP ${probeResult.status}`}
@@ -3341,12 +3549,12 @@ export function McpWorkspaceView({
                   </div>
 
                   {probeResult.error ? (
-                    <p className="mt-2 text-xs text-[#92400E]">
+                    <p className="mt-2 text-[12.5px] text-[#92400E]">
                       {probeResult.error}
                     </p>
                   ) : (
                     <div className="mt-3 space-y-2">
-                      <p className="text-[11px] font-medium text-[#475569]">
+                      <p className="text-[12px] font-medium text-[#475569]">
                         Protocol: {probeResult.protocol} ·{" "}
                         {probeResult.tools?.length || 0} tools discovered
                       </p>
@@ -3355,12 +3563,12 @@ export function McpWorkspaceView({
                           {probeResult.tools.map((t) => (
                             <div
                               key={t.name}
-                              className="rounded-xl border border-[#E6E9F0] bg-white p-2.5"
+                              className="rounded-[8px] border border-[#ebebf3] bg-white p-2.5"
                             >
-                              <code className="text-[11px] font-bold text-[#0027eb]">
+                              <code className="text-[11.5px] font-bold text-[#0027eb]">
                                 {t.name}
                               </code>
-                              <p className="mt-0.5 text-[11px] text-[#64748B]">
+                              <p className="mt-0.5 text-[11.5px] text-[#64748B]">
                                 {t.description}
                               </p>
                             </div>
@@ -3372,22 +3580,26 @@ export function McpWorkspaceView({
                 </div>
               )}
 
-              <div className="flex items-center justify-between border-t border-[#ECEFF5] pt-5">
+              <div className="flex items-center justify-between border-t border-[#ebebf3] pt-5">
                 <button
                   type="button"
                   data-no-glass="true"
                   onClick={() => setStep(1)}
-                  className="rounded-full border border-[#E6E9F0] bg-white px-4 py-2 text-xs font-semibold text-[#475569] hover:text-[#0F172A]"
+                  className="h-9 rounded-[8px] border border-[#d6d6e0] bg-white px-4 text-[13px] font-medium text-[#0F172A]"
                 >
                   Back
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
-                  className="adtrack-btn-primary inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-xs font-semibold text-white"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setCompletedSteps((prev) => Math.max(prev, 2));
+                    setStep(3);
+                  }}
+                  className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-[#0027eb] px-6 text-[13.5px] font-semibold text-white hover:bg-[#001fc2]"
                 >
                   Continue to Try it
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 text-white" />
                 </button>
               </div>
             </div>
@@ -3395,189 +3607,626 @@ export function McpWorkspaceView({
 
           {/* STEP 3: TRY IT */}
           {step === 3 && (
-            <div className="space-y-5 rounded-3xl border border-[#ECEFF5] bg-white p-6 shadow-xs sm:p-8">
+            <div className="mt-5 space-y-5 rounded-[12px] border border-[#d6d6e0] bg-white px-8 py-8 sm:px-10 sm:py-9">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-display text-lg font-bold text-[#0F172A]">
+                  <h2 className="font-display text-[20px] font-bold text-[#0F172A]">
                     Try your first MCP prompt
                   </h2>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    Copy any starter prompt below or browse the full Prompt Library and Skill Hub.
+                  <p className="mt-1 text-[13px] text-[#475569]">
+                    Copy a starter prompt into your assistant, then return to
+                    Flake MCP overview.
                   </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => onSubViewChange("prompts")}
-                    className="rounded-full border border-[#DCE4FF] bg-[#EEF2FF] px-3.5 py-1.5 text-xs font-semibold text-[#0027eb]"
-                  >
-                    Open Prompt Library
-                  </button>
-                  <button
-                    type="button"
-                    data-no-glass="true"
-                    onClick={() => onSubViewChange("skills")}
-                    className="rounded-full border border-[#E6E9F0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0F172A]"
-                  >
-                    Open Skill Hub
-                  </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {MCP_PROMPT_LIBRARY.slice(0, 2).map((item) => (
+                {MCP_TODAY_PROMPTS.slice(0, 2).map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex flex-col justify-between gap-3.5 rounded-[12px] border border-[#ebebf3] bg-white p-5"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f5f5fa]">
+                            <Icon className="h-4 w-4 text-[#475569]" />
+                          </span>
+                          <div>
+                            <h3 className="text-[14px] font-bold text-[#0F172A]">
+                              {item.title}
+                            </h3>
+                            <p className="text-[12px] text-[#64748B]">
+                              {item.meta}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] p-3.5 font-mono text-[12px] leading-relaxed text-[#334155]">
+                          {item.prompt}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        data-no-glass="true"
+                        onClick={() => void copyText(item.id, item.prompt)}
+                        className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white text-[13px] font-medium text-[#0F172A] hover:border-[#0F172A]/40"
+                      >
+                        {copiedId === item.id ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                            Copied prompt
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5 text-[#475569]" />
+                            Copy prompt
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-[#ebebf3] pt-5">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setStep(2)}
+                  className="h-9 rounded-[8px] border border-[#d6d6e0] bg-white px-4 text-[13px] font-medium text-[#0F172A]"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => {
+                    setCompletedSteps(3);
+                    setWizardOpen(false);
+                  }}
+                  className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-[#0027eb] px-6 text-[13.5px] font-semibold text-white hover:bg-[#001fc2]"
+                >
+                  Finish setup
+                  <Check className="h-4 w-4 text-white" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* --------------------------------------------------------------------------
+     OVERVIEW MODE (1:1 ATRIA STEP 73 + STEP 75 REPLICA)
+     -------------------------------------------------------------------------- */
+  if (subView === "overview") {
+    return (
+      <div className="min-h-full bg-[#f5f5fa]">
+        {/* Sticky White Header */}
+        <div className="sticky top-0 z-10 border-b border-[#ebebf3] bg-white px-6 py-4">
+          <h1 className="font-display text-[20px] font-bold tracking-tight text-[#0F172A]">
+            Flake MCP overview
+          </h1>
+        </div>
+
+        <div className="mx-auto max-w-[1160px] space-y-5 px-6 py-5 pb-16">
+          {/* 1. COBALT-TINT HERO CARD */}
+          <section className="rounded-[12px] border border-[#C7D2FE] bg-gradient-to-br from-[#EEF2FF] via-[#F7F9FF] to-[#EEF2FF]/75 p-6">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-[13px] font-semibold text-[#0027eb]">
+                Model context protocol
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#C7D2FE] bg-white px-2.5 py-0.5 text-[11.5px] font-medium text-[#0F172A]">
+                <ShieldCheck className="h-3 w-3 text-[#475569]" />
+                OAuth-secured
+              </span>
+            </div>
+
+            <h2 className="font-display mt-2 text-[22px] font-bold tracking-tight text-[#0F172A]">
+              Use Flake inside your AI assistant
+            </h2>
+            <p className="mt-1.5 max-w-[740px] text-[13.5px] leading-relaxed text-[#475569]">
+              Make video and image ads, research competitors and read your ad
+              accounts — right from Claude, ChatGPT, Cursor or any MCP-enabled
+              agent. No API key, no code.
+            </p>
+
+            {/* 3 Slightly Tilted 48x48 AI Client Cards */}
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 -rotate-6 items-center justify-center rounded-[12px] border border-[#ebebf3] bg-white shadow-xs">
+                <ClaudeBrandIcon className="h-6 w-6" />
+              </div>
+              <div className="-mt-2 flex h-12 w-12 rotate-3 items-center justify-center rounded-[12px] border border-[#ebebf3] bg-white shadow-xs">
+                <ChatGptBrandIcon className="h-6 w-6" />
+              </div>
+              <div className="flex h-12 w-12 rotate-6 items-center justify-center rounded-[12px] border border-[#ebebf3] bg-white shadow-xs">
+                <CursorBrandIcon className="h-6 w-6" />
+              </div>
+            </div>
+
+            {/* Resume setup + progress bar */}
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => setWizardOpen(true)}
+                className="h-9 rounded-[8px] bg-[#0027eb] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#001fc2]"
+              >
+                Resume setup
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="h-1.5 w-36 overflow-hidden rounded-full bg-[#DCE4FF]">
+                  <div
+                    className="h-full rounded-full bg-[#0027eb] transition-all"
+                    style={{ width: `${(completedSteps / 3) * 100}%` }}
+                  />
+                </div>
+                <span className="font-mono-num text-[12.5px] text-[#64748B]">
+                  {completedSteps} of 3 setup steps done
+                </span>
+              </div>
+            </div>
+
+            {/* 7 Capability Tabs */}
+            <div className="mt-5 flex flex-wrap items-center gap-1">
+              {MCP_OVERVIEW_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeCapTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => setActiveCapTab(tab.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                      active
+                        ? "border border-[#ebebf3] bg-white font-semibold text-[#0F172A] shadow-2xs"
+                        : "border border-transparent font-medium text-[#475569] hover:text-[#0F172A]"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5 text-[#475569]" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Inner White Split Preview Card */}
+            <div className="mt-3 grid grid-cols-1 items-center gap-6 rounded-[10px] border border-[#ebebf3] bg-white p-5 md:grid-cols-2">
+              <div className="flex items-center justify-center gap-5 py-2">
+                <div className="flex flex-col items-center">
+                  <div className="h-[164px] w-[112px] rounded-[10px] border border-[#ebebf3] bg-[#ECEFF4]" />
+                  <span className="mt-2 text-[11.5px] text-[#64748B]">
+                    {activeTabSpec.leftLabel}
+                  </span>
+                </div>
+                <ArrowRight className="h-4 w-4 shrink-0 text-[#475569]" />
+                <div className="flex flex-col items-center">
+                  <div className="flex h-[164px] w-[112px] items-center justify-center rounded-[10px] border border-[#C7D2FE] bg-gradient-to-br from-[#EEF2FF] to-white">
+                    <SnowMark className="h-6 w-6 text-[#0027eb]/60" />
+                  </div>
+                  <span className="mt-2 text-[11.5px] text-[#64748B]">
+                    {activeTabSpec.rightLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-[15.5px] font-bold text-[#0F172A]">
+                    {activeTabSpec.title}
+                  </h3>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-[#475569]">
+                    {activeTabSpec.quote}
+                  </p>
+                </div>
+
+                <div className="w-full space-y-2 pt-2">
+                  <span className="inline-flex rounded-[4px] bg-[#f5f5fa] px-2 py-0.5 text-[11.5px] font-medium text-[#475569]">
+                    {activeTabSpec.tag}
+                  </span>
+                  <div className="flex items-center gap-2 rounded-[8px] border border-[#ebebf3] bg-white px-3 py-2 font-mono text-[12px] text-[#475569]">
+                    <Plug className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
+                    <span className="truncate">{activeTabSpec.tool}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 2. CONNECTED CLIENTS + USAGE & ALLOWANCES */}
+          <section className="space-y-4 rounded-[12px] border border-[#ebebf3] bg-white p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-[15px] font-bold text-[#0F172A]">
+                Connected clients
+              </h2>
+              <div className="inline-flex items-center rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] p-0.5">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setClientScope("mine")}
+                  className={`rounded-[6px] px-3 py-1 text-[12px] font-semibold transition-colors ${
+                    clientScope === "mine"
+                      ? "bg-white text-[#0F172A] shadow-2xs"
+                      : "text-[#64748B] hover:text-[#0F172A]"
+                  }`}
+                >
+                  Mine
+                </button>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => setClientScope("workspace")}
+                  className={`rounded-[6px] px-3 py-1 text-[12px] font-semibold transition-colors ${
+                    clientScope === "workspace"
+                      ? "bg-white text-[#0F172A] shadow-2xs"
+                      : "text-[#64748B] hover:text-[#0F172A]"
+                  }`}
+                >
+                  Workspace
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[13px] text-[#64748B]">
+              You have no connected clients in this workspace.
+            </p>
+
+            <div>
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => {
+                  setStep(2);
+                  setWizardOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[#d6d6e0] bg-white px-4 py-2 text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
+              >
+                <Plus className="h-3.5 w-3.5 text-[#475569]" />
+                Connect a client
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#ebebf3] pt-3.5 text-[12.5px]">
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="font-semibold text-[#0F172A]">
+                  Usage &amp; allowances
+                </span>
+                <span className="font-mono-num text-[#64748B]">
+                  MCP calls: 0 / 30 left
+                </span>
+                <span className="font-mono-num text-[#64748B]">
+                  REST API calls: 0 / 30 left
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-[#f5f5fa] px-2.5 py-0.5 text-[11.5px] font-medium text-[#475569]">
+                  Free plan
+                </span>
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => void runLiveMcpTest()}
+                  disabled={testingMcp}
+                  className="font-semibold text-[#0027eb] hover:underline"
+                >
+                  {testingMcp ? "Checking..." : "Upgrade plan"}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* 3. WHAT YOU CAN DO TODAY */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-[16px] font-bold text-[#0F172A]">
+                What you can do today
+              </h2>
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => onSubViewChange("prompts")}
+                className="inline-flex items-center gap-1 text-[13px] font-medium text-[#475569] hover:text-[#0F172A]"
+              >
+                Open prompt library
+                <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {MCP_TODAY_PROMPTS.map((item) => {
+                const Icon = item.icon;
+                return (
                   <div
                     key={item.id}
-                    className="flex flex-col justify-between gap-3 rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-4"
+                    className="flex flex-col justify-between gap-3.5 rounded-[12px] border border-[#ebebf3] bg-white p-5"
                   >
-                    <div className="space-y-2">
-                      <span className="inline-flex rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[10.5px] font-semibold text-[#0027eb]">
-                        {item.category}
-                      </span>
-                      <h3 className="font-display text-sm font-bold text-[#0F172A]">
-                        {item.title}
-                      </h3>
-                      <p className="rounded-xl border border-[#E6E9F0] bg-white p-3 text-xs leading-relaxed text-[#334155]">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f5f5fa]">
+                          <Icon className="h-4 w-4 text-[#475569]" />
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-[14px] font-bold text-[#0F172A]">
+                            {item.title}
+                          </h3>
+                          <p className="text-[12px] text-[#64748B]">
+                            {item.meta}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="line-clamp-4 rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] p-3.5 font-mono text-[12px] leading-relaxed text-[#334155]">
                         {item.prompt}
                       </p>
                     </div>
                     <button
                       type="button"
+                      data-no-glass="true"
                       onClick={() => void copyText(item.id, item.prompt)}
-                      className="adtrack-btn-primary inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white"
+                      className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white text-[13px] font-medium text-[#0F172A] transition-colors hover:border-[#0F172A]/40"
                     >
                       {copiedId === item.id ? (
                         <>
-                          <Check className="h-3.5 w-3.5" />
-                          Copied to clipboard
+                          <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                          Copied prompt
                         </>
                       ) : (
                         <>
-                          <Copy className="h-3.5 w-3.5" />
+                          <Copy className="h-3.5 w-3.5 text-[#475569]" />
                           Copy prompt
                         </>
                       )}
                     </button>
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 4. SKILL HUB (EXACT 5 ROWS + FOOTER LINK) */}
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-baseline gap-2.5">
+                <h2 className="font-display text-[16px] font-bold text-[#0F172A]">
+                  Skill Hub
+                </h2>
+                <span className="text-[12.5px] text-[#64748B]">
+                  Switch one on and every connected assistant can run it.
+                </span>
+              </div>
+              <button
+                type="button"
+                data-no-glass="true"
+                onClick={() => onSubViewChange("skills")}
+                className="inline-flex items-center gap-1 text-[13px] font-medium text-[#475569] hover:text-[#0F172A]"
+              >
+                View all skills
+                <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
+              </button>
+            </div>
+
+            <div className="overflow-hidden rounded-[12px] border border-[#ebebf3] bg-white divide-y divide-[#ebebf3]">
+              {MCP_OVERVIEW_SKILLS.map((skill) => {
+                const Icon = skill.icon;
+                return (
+                  <div
+                    key={skill.id}
+                    className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-[#f5f5fa]/50"
+                  >
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f5f5fa]">
+                        <Icon className="h-4 w-4 text-[#475569]" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13.5px] font-bold text-[#0F172A]">
+                            {skill.slug}
+                          </span>
+                          <Crown className="h-3.5 w-3.5 shrink-0 text-[#64748B]" />
+                        </div>
+                        <p className="truncate text-[12.5px] text-[#64748B]">
+                          {skill.summary}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      data-no-glass="true"
+                      onClick={() => onSubViewChange("skills")}
+                      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[6px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] transition-colors hover:border-[#0027eb]"
+                    >
+                      <Zap className="h-3.5 w-3.5 text-[#475569]" />
+                      Upgrade
+                    </button>
+                  </div>
+                );
+              })}
+
+              <div className="bg-white px-5 py-3">
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => onSubViewChange("skills")}
+                  className="inline-flex items-center gap-1 text-[13px] font-medium text-[#475569] hover:text-[#0F172A]"
+                >
+                  15 more in the Skill Hub
+                  <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
+                </button>
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </section>
 
-      {/* PROMPTS SUB-VIEW */}
-      {subView === "prompts" && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {MCP_PROMPT_LIBRARY.map((item) => (
-            <div
-              key={item.id}
-              className="flex flex-col justify-between gap-4 rounded-3xl border border-[#ECEFF5] bg-white p-5 shadow-xs transition-all hover:border-[#DCE4FF]"
-            >
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
-                    {item.category}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {item.tools.map((tool) => (
+          {/* 5. SERVER FOOTER BAR */}
+          {renderServerFooter()}
+        </div>
+      </div>
+    );
+  }
+
+  /* --------------------------------------------------------------------------
+     PROMPT LIBRARY SUB-VIEW
+     -------------------------------------------------------------------------- */
+  if (subView === "prompts") {
+    return (
+      <div className="min-h-full bg-[#f5f5fa]">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#ebebf3] bg-white px-6 py-4">
+          <h1 className="font-display text-[20px] font-bold tracking-tight text-[#0F172A]">
+            Prompt library
+          </h1>
+          <button
+            type="button"
+            data-no-glass="true"
+            onClick={() => onSubViewChange("overview")}
+            className="h-8 rounded-[8px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] hover:border-[#0027eb]"
+          >
+            Back to overview
+          </button>
+        </div>
+
+        <div className="mx-auto max-w-[1160px] space-y-5 px-6 py-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {MCP_TODAY_PROMPTS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  className="flex flex-col justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white p-5"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f5f5fa]">
+                        <Icon className="h-4 w-4 text-[#475569]" />
+                      </span>
+                      <div>
+                        <h2 className="text-[14.5px] font-bold text-[#0F172A]">
+                          {item.title}
+                        </h2>
+                        <p className="text-[12px] text-[#64748B]">
+                          {item.meta}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="rounded-[8px] border border-[#ebebf3] bg-[#f5f5fa] p-3.5 font-mono text-[12px] leading-relaxed text-[#334155]">
+                      {item.prompt}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    data-no-glass="true"
+                    onClick={() => void copyText(item.id, item.prompt)}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white text-[13px] font-medium text-[#0F172A] hover:border-[#0F172A]/40"
+                  >
+                    {copiedId === item.id ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                        Copied prompt
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5 text-[#475569]" />
+                        Copy prompt
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {renderServerFooter()}
+        </div>
+      </div>
+    );
+  }
+
+  /* --------------------------------------------------------------------------
+     SKILL HUB SUB-VIEW
+     -------------------------------------------------------------------------- */
+  return (
+    <div className="min-h-full bg-[#f5f5fa]">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#ebebf3] bg-white px-6 py-4">
+        <h1 className="font-display text-[20px] font-bold tracking-tight text-[#0F172A]">
+          Skill Hub
+        </h1>
+        <button
+          type="button"
+          data-no-glass="true"
+          onClick={() => onSubViewChange("overview")}
+          className="h-8 rounded-[8px] border border-[#d6d6e0] bg-white px-3 text-[12.5px] font-medium text-[#0F172A] hover:border-[#0027eb]"
+        >
+          Back to overview
+        </button>
+      </div>
+
+      <div className="mx-auto max-w-[1160px] space-y-5 px-6 py-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {MCP_OVERVIEW_SKILLS.map((skill) => {
+            const Icon = skill.icon;
+            return (
+              <div
+                key={skill.id}
+                className="flex flex-col justify-between gap-4 rounded-[12px] border border-[#ebebf3] bg-white p-5"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#f5f5fa]">
+                      <Icon className="h-4 w-4 text-[#475569]" />
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#ebebf3] bg-[#f5f5fa] px-2.5 py-0.5 text-[11px] font-medium text-[#475569]">
+                      <Crown className="h-3 w-3 text-[#64748B]" />
+                      Pro Skill
+                    </span>
+                  </div>
+                  <h2 className="font-display text-[15px] font-bold text-[#0F172A]">
+                    {skill.slug}
+                  </h2>
+                  <p className="text-[12.5px] leading-relaxed text-[#475569]">
+                    {skill.summary}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {skill.tools.map((t) => (
                       <code
-                        key={tool}
-                        className="rounded-md bg-[#F3F5F9] px-2 py-0.5 text-[10.5px] font-medium text-[#334155]"
+                        key={t}
+                        className="rounded-[4px] border border-[#ebebf3] bg-[#f5f5fa] px-2 py-0.5 text-[10.5px] font-medium text-[#334155]"
                       >
-                        {tool}
+                        {t}
                       </code>
                     ))}
                   </div>
+                  <pre className="overflow-x-auto rounded-[8px] bg-[#050811] p-3 font-mono text-[11px] leading-relaxed text-[#E2E8F0]">
+                    {skill.instruction}
+                  </pre>
                 </div>
-                <h2 className="font-display text-base font-bold text-[#0F172A]">
-                  {item.title}
-                </h2>
-                <p className="rounded-2xl border border-[#ECEFF5] bg-[#FAFBFD] p-3.5 text-xs leading-relaxed text-[#334155]">
-                  {item.prompt}
-                </p>
+
+                <button
+                  type="button"
+                  data-no-glass="true"
+                  onClick={() => void copyText(skill.id, skill.instruction)}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] border border-[#d6d6e0] bg-white text-[13px] font-medium text-[#0F172A] hover:border-[#0F172A]/40"
+                >
+                  {copiedId === skill.id ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-[#0F172A]" />
+                      Copied skill
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5 text-[#475569]" />
+                      Copy skill
+                    </>
+                  )}
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => void copyText(item.id, item.prompt)}
-                className="adtrack-btn-primary inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold text-white"
-              >
-                {copiedId === item.id ? (
-                  <>
-                    <Check className="h-3.5 w-3.5" />
-                    Copied prompt
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" />
-                    Copy prompt
-                  </>
-                )}
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      )}
 
-      {/* SKILLS SUB-VIEW */}
-      {subView === "skills" && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {MCP_SKILL_HUB.map((skill) => (
-            <div
-              key={skill.id}
-              className="flex flex-col justify-between gap-4 rounded-3xl border border-[#ECEFF5] bg-white p-5 shadow-xs transition-all hover:border-[#DCE4FF]"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#0027eb]">
-                    <Tag className="h-3 w-3" />
-                    {skill.badge}
-                  </span>
-                </div>
-                <h2 className="font-display text-base font-bold text-[#0F172A]">
-                  {skill.title}
-                </h2>
-                <p className="text-xs leading-relaxed text-[#475569]">
-                  {skill.summary}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {skill.tools.map((t) => (
-                    <code
-                      key={t}
-                      className="rounded-md border border-[#E6E9F0] bg-[#FAFBFD] px-2 py-0.5 text-[10.5px] font-semibold text-[#0F172A]"
-                    >
-                      {t}
-                    </code>
-                  ))}
-                </div>
-                <pre className="overflow-x-auto rounded-2xl border border-[#E6E9F0] bg-[#050811] p-3 font-mono text-[11px] leading-relaxed text-[#E2E8F0]">
-                  {skill.instruction}
-                </pre>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => void copyText(skill.id, skill.instruction)}
-                className="adtrack-btn-primary inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold text-white"
-              >
-                {copiedId === skill.id ? (
-                  <>
-                    <Check className="h-3.5 w-3.5" />
-                    Copied skill
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" />
-                    Copy skill to clipboard
-                  </>
-                )}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+        {renderServerFooter()}
+      </div>
     </div>
   );
 }
