@@ -382,7 +382,7 @@ export const ATRIA_TRENDING_VIDEOS: AtriaTrendingVideoPlaceholder[] = [
     id: "tv-8",
     brandName: "BYLT Crew",
     brandAvatarUrl: "/atria-assets/inspo/adv-legend-london.jpg",
-    thumbnailUrl: "/atria-assets/studio/trending-video-02.jpg",
+    thumbnailUrl: "/atria-assets/studio/image-template-07.jpg",
     durationLabel: "00:10",
     activeDays: 71,
     industry: "Apparel & Accessories",
