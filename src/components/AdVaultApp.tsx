@@ -2687,23 +2687,25 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
                 }}
               />
               {boards.length > 0 && (
-                <CollectionsView
-                  boards={boards}
-                  ads={ads}
-                  brands={brands}
-                  selectedFolderId={selectedFolderId}
-                  onSelectFolder={(id) =>
-                    navigateWithSkeleton(() => setSelectedFolderId(id))
-                  }
-                  onCreateBoard={handleCreateBoard}
-                  onUpdateBoard={handleUpdateBoard}
-                  onDeleteBoard={handleDeleteBoard}
-                  onOpenShop={openShopAnalytics}
-                  onOpenAd={(ad) => setActiveAdId(ad.id)}
-                  onToggleBoard={handleToggleBoard}
-                  onAddCustomAd={handleAddCustomAd}
-                  onCloneAd={(ad) => handleCloneAdToStudio(ad)}
-                />
+                <div className="px-4 pb-6 sm:px-6">
+                  <CollectionsView
+                    boards={boards}
+                    ads={ads}
+                    brands={brands}
+                    selectedFolderId={selectedFolderId}
+                    onSelectFolder={(id) =>
+                      navigateWithSkeleton(() => setSelectedFolderId(id))
+                    }
+                    onCreateBoard={handleCreateBoard}
+                    onUpdateBoard={handleUpdateBoard}
+                    onDeleteBoard={handleDeleteBoard}
+                    onOpenShop={openShopAnalytics}
+                    onOpenAd={(ad) => setActiveAdId(ad.id)}
+                    onToggleBoard={handleToggleBoard}
+                    onAddCustomAd={handleAddCustomAd}
+                    onCloneAd={(ad) => handleCloneAdToStudio(ad)}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -2734,7 +2736,7 @@ export function AdVaultApp({ initialStatus: _initialStatus }: AdVaultAppProps) {
               VIEW 4: SNOW AI CREATIVE STRATEGIST
              ================================================================= */}
           {view === "snow" && (
-            <div className="animate-view-in min-h-full">
+            <div className="h-full">
               <SnowAssistantView
                 brandMemory={brandMemory}
                 messages={snowMessages}
