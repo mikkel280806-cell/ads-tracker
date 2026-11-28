@@ -991,7 +991,7 @@ export function SnowAssistantView({
 
   return (
     <div
-      className="relative flex h-full w-full flex-col overflow-hidden"
+      className="relative flex min-h-full w-full flex-col"
       style={{
         backgroundColor: "#f8f9fd",
         backgroundImage:
@@ -999,7 +999,7 @@ export function SnowAssistantView({
         backgroundSize: "100% 100%, 100% 100%, 28px 28px, 28px 28px",
       }}
     >
-      <div className="relative mx-auto flex h-full w-full max-w-[812px] flex-col px-4 pt-6">
+      <div className="relative mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-[812px] flex-1 flex-col px-4 pt-6">
         {/* TOP UTILITY STRIP — Atria clean inline brand selector */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <div className="relative">
@@ -1128,11 +1128,7 @@ export function SnowAssistantView({
 
         {/* MAIN CONTENT: SUB-VIEWS WHEN NO MESSAGES, OR ACTIVE CHAT THREAD */}
         {messages.length === 0 ? (
-          <div
-            className={`workspace-scroll min-h-0 flex-1 overflow-y-auto pr-0.5 ${
-              showStickyHomeComposer ? "pb-48" : "pb-10"
-            }`}
-          >
+          <div className="flex-1 pb-8">
             {activeSubView === "home" && renderHomeView()}
             {activeSubView === "new_task" && renderNewTaskView()}
             {activeSubView === "connectors" && renderConnectorsView()}
@@ -1141,7 +1137,7 @@ export function SnowAssistantView({
           </div>
         ) : (
           <>
-            <div className="workspace-scroll mb-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+            <div className="mb-4 flex-1 space-y-4">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -1203,14 +1199,16 @@ export function SnowAssistantView({
               <div ref={endRef} />
             </div>
 
-            <div className="pb-4">{renderComposer(false)}</div>
+            <div className="sticky bottom-0 z-20 -mx-2 mt-auto bg-gradient-to-t from-[#f8f9fd] via-[#f8f9fd]/95 to-transparent px-2 pt-4 pb-4">
+              {renderComposer(false)}
+            </div>
           </>
         )}
 
-        {/* BOTTOM STICKY COMPOSER ON HOME (matches live Atria Slack-bar + Composer) */}
+        {/* BOTTOM STICKY COMPOSER ON HOME (pins cleanly to bottom of viewport while scrolling) */}
         {showStickyHomeComposer && (
-          <div className="pointer-events-none absolute inset-x-4 bottom-4 z-20">
-            <div className="pointer-events-auto">{renderComposer(true)}</div>
+          <div className="sticky bottom-0 z-20 -mx-2 mt-auto bg-gradient-to-t from-[#f8f9fd] via-[#f8f9fd]/95 to-transparent px-2 pt-5 pb-4">
+            {renderComposer(true)}
           </div>
         )}
       </div>
@@ -2237,7 +2235,7 @@ export function SnowQuickDrawer({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="workspace-scroll min-h-0 flex-1 overflow-y-auto">
           <SnowAssistantView {...props} />
         </div>
       </div>
